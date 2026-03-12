@@ -1,0 +1,442 @@
+time=2026-02-19T16:47:19.104-07:00 level=INFO msg="Daemon started (interval: %v, auto-commit: %v, auto-push: %v)" !BADKEY=5s !BADKEY=false !BADKEY=false
+time=2026-02-19T16:47:19.104-07:00 level=INFO msg="using database" path=/Users/dominic/repos/github.com/dsisnero/webb/.beads/beads.db
+time=2026-02-19T16:47:19.126-07:00 level=INFO msg="database opened" path=/Users/dominic/repos/github.com/dsisnero/webb/.beads/beads.db backend=sqlite freshness_checking=true
+time=2026-02-19T16:47:19.126-07:00 level=INFO msg="upgrading .beads/.gitignore"
+time=2026-02-19T16:47:19.126-07:00 level=WARN msg="failed to upgrade .gitignore" error="open .beads/.gitignore: no such file or directory"
+time=2026-02-19T16:47:19.138-07:00 level=INFO msg="Repository fingerprint validated: %s" !BADKEY=fd9bc53c
+time=2026-02-19T16:47:19.138-07:00 level=INFO msg="starting RPC server" socket=/Users/dominic/repos/github.com/dsisnero/webb/.beads/bd.sock
+time=2026-02-19T16:47:19.139-07:00 level=INFO msg="RPC server ready (socket listening)"
+time=2026-02-19T16:47:19.145-07:00 level=INFO msg="registered in global registry"
+time=2026-02-19T16:47:19.145-07:00 level=INFO msg="Starting %s..." !BADKEY="sync cycle"
+time=2026-02-19T16:47:19.146-07:00 level=INFO msg="Exported to JSONL"
+time=2026-02-19T16:47:19.176-07:00 level=INFO msg="Imported from JSONL"
+time=2026-02-19T16:47:19.193-07:00 level=INFO msg="Sync cycle complete"
+time=2026-02-19T16:47:19.193-07:00 level=INFO msg="monitoring parent process" pid=0
+time=2026-02-19T16:47:19.193-07:00 level=INFO msg="using event-driven mode"
+time=2026-02-19T16:47:19.194-07:00 level=INFO msg="Auto-pull disabled: use 'git pull' manually to sync remote changes"
+time=2026-02-19T16:47:19.196-07:00 level=INFO msg="Mutation detected: %s %s" create=webb-aty
+time=2026-02-19T16:47:19.697-07:00 level=INFO msg="Export triggered by mutation events"
+time=2026-02-19T16:47:19.697-07:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-02-19T16:47:19.698-07:00 level=INFO msg="Pre-export validation failed: %v" !BADKEY="refusing to export: JSONL content has changed since last import (import first to avoid data loss)"
+time=2026-02-19T16:47:23.946-07:00 level=INFO msg="Mutation detected: %s %s" create=webb-dv4
+time=2026-02-19T16:47:24.446-07:00 level=INFO msg="Export triggered by mutation events"
+time=2026-02-19T16:47:24.446-07:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-02-19T16:47:24.447-07:00 level=INFO msg="Pre-export validation failed: %v" !BADKEY="refusing to export: JSONL content has changed since last import (import first to avoid data loss)"
+time=2026-02-19T16:47:29.595-07:00 level=INFO msg="Mutation detected: %s %s" create=webb-gmb
+time=2026-02-19T16:47:30.096-07:00 level=INFO msg="Export triggered by mutation events"
+time=2026-02-19T16:47:30.096-07:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-02-19T16:47:30.096-07:00 level=INFO msg="Pre-export validation failed: %v" !BADKEY="refusing to export: JSONL content has changed since last import (import first to avoid data loss)"
+time=2026-02-19T16:47:34.033-07:00 level=INFO msg="Mutation detected: %s %s" status=webb-gmb
+time=2026-02-19T16:47:34.534-07:00 level=INFO msg="Export triggered by mutation events"
+time=2026-02-19T16:47:34.534-07:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-02-19T16:47:34.534-07:00 level=INFO msg="Pre-export validation failed: %v" !BADKEY="refusing to export: JSONL content has changed since last import (import first to avoid data loss)"
+time=2026-02-19T16:47:38.001-07:00 level=INFO msg="Mutation detected: %s %s" status=webb-aty
+time=2026-02-19T16:47:38.502-07:00 level=INFO msg="Export triggered by mutation events"
+time=2026-02-19T16:47:38.502-07:00 level=INFO msg="Starting %s..." !BADKEY=export
+time=2026-02-19T16:47:38.503-07:00 level=INFO msg="Pre-export validation failed: %v" !BADKEY="refusing to export: JSONL content has changed since last import (import first to avoid data loss)"
+time=2026-02-19T16:47:49.817-07:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.git/refs/heads/main.lock
+time=2026-02-19T16:47:50.759-07:00 level=INFO msg="JSONL removed/renamed, re-establishing watch"
+time=2026-02-19T16:47:50.809-07:00 level=INFO msg="Successfully re-established JSONL watch after %v" !BADKEY=50ms
+time=2026-02-19T16:47:50.809-07:00 level=INFO msg="JSONL file created: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:47:50.818-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:47:50.818-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:47:50.821-07:00 level=INFO msg="JSONL content changed, proceeding with %s..." !BADKEY=auto-import
+time=2026-02-19T16:47:50.829-07:00 level=INFO msg="⚠️  WARNING: Uncommitted local changes detected in %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:47:50.829-07:00 level=INFO msg="   Pulling from remote may overwrite local unpushed changes."
+time=2026-02-19T16:47:50.829-07:00 level=INFO msg="   Consider running 'bd sync' to commit and push your changes first."
+time=2026-02-19T16:47:50.841-07:00 level=INFO msg="Imported from JSONL"
+time=2026-02-19T16:47:50.841-07:00 level=INFO msg="Auto-import complete"
+time=2026-02-19T16:47:51.055-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:47:52.057-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:47:52.057-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:47:52.061-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:47:53.488-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:47:54.489-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:47:54.490-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:47:54.490-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:47:58.144-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:47:59.145-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:47:59.146-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:47:59.146-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:48:03.171-07:00 level=INFO msg="JSONL removed/renamed, re-establishing watch"
+time=2026-02-19T16:48:03.223-07:00 level=INFO msg="Successfully re-established JSONL watch after %v" !BADKEY=50ms
+time=2026-02-19T16:48:03.223-07:00 level=INFO msg="JSONL file created: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:48:03.256-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:48:04.257-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:48:04.257-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:48:04.258-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:08.640-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:09.642-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:09.642-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:09.642-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:12.500-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:13.501-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:13.501-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:13.502-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:17.144-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:18.145-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:18.145-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:18.145-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:20.818-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:21.819-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:21.820-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:21.820-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:25.488-07:00 level=INFO msg="JSONL removed/renamed, re-establishing watch"
+time=2026-02-19T16:49:25.539-07:00 level=INFO msg="Successfully re-established JSONL watch after %v" !BADKEY=50ms
+time=2026-02-19T16:49:25.539-07:00 level=INFO msg="JSONL file created: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:25.763-07:00 level=INFO msg="Git ref change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.git/refs/heads/main.lock
+time=2026-02-19T16:49:25.937-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:26.944-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:26.944-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:26.947-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:29.480-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:30.482-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:30.482-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:30.482-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:33.122-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:34.124-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:34.124-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:34.125-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:37.940-07:00 level=INFO msg="JSONL removed/renamed, re-establishing watch"
+time=2026-02-19T16:49:37.991-07:00 level=INFO msg="Successfully re-established JSONL watch after %v" !BADKEY=50ms
+time=2026-02-19T16:49:37.991-07:00 level=INFO msg="JSONL file created: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:38.377-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:39.378-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:39.378-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:39.381-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:42.595-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:43.598-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:43.598-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:43.598-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:49:53.668-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:49:54.668-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:49:54.669-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:49:54.669-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T16:50:06.133-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T16:50:07.135-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T16:50:07.136-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T16:50:07.136-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:58:45.504-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:58:46.506-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:58:46.506-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:58:46.506-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:58:50.116-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:58:51.117-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:58:51.117-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:58:51.118-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:58:54.335-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:58:55.337-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:58:55.337-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:58:55.338-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:58:58.346-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:58:59.348-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:58:59.348-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:58:59.349-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:59:01.338-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:59:02.341-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:59:02.341-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:59:02.341-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T18:59:07.003-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T18:59:08.005-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T18:59:08.005-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T18:59:08.006-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:21.452-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:22.454-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:22.454-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:22.455-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:29.364-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:30.367-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:30.367-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:30.367-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:32.461-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:33.463-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:33.463-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:33.463-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:41.060-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:42.061-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:42.062-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:42.062-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:45.946-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:46.948-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:46.948-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:46.949-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:02:52.332-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:02:53.333-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:02:53.333-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:02:53.333-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:00.654-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:01.656-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:01.656-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:01.656-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:09.805-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:10.807-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:10.808-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:10.808-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:14.864-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:15.866-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:15.867-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:15.867-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:19.924-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:20.925-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:20.926-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:20.926-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:26.785-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:27.786-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:27.787-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:27.787-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:34.218-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:35.220-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:35.220-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:35.221-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:39.599-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:40.600-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:40.600-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:40.601-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:46.471-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:47.473-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:47.473-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:47.473-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:03:56.610-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:03:57.612-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:03:57.612-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:03:57.612-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:02.890-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:03.893-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:03.893-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:03.893-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:11.573-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:12.575-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:12.576-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:12.576-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:36.136-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:37.139-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:37.139-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:37.139-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:43.832-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:44.834-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:44.834-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:44.835-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:49.636-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:50.638-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:50.638-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:50.638-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:04:55.310-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:04:56.312-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:04:56.312-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:04:56.312-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:00.334-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:01.334-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:01.335-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:01.335-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:07.629-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:08.631-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:08.631-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:08.632-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:15.070-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:16.072-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:16.072-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:16.073-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:20.267-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:21.269-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:21.269-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:21.269-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:24.523-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:25.525-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:25.525-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:25.525-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:30.655-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:31.656-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:31.657-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:31.657-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:34.932-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:35.934-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:35.934-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:35.934-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:39.217-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:40.219-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:40.219-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:40.220-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:43.568-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:44.570-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:44.570-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:44.570-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:50.006-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:51.008-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:51.008-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:51.009-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:05:55.577-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:05:56.578-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:05:56.578-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:05:56.578-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:06.574-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:07.576-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:07.576-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:07.576-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:11.456-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:12.458-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:12.458-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:12.459-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:35.891-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:36.893-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:36.893-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:36.893-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:42.820-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:43.822-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:43.822-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:43.823-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:50.805-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:51.808-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:51.808-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:51.808-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:06:55.079-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:06:56.081-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:06:56.081-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:06:56.081-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:01.061-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:02.064-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:02.064-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:02.064-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:06.306-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:07.307-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:07.307-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:07.307-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:16.384-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:17.385-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:17.385-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:17.385-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:26.731-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:27.733-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:27.733-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:27.733-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:36.936-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:37.938-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:37.938-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:37.938-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:40.924-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:41.926-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:41.926-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:41.927-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:44.353-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:45.355-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:45.356-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:45.356-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:51.724-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:07:52.726-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:07:52.727-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:07:52.727-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:07:59.020-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:00.024-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:00.024-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:00.025-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:04.365-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:05.366-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:05.367-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:05.367-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:08.915-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:09.916-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:09.916-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:09.917-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:31.658-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:32.659-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:32.660-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:32.660-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:43.103-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:44.105-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:44.105-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:44.106-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:49.530-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:50.532-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:50.532-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:50.532-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:55.360-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:08:56.362-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:08:56.363-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:08:56.363-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:08:59.771-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:00.772-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:00.772-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:00.773-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:10.985-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:11.988-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:11.988-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:11.988-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:20.536-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:21.538-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:21.538-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:21.538-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:24.893-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:25.894-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:25.895-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:25.895-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:29.958-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:30.960-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:30.960-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:30.961-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:34.115-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:35.116-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:35.117-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:35.117-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:40.564-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:41.565-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:41.566-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:41.566-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:46.852-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:47.854-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:47.854-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:47.854-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:09:57.970-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:09:58.972-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:09:58.973-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:09:58.973-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:10:03.338-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:10:04.340-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:10:04.340-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:10:04.340-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:10:41.510-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:10:42.512-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:10:42.512-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:10:42.512-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:08.185-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:09.187-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:09.187-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:09.188-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:14.964-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:15.965-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:15.965-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:15.965-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:20.918-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:21.920-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:21.920-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:21.920-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:25.054-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:26.056-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:26.056-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:26.056-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:29.815-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:30.817-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:30.817-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:30.817-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:34.340-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:35.342-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:35.342-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:35.342-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:39.822-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:40.823-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:40.824-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:40.824-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:50.795-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:51.796-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:51.797-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:51.797-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:11:56.452-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:11:57.454-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:11:57.454-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:11:57.454-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:12:05.374-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:12:06.375-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:12:06.376-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:12:06.376-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
+time=2026-02-19T19:12:21.629-07:00 level=INFO msg="File change detected: %s" !BADKEY=/Users/dominic/repos/github.com/dsisnero/webb/.beads/issues.jsonl
+time=2026-02-19T19:12:22.631-07:00 level=INFO msg="Import triggered by file change"
+time=2026-02-19T19:12:22.631-07:00 level=INFO msg="Starting %s..." !BADKEY=auto-import
+time=2026-02-19T19:12:22.631-07:00 level=INFO msg="Skipping %s: JSONL content unchanged" !BADKEY=auto-import
