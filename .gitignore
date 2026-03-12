@@ -1,8 +1,8 @@
-/docs/
 /lib/
 /bin/
 /.shards/
 *.dwarf
+.crystal-cache/
 
 # Dolt database files (added by bd init)
 .dolt/

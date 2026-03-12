@@ -2,7 +2,7 @@
 
 **This is a Crystal port of [Rodney](https://github.com/simonw/rodney)**, a CLI tool for Chrome automation from the command line.
 
-The original Go source code is available as a git submodule in the `vendor/` directory (commit `9e7ae93900bcb5316d02623706bc8861feec836f`, tag v0.4.0).
+The original Go source code is available as a git submodule in `vendor/rodney` (commit `9e7ae93900bcb5316d02623706bc8861feec836f`, tag v0.4.0).
 
 ## Overview
 
