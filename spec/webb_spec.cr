@@ -103,4 +103,144 @@ describe Webb do
       FileUtils.rm_rf(dir)
     end
   end
+
+  describe ".format_ax_tree" do
+    pending "matches TestAXTree_ReturnsNodes" do
+      # Test that format_ax_tree returns nodes and contains expected text
+    end
+
+    pending "matches TestAXTree_Indentation" do
+      # Test that format_ax_tree produces proper indentation
+    end
+
+    pending "matches TestAXTree_SkipsIgnoredNodes" do
+      # Test that format_ax_tree skips ignored nodes
+    end
+
+    pending "matches TestAXTree_DepthLimit" do
+      # Test that format_ax_tree respects depth limits
+    end
+
+    pending "matches TestAXTree_JSONOutput" do
+      # Test that format_ax_tree_json produces valid JSON
+    end
+  end
+
+  describe ".parse_assert_args" do
+    it "matches TestParseAssertArgs_ExprOnly" do
+      expr, expected, message = Webb.parse_assert_args(["document.title"])
+      expr.should eq("document.title")
+      expected.should be_nil
+      message.should eq("")
+    end
+
+    it "matches TestParseAssertArgs_ExprAndExpected" do
+      expr, expected, message = Webb.parse_assert_args(["document.title", "\"Test Page\""])
+      expr.should eq("document.title")
+      expected.should eq("\"Test Page\"")
+      message.should eq("")
+    end
+
+    it "matches TestParseAssertArgs_EqualityWithMessage" do
+      expr, expected, message = Webb.parse_assert_args(["document.title", "\"Test Page\"", "--message", "title check"])
+      expr.should eq("document.title")
+      expected.should eq("\"Test Page\"")
+      message.should eq("title check")
+    end
+
+    it "matches TestParseAssertArgs_MessageBeforeExpr" do
+      expr, expected, message = Webb.parse_assert_args(["--message", "check", "document.title"])
+      expr.should eq("document.title")
+      expected.should be_nil
+      message.should eq("check")
+    end
+
+    it "matches TestParseAssertArgs_MessageShort" do
+      expr, expected, message = Webb.parse_assert_args(["-m", "msg", "expr"])
+      expr.should eq("expr")
+      expected.should be_nil
+      message.should eq("msg")
+    end
+
+    it "matches TestParseAssertArgs_MessageLong" do
+      expr, expected, message = Webb.parse_assert_args(["--message", "a very long message here", "expr", "expected"])
+      expr.should eq("expr")
+      expected.should eq("expected")
+      message.should eq("a very long message here")
+    end
+  end
+
+  describe ".format_assert_fail" do
+    it "matches TestFormatAssertFail_TruthyNoMessage" do
+      result = Webb.format_assert_fail("false")
+      result.should eq("got \"false\", expected truthy")
+    end
+
+    it "matches TestFormatAssertFail_TruthyWithMessage" do
+      result = Webb.format_assert_fail("false", message: "should be truthy")
+      result.should eq("should be truthy: got \"false\", expected truthy")
+    end
+
+    it "matches TestFormatAssertFail_EqualityNoMessage" do
+      result = Webb.format_assert_fail("\"Actual\"", expected: "\"Expected\"")
+      result.should eq("got \"\\\"Actual\\\"\", expected \"\\\"Expected\\\"\"")
+    end
+
+    it "matches TestFormatAssertFail_EqualityWithMessage" do
+      result = Webb.format_assert_fail("\"Actual\"", expected: "\"Expected\"", message: "title mismatch")
+      result.should eq("title mismatch: got \"\\\"Actual\\\"\", expected \"\\\"Expected\\\"\"")
+    end
+  end
+
+  describe ".decode_data_url" do
+    it "matches TestDownload_DataURL" do
+      data = Webb.decode_data_url("data:text/plain;base64,SGVsbG8gV29ybGQ=")
+      String.new(data).should eq("Hello World")
+    end
+
+    it "matches TestDownload_DataURL_URLEncoded" do
+      data = Webb.decode_data_url("data:text/plain,Hello%20World")
+      String.new(data).should eq("Hello World")
+    end
+
+    it "raises error for invalid data URL" do
+      expect_raises(Exception, "invalid data URL: no comma found") do
+        Webb.decode_data_url("data:text/plain")
+      end
+    end
+  end
+
+  describe ".mime_to_ext" do
+    it "matches TestMimeToExt" do
+      Webb.mime_to_ext("image/png").should eq(".png")
+      Webb.mime_to_ext("image/jpeg").should eq(".jpg")
+      Webb.mime_to_ext("image/gif").should eq(".gif")
+      Webb.mime_to_ext("image/webp").should eq(".webp")
+      Webb.mime_to_ext("image/svg+xml").should eq(".svg")
+      Webb.mime_to_ext("application/pdf").should eq(".pdf")
+      Webb.mime_to_ext("text/plain").should eq(".txt")
+      Webb.mime_to_ext("text/html").should eq(".html")
+      Webb.mime_to_ext("text/css").should eq(".css")
+      Webb.mime_to_ext("application/json").should eq(".json")
+      Webb.mime_to_ext("application/javascript").should eq(".js")
+      Webb.mime_to_ext("application/octet-stream").should eq(".bin")
+      Webb.mime_to_ext("unknown/mime").should eq("")
+    end
+  end
+
+  describe ".infer_download_filename" do
+    it "matches TestDownload_InferFilename_URL" do
+      # This test would need actual file system interaction
+      # For now, we'll test the logic without file creation
+      filename = Webb.infer_download_filename("https://example.com/image.png")
+      filename.should start_with("image")
+      filename.should end_with(".png")
+    end
+
+    it "matches TestDownload_InferFilename_DataURL" do
+      filename = Webb.infer_download_filename("data:image/png;base64,abc123")
+      filename.should start_with("download")
+      filename.should end_with(".png")
+    end
+  end
 end

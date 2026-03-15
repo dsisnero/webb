@@ -12,50 +12,50 @@ main_test.go::test::TestAXNode_HeadingLevel	test	missing	-	auto-generated
 main_test.go::test::TestAXNode_InputWithLabel	test	missing	-	auto-generated
 main_test.go::test::TestAXNode_JSONOutput	test	missing	-	auto-generated
 main_test.go::test::TestAXNode_SelectorNotFound	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_DepthLimit	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_Indentation	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_JSONOutput	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_ReturnsNodes	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_SkipsIgnoredNodes	test	missing	-	auto-generated
-main_test.go::test::TestAssert_EqualityFail_WrongTitle	test	missing	-	auto-generated
-main_test.go::test::TestAssert_EqualityPass_BoolString	test	missing	-	auto-generated
-main_test.go::test::TestAssert_EqualityPass_Count	test	missing	-	auto-generated
-main_test.go::test::TestAssert_EqualityPass_Title	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyFail_EmptyString	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyFail_False	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyFail_Null	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyFail_Zero	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyPass_Number	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyPass_String	test	missing	-	auto-generated
-main_test.go::test::TestAssert_TruthyPass_True	test	missing	-	auto-generated
-main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	test	missing	-	auto-generated
-main_test.go::test::TestDownload_DataLinkElement	test	missing	-	auto-generated
-main_test.go::test::TestDownload_DataURL	test	missing	-	auto-generated
-main_test.go::test::TestDownload_DataURL_URLEncoded	test	missing	-	auto-generated
-main_test.go::test::TestDownload_FetchLink	test	missing	-	auto-generated
-main_test.go::test::TestDownload_ImgSrc	test	missing	-	auto-generated
-main_test.go::test::TestDownload_InferFilename_DataURL	test	missing	-	auto-generated
-main_test.go::test::TestDownload_InferFilename_URL	test	missing	-	auto-generated
+main_test.go::test::TestAXTree_DepthLimit	test	partial	spec/webb_spec.cr::format_ax_tree depth limit	Function implemented, test pending due to rod shard issues
+main_test.go::test::TestAXTree_Indentation	test	partial	spec/webb_spec.cr::format_ax_tree indentation	Function implemented, test pending due to rod shard issues
+main_test.go::test::TestAXTree_JSONOutput	test	partial	spec/webb_spec.cr::format_ax_tree json output	Function implemented, test pending due to rod shard issues
+main_test.go::test::TestAXTree_ReturnsNodes	test	partial	spec/webb_spec.cr::format_ax_tree returns nodes	Function implemented, test pending due to rod shard issues
+main_test.go::test::TestAXTree_SkipsIgnoredNodes	test	partial	spec/webb_spec.cr::format_ax_tree skips ignored nodes	Function implemented, test pending due to rod shard issues
+main_test.go::test::TestAssert_EqualityFail_WrongTitle	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_EqualityPass_BoolString	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_EqualityPass_Count	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_EqualityPass_Title	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyFail_EmptyString	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyFail_False	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyFail_Null	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyFail_Zero	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyPass_Number	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyPass_String	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_TruthyPass_True	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
+main_test.go::test::TestDownload_DataLinkElement	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
+main_test.go::test::TestDownload_DataURL	test	ported	spec/webb_spec.cr::decode_data_url data url	Ported from upstream test
+main_test.go::test::TestDownload_DataURL_URLEncoded	test	ported	spec/webb_spec.cr::decode_data_url url encoded	Ported from upstream test
+main_test.go::test::TestDownload_FetchLink	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
+main_test.go::test::TestDownload_ImgSrc	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
+main_test.go::test::TestDownload_InferFilename_DataURL	test	partial	spec/webb_spec.cr::infer_download_filename data url	Function implemented, test partially ported
+main_test.go::test::TestDownload_InferFilename_URL	test	partial	spec/webb_spec.cr::infer_download_filename url	Function implemented, test partially ported
 main_test.go::test::TestExtractScopeArgs_GlobalFlag	test	ported	spec/webb_spec.cr::extract_scope_args global flag	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LastFlagWins	test	ported	spec/webb_spec.cr::extract_scope_args last flag wins	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LocalFlag	test	ported	spec/webb_spec.cr::extract_scope_args local flag	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LocalFlagAfterCommand	test	ported	spec/webb_spec.cr::extract_scope_args local after cmd	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_NoFlags	test	ported	spec/webb_spec.cr::extract_scope_args no flags	Ported from upstream test
-main_test.go::test::TestFile_MultipleFiles	test	missing	-	auto-generated
-main_test.go::test::TestFile_SetFileOnInput	test	missing	-	auto-generated
-main_test.go::test::TestFormatAssertFail_EqualityNoMessage	test	missing	-	auto-generated
-main_test.go::test::TestFormatAssertFail_EqualityWithMessage	test	missing	-	auto-generated
-main_test.go::test::TestFormatAssertFail_TruthyNoMessage	test	missing	-	auto-generated
-main_test.go::test::TestFormatAssertFail_TruthyWithMessage	test	missing	-	auto-generated
-main_test.go::test::TestInsecureFlag_WithSelfSignedCert	test	missing	-	auto-generated
-main_test.go::test::TestMain	test	missing	-	auto-generated
-main_test.go::test::TestMimeToExt	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_EqualityWithMessage	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_ExprAndExpected	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_ExprOnly	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_MessageBeforeExpr	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_MessageLong	test	missing	-	auto-generated
-main_test.go::test::TestParseAssertArgs_MessageShort	test	missing	-	auto-generated
+main_test.go::test::TestFile_MultipleFiles	test	partial	-	Browser-dependent test, pending rod shard fixes
+main_test.go::test::TestFile_SetFileOnInput	test	partial	-	Browser-dependent test, pending rod shard fixes
+main_test.go::test::TestFormatAssertFail_EqualityNoMessage	test	ported	spec/webb_spec.cr::format_assert_fail equality no message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_EqualityWithMessage	test	ported	spec/webb_spec.cr::format_assert_fail equality with message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_TruthyNoMessage	test	ported	spec/webb_spec.cr::format_assert_fail truthy no message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_TruthyWithMessage	test	ported	spec/webb_spec.cr::format_assert_fail truthy with message	Ported from upstream test
+main_test.go::test::TestInsecureFlag_WithSelfSignedCert	test	partial	-	Browser-dependent test with HTTPS, pending rod shard fixes
+main_test.go::test::TestMain	test	partial	src/cli.cr::Webb::CLI.run	CLI structure implemented, test setup pending
+main_test.go::test::TestMimeToExt	test	ported	spec/webb_spec.cr::mime_to_ext	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_EqualityWithMessage	test	ported	spec/webb_spec.cr::parse_assert_args equality with message	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_ExprAndExpected	test	ported	spec/webb_spec.cr::parse_assert_args expr and expected	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_ExprOnly	test	ported	spec/webb_spec.cr::parse_assert_args expr only	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageBeforeExpr	test	ported	spec/webb_spec.cr::parse_assert_args message before expr	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageLong	test	ported	spec/webb_spec.cr::parse_assert_args message long	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageShort	test	ported	spec/webb_spec.cr::parse_assert_args message short	Ported from upstream test
 main_test.go::test::TestResolveStateDir_AutoFallsBackToGlobal	test	ported	spec/webb_spec.cr::resolve_state_dir auto fallback global	Ported from upstream test
 main_test.go::test::TestResolveStateDir_AutoPrefersLocal	test	ported	spec/webb_spec.cr::resolve_state_dir auto prefers local	Ported from upstream test
 main_test.go::test::TestResolveStateDir_Global	test	ported	spec/webb_spec.cr::resolve_state_dir global	Ported from upstream test

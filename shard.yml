@@ -6,7 +6,7 @@ authors:
 
 targets:
   webb:
-    main: src/webb.cr
+    main: src/main.cr
 
 crystal: '>= 1.19.1'
 
@@ -14,7 +14,7 @@ license: MIT
 
 dependencies:
   rod:
-    path: ./lib/rod
+    github: dsisnero/rod
 
 development_dependencies:
   ameba:
