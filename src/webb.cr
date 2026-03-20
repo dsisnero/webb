@@ -28,6 +28,17 @@ module Webb
     property proxy_pid : Int32? = nil
     @[JSON::Field(key: "proxy_port")]
     property proxy_port : Int32? = nil
+
+    def initialize(
+      *,
+      @debug_url : String = "",
+      @chrome_pid : Int32 = 0,
+      @active_page : Int32 = 0,
+      @data_dir : String = "",
+      @proxy_pid : Int32? = nil,
+      @proxy_port : Int32? = nil,
+    )
+    end
   end
 
   @@active_state_dir : String? = nil

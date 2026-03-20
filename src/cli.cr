@@ -266,8 +266,42 @@ module Webb
     end
 
     private def self.cmd_connect(args : Array(String))
-      STDERR.puts "Browser connect not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb connect <host:port>")
+      end
+      hostport = args[0]
+      unless hostport.includes?(":")
+        Webb.fatal("argument must be host:port (e.g. localhost:9222): #{hostport}")
+      end
+
+      # Fetch the WebSocket debugger URL from Chrome's /json/version endpoint
+      response = HTTP::Client.get("http://#{hostport}/json/version")
+      unless response.success?
+        Webb.fatal("could not reach browser at #{hostport}")
+      end
+
+      body = JSON.parse(response.body)
+      ws_url = body["webSocketDebuggerUrl"]?.try(&.as_s)
+      if ws_url.nil? || ws_url.empty?
+        Webb.fatal("unexpected response from browser at #{hostport}")
+      end
+
+      # Verify the connection works
+      browser = Rod::Browser.new.control_url(ws_url)
+      browser.connect
+
+      state = Webb::State.new(
+        debug_url: ws_url,
+        chrome_pid: 0,
+        active_page: 0,
+        data_dir: "",
+        proxy_pid: nil,
+        proxy_port: nil
+      )
+      Webb.save_state(state)
+
+      puts "Connected to browser at #{hostport}"
+      puts "Debug URL: #{ws_url}"
     end
 
     private def self.cmd_stop(args : Array(String))
@@ -287,7 +321,7 @@ module Webb
         # If we can't connect, try to kill the process
         if state.chrome_pid > 0
           begin
-            Process.kill(Signal::TERM, state.chrome_pid)
+            Process.new(state.chrome_pid).signal(Signal::TERM)
             puts "Sent TERM signal to browser process #{state.chrome_pid}"
           rescue
             puts "Could not terminate browser process #{state.chrome_pid}"
@@ -300,7 +334,7 @@ module Webb
       # Remove proxy if running
       if proxy_pid = state.proxy_pid
         begin
-          Process.kill(Signal::TERM, proxy_pid)
+          Process.new(proxy_pid).signal(Signal::TERM)
           puts "Stopped proxy (PID #{proxy_pid})"
         rescue
           # Ignore if proxy already dead
@@ -375,123 +409,288 @@ module Webb
     end
 
     private def self.cmd_back(args : Array(String))
-      STDERR.puts "Browser back not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      page.navigate_back
+      page.wait_load
+      info = page.info
+      puts info.url
     end
 
     private def self.cmd_forward(args : Array(String))
-      STDERR.puts "Browser forward not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      page.navigate_forward
+      page.wait_load
+      info = page.info
+      puts info.url
     end
 
     private def self.cmd_reload(args : Array(String))
-      STDERR.puts "Browser reload not implemented (requires rod shard)"
-      exit 1
+      hard = args.includes?("--hard")
+      _, _, page = Webb.with_page
+      if hard
+        Cdp::Page::Reload.new(true, nil, nil).call(page)
+      else
+        page.reload
+      end
+      page.wait_load
+      puts "Reloaded"
     end
 
     private def self.cmd_clear_cache(args : Array(String))
-      STDERR.puts "Browser clear-cache not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      Cdp::Network::ClearBrowserCache.new.call(page)
+      puts "Browser cache cleared"
     end
 
     private def self.cmd_url(args : Array(String))
-      STDERR.puts "Browser url not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      info = page.info
+      puts info.url
     end
 
     private def self.cmd_title(args : Array(String))
-      STDERR.puts "Browser title not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      info = page.info
+      puts info.title
     end
 
     private def self.cmd_html(args : Array(String))
-      STDERR.puts "Browser html not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      if args.size > 0
+        el = page.element(args[0])
+        puts el.html
+      else
+        result = page.eval("() => document.documentElement.outerHTML")
+        puts result.value.try(&.to_s) || ""
+      end
     end
 
     private def self.cmd_text(args : Array(String))
-      STDERR.puts "Browser text not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb text <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      puts el.text
     end
 
     private def self.cmd_attr(args : Array(String))
-      STDERR.puts "Browser attr not implemented (requires rod shard)"
-      exit 1
+      if args.size < 2
+        Webb.fatal("usage: webb attr <selector> <attribute>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      val = el.attribute(args[1])
+      if val.nil?
+        Webb.fatal("attribute #{args[1].inspect} not found")
+      end
+      puts val
     end
 
     private def self.cmd_pdf(args : Array(String))
-      STDERR.puts "Browser pdf not implemented (requires rod shard)"
-      exit 1
+      file = "page.pdf"
+      if args.size > 0
+        file = args[0]
+      end
+      _, _, page = Webb.with_page
+      reader = page.pdf
+      buf = IO::Memory.new
+      IO.copy(reader, buf)
+      File.write(file, buf.to_slice)
+      puts "Saved #{file} (#{buf.size} bytes)"
     end
 
     private def self.cmd_js(args : Array(String))
-      STDERR.puts "Browser js not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb js <expression>")
+      end
+      expr = args.join(" ")
+      _, _, page = Webb.with_page
+      result = page.eval("() => { return (#{expr}); }")
+      puts Webb.format_js_result(result)
     end
 
     private def self.cmd_click(args : Array(String))
-      STDERR.puts "Browser click not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb click <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      el.click
+      sleep 100.milliseconds
+      puts "Clicked"
     end
 
     private def self.cmd_input(args : Array(String))
-      STDERR.puts "Browser input not implemented (requires rod shard)"
-      exit 1
+      if args.size < 2
+        Webb.fatal("usage: webb input <selector> <text>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      text = args[1..].join(" ")
+      el.select_all_text
+      el.input(text)
+      puts "Typed: #{text}"
     end
 
     private def self.cmd_clear(args : Array(String))
-      STDERR.puts "Browser clear not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb clear <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      el.select_all_text
+      el.input("")
+      puts "Cleared"
     end
 
     private def self.cmd_select(args : Array(String))
-      STDERR.puts "Browser select not implemented (requires rod shard)"
-      exit 1
+      if args.size < 2
+        Webb.fatal("usage: webb select <selector> <value>")
+      end
+      _, _, page = Webb.with_page
+      js = <<-JS
+        () => {
+          const el = document.querySelector("#{args[0]}");
+          if (!el) throw new Error('element not found');
+          el.value = "#{args[1]}";
+          el.dispatchEvent(new Event('change', {bubbles: true}));
+          return el.value;
+        }
+      JS
+      result = page.eval(js)
+      puts "Selected: #{result.value.try(&.to_s) || args[1]}"
     end
 
     private def self.cmd_submit(args : Array(String))
-      STDERR.puts "Browser submit not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb submit <selector>")
+      end
+      _, _, page = Webb.with_page
+      page.element(args[0]) # verify element exists
+      page.eval("() => document.querySelector(\"#{args[0]}\").submit()")
+      puts "Submitted"
     end
 
     private def self.cmd_hover(args : Array(String))
-      STDERR.puts "Browser hover not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb hover <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      el.hover
+      puts "Hovered"
     end
 
     private def self.cmd_file(args : Array(String))
-      STDERR.puts "Browser file not implemented (requires rod shard)"
-      exit 1
+      if args.size < 2
+        Webb.fatal("usage: webb file <selector> <path|->")
+      end
+      selector = args[0]
+      file_path = args[1]
+
+      _, _, page = Webb.with_page
+      el = page.element(selector)
+
+      if file_path == "-"
+        data = STDIN.gets_to_end.to_slice
+        tmp = File.tempname("webb-upload-")
+        File.write(tmp, data)
+        el.set_files([tmp])
+      else
+        unless File.exists?(file_path)
+          Webb.fatal("file not found: #{file_path}")
+        end
+        el.set_files([File.expand_path(file_path)])
+      end
+      puts "Set file: #{args[1]}"
     end
 
     private def self.cmd_download(args : Array(String))
-      STDERR.puts "Browser download not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb download <selector> [file|-]")
+      end
+      selector = args[0]
+      out_file = args.size > 1 ? args[1] : ""
+
+      _, _, page = Webb.with_page
+      el = page.element(selector)
+
+      url_str = el.attribute("href") || el.attribute("src")
+      if url_str.nil?
+        Webb.fatal("element has no href or src attribute")
+      end
+
+      data : Bytes
+      if url_str.starts_with?("data:")
+        data = Webb.decode_data_url(url_str)
+      else
+        js = <<-JS
+          async () => {
+            const resp = await fetch(#{url_str.to_json});
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const buf = await resp.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+          }
+        JS
+        result = page.eval(js)
+        data = Base64.decode(result.value.try(&.as_s) || "")
+      end
+
+      if out_file == "-"
+        STDOUT.write(data)
+        return
+      end
+
+      if out_file.empty?
+        out_file = Webb.infer_download_filename(url_str)
+      end
+
+      File.write(out_file, data)
+      puts "Saved #{out_file} (#{data.size} bytes)"
     end
 
     private def self.cmd_focus(args : Array(String))
-      STDERR.puts "Browser focus not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb focus <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      el.focus
+      puts "Focused"
     end
 
     private def self.cmd_wait(args : Array(String))
-      STDERR.puts "Browser wait not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb wait <selector>")
+      end
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      el.wait_visible
+      puts "Element visible"
     end
 
     private def self.cmd_wait_load(args : Array(String))
-      STDERR.puts "Browser waitload not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      page.wait_load
+      puts "Page loaded"
     end
 
     private def self.cmd_wait_stable(args : Array(String))
-      STDERR.puts "Browser waitstable not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      page.wait_stable(100.milliseconds)
+      puts "DOM stable"
     end
 
     private def self.cmd_wait_idle(args : Array(String))
-      STDERR.puts "Browser waitidle not implemented (requires rod shard)"
-      exit 1
+      _, _, page = Webb.with_page
+      page.wait_request_idle(500.milliseconds).call
+      puts "Network idle"
     end
 
     private def self.cmd_sleep(args : Array(String))
@@ -504,70 +703,320 @@ module Webb
     end
 
     private def self.cmd_screenshot(args : Array(String))
-      STDERR.puts "Browser screenshot not implemented (requires rod shard)"
-      exit 1
+      width = 1280
+      height = 0
+      full_page = true
+
+      positional = [] of String
+      i = 0
+      while i < args.size
+        case args[i]
+        when "-w", "--width"
+          i += 1
+          if i >= args.size
+            Webb.fatal("missing value for --width")
+          end
+          width = args[i].to_i
+        when "-h", "--height"
+          i += 1
+          if i >= args.size
+            Webb.fatal("missing value for --height")
+          end
+          height = args[i].to_i
+          full_page = false
+        else
+          positional << args[i]
+        end
+        i += 1
+      end
+
+      file = positional.size > 0 ? positional[0] : Webb.next_available_file("screenshot", ".png")
+
+      _, _, page = Webb.with_page
+
+      viewport_height = height == 0 ? 720 : height
+      page.set_viewport(Cdp::Emulation::SetDeviceMetricsOverride.new(
+        width: width.to_i64,
+        height: viewport_height.to_i64,
+        device_scale_factor: 1.0,
+        mobile: false,
+        scale: nil,
+        screen_width: nil,
+        screen_height: nil,
+        position_x: nil,
+        position_y: nil,
+        dont_set_visible_size: nil,
+        screen_orientation: nil,
+        viewport: nil,
+        display_feature: nil,
+        device_posture: nil
+      ))
+
+      data = page.screenshot(full_page)
+      File.write(file, data)
+      puts file
     end
 
     private def self.cmd_screenshot_el(args : Array(String))
-      STDERR.puts "Browser screenshot-el not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb screenshot-el <selector> [file]")
+      end
+      file = args.size > 1 ? args[1] : "element.png"
+      _, _, page = Webb.with_page
+      el = page.element(args[0])
+      data = el.screenshot
+      File.write(file, data)
+      puts "Saved #{file} (#{data.size} bytes)"
     end
 
     private def self.cmd_pages(args : Array(String))
-      STDERR.puts "Browser pages not implemented (requires rod shard)"
-      exit 1
+      state = Webb.load_state
+      browser = Webb.connect_browser(state)
+      pages = browser.pages
+      page_idx = 0
+      pages.each do |cur_page|
+        marker = page_idx == state.active_page ? "*" : " "
+        info = cur_page.info
+        puts "#{marker} [#{page_idx}] #{info.title} - #{info.url}"
+        page_idx += 1
+      end
+    rescue
+      Webb.fatal("failed to list pages")
     end
 
     private def self.cmd_page(args : Array(String))
-      STDERR.puts "Browser page not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb page <index>")
+      end
+      idx = args[0].to_i
+      state = Webb.load_state
+      browser = Webb.connect_browser(state)
+      pages = browser.pages
+
+      if idx < 0 || idx >= pages.size
+        Webb.fatal("page index #{idx} out of range (0-#{pages.size - 1})")
+      end
+
+      state.active_page = idx
+      Webb.save_state(state)
+      info = pages[idx].info
+      puts "Switched to [#{idx}] #{info.title} - #{info.url}"
+    rescue ex : ArgumentError
+      Webb.fatal("invalid index: #{args[0]}")
+    rescue
+      Webb.fatal("failed to switch page")
     end
 
     private def self.cmd_new_page(args : Array(String))
-      STDERR.puts "Browser newpage not implemented (requires rod shard)"
-      exit 1
+      state = Webb.load_state
+      browser = Webb.connect_browser(state)
+
+      url = args.size > 0 ? args[0] : ""
+      if !url.empty? && !url.includes?("://")
+        url = "http://" + url
+      end
+
+      page = browser.page(url.empty? ? "about:blank" : url)
+      page.wait_load unless url.empty?
+
+      # Find the new page's index
+      pages = browser.pages
+      page_array = pages.to_a
+      (0...page_array.size).each do |page_idx|
+        if page_array[page_idx].target_id == page.target_id
+          state.active_page = page_idx
+          break
+        end
+      end
+      Webb.save_state(state)
+
+      info = page.info
+      puts "Opened [#{state.active_page}] #{info.url}"
+    rescue
+      Webb.fatal("failed to create new page")
     end
 
     private def self.cmd_close_page(args : Array(String))
-      STDERR.puts "Browser closepage not implemented (requires rod shard)"
-      exit 1
+      state = Webb.load_state
+      browser = Webb.connect_browser(state)
+      pages = browser.pages
+
+      if pages.size <= 1
+        Webb.fatal("cannot close the last page")
+      end
+
+      idx = state.active_page
+      if args.size > 0
+        idx = args[0].to_i
+      end
+
+      if idx < 0 || idx >= pages.size
+        Webb.fatal("page index #{idx} out of range")
+      end
+
+      pages[idx].close
+
+      # Adjust active page
+      state.active_page = Math.min(state.active_page, pages.size - 2)
+      state.active_page = Math.max(state.active_page, 0)
+      Webb.save_state(state)
+      puts "Closed page #{idx}"
+    rescue ex : ArgumentError
+      Webb.fatal("invalid index: #{args[0]}")
+    rescue
+      Webb.fatal("failed to close page")
     end
 
     private def self.cmd_exists(args : Array(String))
-      STDERR.puts "Browser exists not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb exists <selector>")
+      end
+      _, _, page = Webb.with_page
+      has, _ = page.has(args[0])
+      if has
+        puts "true"
+        exit(0)
+      else
+        puts "false"
+        exit(1)
+      end
     end
 
     private def self.cmd_count(args : Array(String))
-      STDERR.puts "Browser count not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb count <selector>")
+      end
+      _, _, page = Webb.with_page
+      els = page.elements(args[0])
+      puts els.size
     end
 
     private def self.cmd_visible(args : Array(String))
-      STDERR.puts "Browser visible not implemented (requires rod shard)"
-      exit 1
+      if args.size < 1
+        Webb.fatal("usage: webb visible <selector>")
+      end
+      _, _, page = Webb.with_page
+      begin
+        el = page.element(args[0])
+        if el.visible?
+          puts "true"
+          exit(0)
+        else
+          puts "false"
+          exit(1)
+        end
+      rescue
+        puts "false"
+        exit(1)
+      end
     end
 
     private def self.cmd_assert(args : Array(String))
-      # This could potentially work without browser if it's just parsing
-      # But the actual assertion requires browser context
-      STDERR.puts "Browser assert not implemented (requires rod shard)"
-      exit 1
+      Webb.cmd_assert(args)
     end
 
     private def self.cmd_ax_tree(args : Array(String))
-      STDERR.puts "Browser axtree not implemented (requires rod shard)"
-      exit 1
+      depth : Int64? = nil
+      json_output = false
+
+      i = 0
+      while i < args.size
+        case args[i]
+        when "--depth"
+          i += 1
+          if i >= args.size
+            Webb.fatal("missing value for --depth")
+          end
+          depth = args[i].to_i64
+        when "--json"
+          json_output = true
+        else
+          Webb.fatal("unknown flag: #{args[i]}\nusage: webb axtree [--depth N] [--json]")
+        end
+        i += 1
+      end
+
+      _, _, page = Webb.with_page
+      result = Cdp::Accessibility::GetFullAXTree.new(depth, nil).call(page)
+
+      if json_output
+        puts Webb.format_ax_tree_json(result.nodes)
+      else
+        print Webb.format_ax_tree(result.nodes)
+      end
+    rescue ex : ArgumentError
+      Webb.fatal("invalid depth value")
     end
 
     private def self.cmd_ax_find(args : Array(String))
-      STDERR.puts "Browser axfind not implemented (requires rod shard)"
-      exit 1
+      name = ""
+      role = ""
+      json_output = false
+
+      i = 0
+      while i < args.size
+        case args[i]
+        when "--name"
+          i += 1
+          if i >= args.size
+            Webb.fatal("missing value for --name")
+          end
+          name = args[i]
+        when "--role"
+          i += 1
+          if i >= args.size
+            Webb.fatal("missing value for --role")
+          end
+          role = args[i]
+        when "--json"
+          json_output = true
+        else
+          Webb.fatal("unknown flag: #{args[i]}\nusage: webb axfind [--name N] [--role R] [--json]")
+        end
+        i += 1
+      end
+
+      _, _, page = Webb.with_page
+      nodes = Webb.query_ax_nodes(page, name, role)
+
+      if nodes.empty?
+        STDERR.puts "No matching nodes"
+        exit(1)
+      end
+
+      if json_output
+        puts nodes.to_pretty_json
+      else
+        print Webb.format_ax_node_list(nodes)
+      end
     end
 
     private def self.cmd_ax_node(args : Array(String))
-      STDERR.puts "Browser axnode not implemented (requires rod shard)"
-      exit 1
+      json_output = false
+      positional = [] of String
+
+      args.each do |arg|
+        case arg
+        when "--json"
+          json_output = true
+        else
+          positional << arg
+        end
+      end
+
+      if positional.size < 1
+        Webb.fatal("usage: webb axnode <selector> [--json]")
+      end
+      selector = positional[0]
+
+      _, _, page = Webb.with_page
+      node = Webb.get_ax_node(page, selector)
+
+      if json_output
+        puts Webb.format_ax_node_detail_json(node)
+      else
+        print Webb.format_ax_node_detail(node)
+      end
     end
 
     private def self.cmd_internal_proxy(args : Array(String))
