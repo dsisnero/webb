@@ -1,17 +1,2 @@
 # source_api_id	status	crystal_refs	notes
-rodney/main.go::struct::State	ported	src/webb.cr::Webb::State	Ported with JSON serialization
-rodney/main.go::func::decodeDataURL	ported	src/webb.cr::Webb.decode_data_url	Ported data URL decoding
-rodney/main.go::func::extractScopeArgs	ported	src/webb.cr::Webb.extract_scope_args	Ported scope argument extraction
-rodney/main.go::func::fatal	ported	src/webb.cr::Webb.fatal	Ported fatal error handling
-rodney/main.go::func::formatAssertFail	ported	src/webb.cr::Webb.format_assert_fail	Ported assertion formatting
-rodney/main.go::func::inferDownloadFilename	ported	src/webb.cr::Webb.infer_download_filename	Ported download filename inference
-rodney/main.go::func::loadState	ported	src/webb.cr::Webb.load_state	Ported state loading
-rodney/main.go::func::main	partial	src/cli.cr::Webb::CLI.run	CLI structure implemented, browser commands pending
-rodney/main.go::func::mimeToExt	ported	src/webb.cr::Webb.mime_to_ext	Ported MIME to extension mapping
-rodney/main.go::func::nextAvailableFile	ported	src/webb.cr::Webb.next_available_file	Ported next available file finding
-rodney/main.go::func::parseAssertArgs	ported	src/webb.cr::Webb.parse_assert_args	Ported assertion argument parsing
-rodney/main.go::func::removeState	ported	src/webb.cr::Webb.remove_state	Ported state removal
-rodney/main.go::func::resolveStateDir	ported	src/webb.cr::Webb.resolve_state_dir	Ported state directory resolution
-rodney/main.go::func::saveState	ported	src/webb.cr::Webb.save_state	Ported state saving
-rodney/main.go::func::stateDir	ported	src/webb.cr::Webb.state_dir	Ported state directory getter
-rodney/main.go::func::statePath	ported	src/webb.cr::Webb.state_path	Ported state path getter
+main.go::struct::State	mapped	src/webb.cr::Webb::State	Ported with JSON serialization

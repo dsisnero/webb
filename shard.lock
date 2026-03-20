@@ -1,0 +1,38 @@
+version: 2.0
+shards:
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.6.4
+
+  crimage:
+    git: https://github.com/naqvis/crimage.git
+    version: 1.0.4+git.commit.b65f67df27f4cb8807a34d94a90dfd4162acf45a
+
+  event_handler:
+    git: https://github.com/crystallabs/event_handler.git
+    version: 1.0.3
+
+  goob:
+    path: ../goob
+    version: 0.6.0
+
+  gson:
+    path: ../gson
+    version: 0.1.0
+
+  pluto:
+    git: https://github.com/phenopolis/pluto.git
+    version: 1.0.1
+
+  rod:
+    git: https://github.com/dsisnero/rod.git
+    version: 0.7.0
+
+  similar:
+    git: https://github.com/dsisnero/similar.cr.git
+    version: 0.1.0+git.commit.52cfbb2cf1295fabc0a4bf2405819181bcae6046
+
+  stumpy_core:
+    git: https://github.com/stumpycr/stumpy_core.git
+    version: 1.9.1
+

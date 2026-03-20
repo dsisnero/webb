@@ -1,64 +1,64 @@
 # source_test_id	status	crystal_refs	notes
-rodney/main_test.go::test::TestAXFind_ByName	missing	-	baseline
-rodney/main_test.go::test::TestAXFind_ByNameAndRole	missing	-	baseline
-rodney/main_test.go::test::TestAXFind_ByNameAndRoleExact	missing	-	baseline
-rodney/main_test.go::test::TestAXFind_ByRole	missing	-	baseline
-rodney/main_test.go::test::TestAXFind_FormPage	missing	-	baseline
-rodney/main_test.go::test::TestAXFind_NoResults	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_ButtonBySelector	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_DisabledButton	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_HeadingLevel	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_InputWithLabel	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_JSONOutput	missing	-	baseline
-rodney/main_test.go::test::TestAXNode_SelectorNotFound	missing	-	baseline
-rodney/main_test.go::test::TestAXTree_DepthLimit	missing	-	baseline
-rodney/main_test.go::test::TestAXTree_Indentation	missing	-	baseline
-rodney/main_test.go::test::TestAXTree_JSONOutput	missing	-	baseline
-rodney/main_test.go::test::TestAXTree_ReturnsNodes	missing	-	baseline
-rodney/main_test.go::test::TestAXTree_SkipsIgnoredNodes	missing	-	baseline
-rodney/main_test.go::test::TestAssert_EqualityFail_WrongTitle	missing	-	baseline
-rodney/main_test.go::test::TestAssert_EqualityPass_BoolString	missing	-	baseline
-rodney/main_test.go::test::TestAssert_EqualityPass_Count	missing	-	baseline
-rodney/main_test.go::test::TestAssert_EqualityPass_Title	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyFail_EmptyString	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyFail_False	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyFail_Null	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyFail_Zero	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyPass_Number	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyPass_String	missing	-	baseline
-rodney/main_test.go::test::TestAssert_TruthyPass_True	missing	-	baseline
-rodney/main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	missing	-	baseline
-rodney/main_test.go::test::TestDownload_DataLinkElement	missing	-	baseline
-rodney/main_test.go::test::TestDownload_DataURL	missing	-	baseline
-rodney/main_test.go::test::TestDownload_DataURL_URLEncoded	missing	-	baseline
-rodney/main_test.go::test::TestDownload_FetchLink	missing	-	baseline
-rodney/main_test.go::test::TestDownload_ImgSrc	missing	-	baseline
-rodney/main_test.go::test::TestDownload_InferFilename_DataURL	missing	-	baseline
-rodney/main_test.go::test::TestDownload_InferFilename_URL	missing	-	baseline
-rodney/main_test.go::test::TestExtractScopeArgs_GlobalFlag	missing	-	baseline
-rodney/main_test.go::test::TestExtractScopeArgs_LastFlagWins	missing	-	baseline
-rodney/main_test.go::test::TestExtractScopeArgs_LocalFlag	missing	-	baseline
-rodney/main_test.go::test::TestExtractScopeArgs_LocalFlagAfterCommand	missing	-	baseline
-rodney/main_test.go::test::TestExtractScopeArgs_NoFlags	missing	-	baseline
-rodney/main_test.go::test::TestFile_MultipleFiles	missing	-	baseline
-rodney/main_test.go::test::TestFile_SetFileOnInput	missing	-	baseline
-rodney/main_test.go::test::TestFormatAssertFail_EqualityNoMessage	missing	-	baseline
-rodney/main_test.go::test::TestFormatAssertFail_EqualityWithMessage	missing	-	baseline
-rodney/main_test.go::test::TestFormatAssertFail_TruthyNoMessage	missing	-	baseline
-rodney/main_test.go::test::TestFormatAssertFail_TruthyWithMessage	missing	-	baseline
-rodney/main_test.go::test::TestInsecureFlag_WithSelfSignedCert	missing	-	baseline
-rodney/main_test.go::test::TestMain	missing	-	baseline
-rodney/main_test.go::test::TestMimeToExt	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_EqualityWithMessage	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_ExprAndExpected	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_ExprOnly	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_MessageBeforeExpr	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_MessageLong	missing	-	baseline
-rodney/main_test.go::test::TestParseAssertArgs_MessageShort	missing	-	baseline
-rodney/main_test.go::test::TestResolveStateDir_AutoFallsBackToGlobal	missing	-	baseline
-rodney/main_test.go::test::TestResolveStateDir_AutoPrefersLocal	missing	-	baseline
-rodney/main_test.go::test::TestResolveStateDir_Global	missing	-	baseline
-rodney/main_test.go::test::TestResolveStateDir_Local	missing	-	baseline
-rodney/main_test.go::test::TestResolveStateDir_LocalUsesWorkingDir	missing	-	baseline
-rodney/main_test.go::test::TestStateDir_Default	missing	-	baseline
-rodney/main_test.go::test::TestStateDir_EnvVar	missing	-	baseline
+main_test.go::test::TestAXFind_ByName	ported	spec/webb_spec.cr::query_ax_nodes by name	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByNameAndRole	ported	spec/webb_spec.cr::query_ax_nodes by name and role	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByNameAndRoleExact	ported	spec/webb_spec.cr::query_ax_nodes by name and role exact	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByRole	ported	spec/webb_spec.cr::query_ax_nodes by role	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_FormPage	ported	spec/webb_spec.cr::query_ax_nodes form page	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_NoResults	ported	spec/webb_spec.cr::query_ax_nodes no results	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_ButtonBySelector	ported	spec/webb_spec.cr::get_ax_node button by selector	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_DisabledButton	ported	spec/webb_spec.cr::get_ax_node disabled button	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_HeadingLevel	ported	spec/webb_spec.cr::get_ax_node heading level	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_InputWithLabel	ported	spec/webb_spec.cr::get_ax_node input with label	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_JSONOutput	ported	spec/webb_spec.cr::get_ax_node json output	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_SelectorNotFound	ported	spec/webb_spec.cr::get_ax_node selector not found	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_DepthLimit	ported	spec/webb_spec.cr::format_ax_tree depth limit	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_Indentation	ported	spec/webb_spec.cr::format_ax_tree indentation	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_JSONOutput	ported	spec/webb_spec.cr::format_ax_tree json output	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_ReturnsNodes	ported	spec/webb_spec.cr::format_ax_tree returns nodes	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_SkipsIgnoredNodes	ported	spec/webb_spec.cr::format_ax_tree skips ignored nodes	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityFail_WrongTitle	ported	spec/webb_spec.cr::assert browser parity wrong title	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_BoolString	ported	spec/webb_spec.cr::assert browser parity bool string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_Count	ported	spec/webb_spec.cr::assert browser parity count equality	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_Title	ported	spec/webb_spec.cr::assert browser parity title equality	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_EmptyString	ported	spec/webb_spec.cr::assert browser parity empty string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_False	ported	spec/webb_spec.cr::assert browser parity false	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_Null	ported	spec/webb_spec.cr::assert browser parity null	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_Zero	ported	spec/webb_spec.cr::assert browser parity zero	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_Number	ported	spec/webb_spec.cr::assert browser parity number	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_String	ported	spec/webb_spec.cr::assert browser parity string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_True	ported	spec/webb_spec.cr::assert browser parity true	Ported from upstream live-browser test
+main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	ported	spec/webb_spec.cr::assert browser parity value formatting	Ported from upstream live-browser test
+main_test.go::test::TestDownload_DataLinkElement	ported	spec/webb_spec.cr::download browser parity data link	Ported from upstream live-browser test
+main_test.go::test::TestDownload_DataURL	ported	spec/webb_spec.cr::decode_data_url data url	Ported from upstream test
+main_test.go::test::TestDownload_DataURL_URLEncoded	ported	spec/webb_spec.cr::decode_data_url url encoded	Ported from upstream test
+main_test.go::test::TestDownload_FetchLink	ported	spec/webb_spec.cr::download browser parity fetch link	Ported from upstream live-browser test
+main_test.go::test::TestDownload_ImgSrc	ported	spec/webb_spec.cr::download browser parity image src	Ported from upstream live-browser test
+main_test.go::test::TestDownload_InferFilename_DataURL	ported	spec/webb_spec.cr::infer_download_filename data url	Ported from upstream test
+main_test.go::test::TestDownload_InferFilename_URL	ported	spec/webb_spec.cr::infer_download_filename url	Ported from upstream test
+main_test.go::test::TestExtractScopeArgs_GlobalFlag	ported	spec/webb_spec.cr::extract_scope_args global flag	Ported from upstream test
+main_test.go::test::TestExtractScopeArgs_LastFlagWins	ported	spec/webb_spec.cr::extract_scope_args last flag wins	Ported from upstream test
+main_test.go::test::TestExtractScopeArgs_LocalFlag	ported	spec/webb_spec.cr::extract_scope_args local flag	Ported from upstream test
+main_test.go::test::TestExtractScopeArgs_LocalFlagAfterCommand	ported	spec/webb_spec.cr::extract_scope_args local after cmd	Ported from upstream test
+main_test.go::test::TestExtractScopeArgs_NoFlags	ported	spec/webb_spec.cr::extract_scope_args no flags	Ported from upstream test
+main_test.go::test::TestFile_MultipleFiles	partial	-	Browser-dependent test, pending rod shard fixes
+main_test.go::test::TestFile_SetFileOnInput	partial	-	Browser-dependent test, pending rod shard fixes
+main_test.go::test::TestFormatAssertFail_EqualityNoMessage	ported	spec/webb_spec.cr::format_assert_fail equality no message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_EqualityWithMessage	ported	spec/webb_spec.cr::format_assert_fail equality with message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_TruthyNoMessage	ported	spec/webb_spec.cr::format_assert_fail truthy no message	Ported from upstream test
+main_test.go::test::TestFormatAssertFail_TruthyWithMessage	ported	spec/webb_spec.cr::format_assert_fail truthy with message	Ported from upstream test
+main_test.go::test::TestInsecureFlag_WithSelfSignedCert	partial	-	Browser-dependent test with HTTPS, pending rod shard fixes
+main_test.go::test::TestMain	partial	src/cli.cr::Webb::CLI.run	CLI structure implemented, test setup pending
+main_test.go::test::TestMimeToExt	ported	spec/webb_spec.cr::mime_to_ext	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_EqualityWithMessage	ported	spec/webb_spec.cr::parse_assert_args equality with message	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_ExprAndExpected	ported	spec/webb_spec.cr::parse_assert_args expr and expected	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_ExprOnly	ported	spec/webb_spec.cr::parse_assert_args expr only	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageBeforeExpr	ported	spec/webb_spec.cr::parse_assert_args message before expr	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageLong	ported	spec/webb_spec.cr::parse_assert_args message long	Ported from upstream test
+main_test.go::test::TestParseAssertArgs_MessageShort	ported	spec/webb_spec.cr::parse_assert_args message short	Ported from upstream test
+main_test.go::test::TestResolveStateDir_AutoFallsBackToGlobal	ported	spec/webb_spec.cr::resolve_state_dir auto fallback global	Ported from upstream test
+main_test.go::test::TestResolveStateDir_AutoPrefersLocal	ported	spec/webb_spec.cr::resolve_state_dir auto prefers local	Ported from upstream test
+main_test.go::test::TestResolveStateDir_Global	ported	spec/webb_spec.cr::resolve_state_dir global	Ported from upstream test
+main_test.go::test::TestResolveStateDir_Local	ported	spec/webb_spec.cr::resolve_state_dir local	Ported from upstream test
+main_test.go::test::TestResolveStateDir_LocalUsesWorkingDir	ported	spec/webb_spec.cr::resolve_state_dir local uses wd	Ported from upstream test
+main_test.go::test::TestStateDir_Default	ported	spec/webb_spec.cr::state_dir default	Ported from upstream test
+main_test.go::test::TestStateDir_EnvVar	ported	spec/webb_spec.cr::state_dir env var	Ported from upstream test

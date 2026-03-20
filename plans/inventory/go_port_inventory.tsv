@@ -1,41 +1,41 @@
 # source_id	kind	status	crystal_refs	notes
 main.go::struct::State	struct	ported	src/webb.cr::Webb::State	Ported state struct fields and JSON keys
-main_test.go::test::TestAXFind_ByName	test	missing	-	auto-generated
-main_test.go::test::TestAXFind_ByNameAndRole	test	missing	-	auto-generated
-main_test.go::test::TestAXFind_ByNameAndRoleExact	test	missing	-	auto-generated
-main_test.go::test::TestAXFind_ByRole	test	missing	-	auto-generated
-main_test.go::test::TestAXFind_FormPage	test	missing	-	auto-generated
-main_test.go::test::TestAXFind_NoResults	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_ButtonBySelector	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_DisabledButton	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_HeadingLevel	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_InputWithLabel	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_JSONOutput	test	missing	-	auto-generated
-main_test.go::test::TestAXNode_SelectorNotFound	test	missing	-	auto-generated
-main_test.go::test::TestAXTree_DepthLimit	test	partial	spec/webb_spec.cr::format_ax_tree depth limit	Function implemented, test pending due to rod shard issues
-main_test.go::test::TestAXTree_Indentation	test	partial	spec/webb_spec.cr::format_ax_tree indentation	Function implemented, test pending due to rod shard issues
-main_test.go::test::TestAXTree_JSONOutput	test	partial	spec/webb_spec.cr::format_ax_tree json output	Function implemented, test pending due to rod shard issues
-main_test.go::test::TestAXTree_ReturnsNodes	test	partial	spec/webb_spec.cr::format_ax_tree returns nodes	Function implemented, test pending due to rod shard issues
-main_test.go::test::TestAXTree_SkipsIgnoredNodes	test	partial	spec/webb_spec.cr::format_ax_tree skips ignored nodes	Function implemented, test pending due to rod shard issues
-main_test.go::test::TestAssert_EqualityFail_WrongTitle	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_EqualityPass_BoolString	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_EqualityPass_Count	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_EqualityPass_Title	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyFail_EmptyString	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyFail_False	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyFail_Null	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyFail_Zero	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyPass_Number	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyPass_String	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_TruthyPass_True	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	test	partial	spec/webb_spec.cr::assert tests	Assertion functions implemented, browser tests pending
-main_test.go::test::TestDownload_DataLinkElement	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
+main_test.go::test::TestAXFind_ByName	test	ported	spec/webb_spec.cr::query_ax_nodes by name	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByNameAndRole	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByNameAndRoleExact	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role exact	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_ByRole	test	ported	spec/webb_spec.cr::query_ax_nodes by role	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_FormPage	test	ported	spec/webb_spec.cr::query_ax_nodes form page	Ported from upstream live-browser test
+main_test.go::test::TestAXFind_NoResults	test	ported	spec/webb_spec.cr::query_ax_nodes no results	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_ButtonBySelector	test	ported	spec/webb_spec.cr::get_ax_node button by selector	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_DisabledButton	test	ported	spec/webb_spec.cr::get_ax_node disabled button	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_HeadingLevel	test	ported	spec/webb_spec.cr::get_ax_node heading level	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_InputWithLabel	test	ported	spec/webb_spec.cr::get_ax_node input with label	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_JSONOutput	test	ported	spec/webb_spec.cr::get_ax_node json output	Ported from upstream live-browser test
+main_test.go::test::TestAXNode_SelectorNotFound	test	ported	spec/webb_spec.cr::get_ax_node selector not found	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_DepthLimit	test	ported	spec/webb_spec.cr::format_ax_tree depth limit	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_Indentation	test	ported	spec/webb_spec.cr::format_ax_tree indentation	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_JSONOutput	test	ported	spec/webb_spec.cr::format_ax_tree json output	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_ReturnsNodes	test	ported	spec/webb_spec.cr::format_ax_tree returns nodes	Ported from upstream live-browser test
+main_test.go::test::TestAXTree_SkipsIgnoredNodes	test	ported	spec/webb_spec.cr::format_ax_tree skips ignored nodes	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityFail_WrongTitle	test	ported	spec/webb_spec.cr::assert browser parity wrong title	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_BoolString	test	ported	spec/webb_spec.cr::assert browser parity bool string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_Count	test	ported	spec/webb_spec.cr::assert browser parity count equality	Ported from upstream live-browser test
+main_test.go::test::TestAssert_EqualityPass_Title	test	ported	spec/webb_spec.cr::assert browser parity title equality	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_EmptyString	test	ported	spec/webb_spec.cr::assert browser parity empty string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_False	test	ported	spec/webb_spec.cr::assert browser parity false	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_Null	test	ported	spec/webb_spec.cr::assert browser parity null	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyFail_Zero	test	ported	spec/webb_spec.cr::assert browser parity zero	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_Number	test	ported	spec/webb_spec.cr::assert browser parity number	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_String	test	ported	spec/webb_spec.cr::assert browser parity string	Ported from upstream live-browser test
+main_test.go::test::TestAssert_TruthyPass_True	test	ported	spec/webb_spec.cr::assert browser parity true	Ported from upstream live-browser test
+main_test.go::test::TestAssert_ValueFormatting_MatchesJSCommand	test	ported	spec/webb_spec.cr::assert browser parity value formatting	Ported from upstream live-browser test
+main_test.go::test::TestDownload_DataLinkElement	test	ported	spec/webb_spec.cr::download browser parity data link	Ported from upstream live-browser test
 main_test.go::test::TestDownload_DataURL	test	ported	spec/webb_spec.cr::decode_data_url data url	Ported from upstream test
 main_test.go::test::TestDownload_DataURL_URLEncoded	test	ported	spec/webb_spec.cr::decode_data_url url encoded	Ported from upstream test
-main_test.go::test::TestDownload_FetchLink	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
-main_test.go::test::TestDownload_ImgSrc	test	partial	spec/webb_spec.cr::download tests	Download functions implemented, browser tests pending
-main_test.go::test::TestDownload_InferFilename_DataURL	test	partial	spec/webb_spec.cr::infer_download_filename data url	Function implemented, test partially ported
-main_test.go::test::TestDownload_InferFilename_URL	test	partial	spec/webb_spec.cr::infer_download_filename url	Function implemented, test partially ported
+main_test.go::test::TestDownload_FetchLink	test	ported	spec/webb_spec.cr::download browser parity fetch link	Ported from upstream live-browser test
+main_test.go::test::TestDownload_ImgSrc	test	ported	spec/webb_spec.cr::download browser parity image src	Ported from upstream live-browser test
+main_test.go::test::TestDownload_InferFilename_DataURL	test	ported	spec/webb_spec.cr::infer_download_filename data url	Ported from upstream test
+main_test.go::test::TestDownload_InferFilename_URL	test	ported	spec/webb_spec.cr::infer_download_filename url	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_GlobalFlag	test	ported	spec/webb_spec.cr::extract_scope_args global flag	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LastFlagWins	test	ported	spec/webb_spec.cr::extract_scope_args last flag wins	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LocalFlag	test	ported	spec/webb_spec.cr::extract_scope_args local flag	Ported from upstream test
