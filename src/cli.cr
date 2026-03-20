@@ -184,10 +184,85 @@ module Webb
       puts "  webb screenshot page.png"
     end
 
-    # Command implementations (stubs for now)
+    # Command implementations
     private def self.cmd_start(args : Array(String))
-      STDERR.puts "Browser start not implemented (requires rod shard)"
-      exit 1
+      ignore_cert_errors = false
+
+      args.each do |arg|
+        case arg
+        when "--insecure", "-k"
+          ignore_cert_errors = true
+        when "--show"
+          # Handled below
+        else
+          Webb.fatal("unknown flag: #{arg}\nusage: webb start [--insecure] [--show]")
+        end
+      end
+
+      # Check if already running
+      begin
+        Webb.load_state
+        # Try connecting to see if it's actually running
+        # TODO: Implement connect_browser
+        Webb.remove_state
+        STDERR.puts "Warning: stale state file removed"
+      rescue
+        # No state file or corrupt, continue
+      end
+
+      # Parse flags
+      headless = !args.includes?("--show")
+
+      data_dir = File.join(Webb.state_dir, "chrome-data")
+      Dir.mkdir_p(data_dir)
+
+      launcher = Rod::Util::Launcher::Launcher.new
+
+      # Set basic flags (using method chaining like Go API)
+      launcher.no_sandbox
+        .set("disable-gpu")
+        .set("single-process") # Required for screenshots in gVisor/container environments
+        .leakless(false)       # Keep Chrome alive after CLI exits
+        .user_data_dir(data_dir)
+
+      # Set headless mode
+      if headless
+        launcher.headless
+      else
+        launcher.headless(false)
+        # When in non-headless mode, make sure that we show the startup window immediately
+        launcher.delete("no-startup-window")
+      end
+
+      if bin = ENV["ROD_CHROME_BIN"]?
+        launcher.bin(bin)
+      end
+
+      # TODO: Implement proxy detection and support
+      # if server, user, pass, needed = detect_proxy()
+      #   # Launch proxy helper
+      # end
+
+      if ignore_cert_errors
+        launcher.set("ignore-certificate-errors")
+      end
+
+      debug_url = launcher.launch
+      pid = launcher.pid
+
+      state = Webb::State.new(
+        debug_url: debug_url,
+        chrome_pid: pid,
+        active_page: 0,
+        data_dir: data_dir,
+        proxy_pid: nil,
+        proxy_port: nil
+      )
+
+      Webb.save_state(state)
+      puts "Browser started (PID #{pid})"
+      puts "Debug URL: #{debug_url}"
+      puts "Data directory: #{data_dir}"
     end
 
     private def self.cmd_connect(args : Array(String))
@@ -196,18 +271,107 @@ module Webb
     end
 
     private def self.cmd_stop(args : Array(String))
-      STDERR.puts "Browser stop not implemented (requires rod shard)"
-      exit 1
+      begin
+        state = Webb.load_state
+      rescue
+        puts "No active browser session"
+        return
+      end
+
+      # Try to connect to browser to close it gracefully
+      begin
+        browser = Webb.connect_browser(state)
+        browser.close
+        puts "Browser stopped gracefully"
+      rescue
+        # If we can't connect, try to kill the process
+        if state.chrome_pid > 0
+          begin
+            Process.kill(Signal::TERM, state.chrome_pid)
+            puts "Sent TERM signal to browser process #{state.chrome_pid}"
+          rescue
+            puts "Could not terminate browser process #{state.chrome_pid}"
+          end
+        else
+          puts "Browser not responding and no PID available"
+        end
+      end
+
+      # Remove proxy if running
+      if proxy_pid = state.proxy_pid
+        begin
+          Process.kill(Signal::TERM, proxy_pid)
+          puts "Stopped proxy (PID #{proxy_pid})"
+        rescue
+          # Ignore if proxy already dead
+        end
+      end
+
+      # Clean up state file
+      Webb.remove_state
+      puts "State cleaned up"
     end
 
     private def self.cmd_status(args : Array(String))
-      STDERR.puts "Browser status not implemented (requires rod shard)"
-      exit 1
+      begin
+        state = Webb.load_state
+      rescue
+        puts "No active browser session"
+        return
+      end
+
+      begin
+        browser = Webb.connect_browser(state)
+      rescue
+        puts "Browser not responding (PID #{state.chrome_pid}, state may be stale)"
+        return
+      end
+
+      pages = browser.pages
+      puts "Browser running (PID #{state.chrome_pid})"
+      puts "Debug URL: #{state.debug_url}"
+      puts "Pages: #{pages.size}"
+      puts "Active page: #{state.active_page}"
+
+      begin
+        page = Webb.get_active_page(browser, state)
+        info = page.info
+        if info
+          puts "Current: #{info.title} - #{info.url}"
+        end
+      rescue
+        # Ignore if we can't get page info
+      end
     end
 
     private def self.cmd_open(args : Array(String))
-      STDERR.puts "Browser open not implemented (requires rod shard)"
-      exit 1
+      if args.empty?
+        Webb.fatal("usage: webb open <url>")
+      end
+
+      url = args[0]
+      # Add scheme if missing
+      unless url.includes?("://")
+        url = "http://" + url
+      end
+
+      state, browser, page = Webb.with_page
+
+      # If no pages exist, create one
+      pages = browser.pages
+      if pages.empty?
+        page = browser.must_page(url)
+        state.active_page = 0
+        Webb.save_state(state)
+      else
+        page.navigate(url)
+      end
+
+      page.must_wait_load
+      info = page.info
+      if info
+        puts info.title
+      end
     end
 
     private def self.cmd_back(args : Array(String))

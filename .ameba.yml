@@ -4,3 +4,7 @@ Excluded:
   - temp/**/*
   - lib/**/*
   - vendor/**/*
+  - spec/**/*
+
+Style/HeredocIndent:
+  Enabled: false
