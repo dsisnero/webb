@@ -815,4 +815,39 @@ describe Webb do
       end
     end
   end
+
+  describe ".file browser parity" do
+    it "matches TestFile_SetFileOnInput" do
+      page = navigate_to("/upload")
+      begin
+        tmp = File.tempname("webb-test-upload-", ".txt")
+        File.write(tmp, "test content")
+
+        el = page.element("#file-input")
+        el.set_files([tmp])
+
+        page.wait_stable(100.milliseconds)
+        name_el = page.element("#file-name")
+        text = name_el.text
+        text.should_not be_empty
+      ensure
+        page.close
+      end
+    end
+
+    it "matches TestFile_MultipleFiles" do
+      page = navigate_to("/upload")
+      begin
+        tmp1 = File.tempname("webb-test-upload1-", ".txt")
+        File.write(tmp1, "file 1")
+        tmp2 = File.tempname("webb-test-upload2-", ".txt")
+        File.write(tmp2, "file 2")
+
+        el = page.element("#file-input")
+        el.set_files([tmp1, tmp2])
+      ensure
+        page.close
+      end
+    end
+  end
 end
