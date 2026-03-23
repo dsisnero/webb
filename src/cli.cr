@@ -309,7 +309,7 @@ module Webb
       )
 
       Webb.save_state(state)
-      puts "Browser started (PID #{pid})"
+      puts "Chrome started (PID #{pid})"
       puts "Debug URL: #{debug_url}"
       puts "Data directory: #{data_dir}"
     end
@@ -319,7 +319,7 @@ module Webb
         Webb.fatal("usage: webb connect <host:port>")
       end
       hostport = args[0]
-      unless hostport.includes?(":")
+      unless hostport =~ /\A[^:]+:\d+\z/
         Webb.fatal("argument must be host:port (e.g. localhost:9222): #{hostport}")
       end
 
@@ -361,13 +361,19 @@ module Webb
         return
       end
 
-      # Try to connect to browser to close it gracefully
+      # Try to connect to browser
       begin
         browser = Webb.connect_browser(state)
-        browser.close
-        puts "Browser stopped gracefully"
+        # Only close the browser if we launched it (chrome_pid > 0)
+        # For externally connected browsers (chrome_pid == 0), just remove state
+        if state.chrome_pid > 0
+          browser.close
+          puts "Chrome stopped"
+        else
+          puts "Browser disconnected"
+        end
       rescue
-        # If we can't connect, try to kill the process
+        # If we can't connect, try to kill the process if we own it
         if state.chrome_pid > 0
           begin
             Process.new(state.chrome_pid).signal(Signal::TERM)
@@ -376,7 +382,7 @@ module Webb
             puts "Could not terminate browser process #{state.chrome_pid}"
           end
         else
-          puts "Browser not responding and no PID available"
+          puts "Browser not responding"
         end
       end
 
@@ -392,7 +398,6 @@ module Webb
 
       # Clean up state file
       Webb.remove_state
-      puts "Chrome stopped"
     end
 
     private def self.cmd_status(args : Array(String))
@@ -447,7 +452,11 @@ module Webb
         state.active_page = 0
         Webb.save_state(state)
       else
-        page.navigate(url)
+        begin
+          page.navigate(url)
+        rescue ex
+          Webb.fatal("navigation failed: #{ex.message}")
+        end
       end
 
       page.wait_load
