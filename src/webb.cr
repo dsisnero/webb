@@ -108,7 +108,7 @@ module Webb
   def self.load_state : State
     path = state_path
     unless File.exists?(path)
-      fatal("no browser session (run 'rodney start' first)")
+      fatal("no browser session (run 'webb start' first)")
     end
 
     begin
@@ -251,13 +251,13 @@ module Webb
   # cmd_assert handles the assert command.
   def self.cmd_assert(args : Array(String))
     if args.empty?
-      fatal("usage: rodney assert <js-expression> [expected] [--message msg]")
+      fatal("usage: webb assert <js-expression> [expected] [--message msg]")
     end
 
     expr, expected, message = parse_assert_args(args)
 
     if expr.empty?
-      fatal("usage: rodney assert <js-expression> [expected] [--message msg]")
+      fatal("usage: webb assert <js-expression> [expected] [--message msg]")
     end
 
     _, browser, page = with_page
