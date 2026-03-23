@@ -392,7 +392,7 @@ module Webb
 
       # Clean up state file
       Webb.remove_state
-      puts "State cleaned up"
+      puts "Chrome stopped"
     end
 
     private def self.cmd_status(args : Array(String))
@@ -443,18 +443,16 @@ module Webb
       # If no pages exist, create one
       pages = browser.pages
       if pages.empty?
-        page = browser.must_page(url)
+        page = browser.page(url)
         state.active_page = 0
         Webb.save_state(state)
       else
         page.navigate(url)
       end
 
-      page.must_wait_load
+      page.wait_load
       info = page.info
-      if info
-        puts info.title
-      end
+      puts info.title
     end
 
     private def self.cmd_back(args : Array(String))
