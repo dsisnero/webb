@@ -7,6 +7,19 @@ require "../lib/rod/src/cdp/accessibility/accessibility"
 module Webb
   VERSION = "0.1.0"
 
+  # Default timeout for element queries (seconds). Configurable via ROD_TIMEOUT env var.
+  DEFAULT_TIMEOUT = begin
+    env = ENV["ROD_TIMEOUT"]?
+    if env && !env.empty?
+      secs = env.to_f
+      secs.seconds
+    else
+      30.seconds
+    end
+  rescue
+    30.seconds
+  end
+
   enum ScopeMode
     Auto
     Local
@@ -149,6 +162,8 @@ module Webb
     state = load_state
     browser = connect_browser(state)
     page = get_active_page(browser, state)
+    # Apply default timeout so element queries don't hang forever
+    page = page.timeout(DEFAULT_TIMEOUT)
     {state, browser, page}
   end
 
@@ -512,8 +527,8 @@ module Webb
   end
 
   def self.fatal(message : String)
-    STDERR.puts message
-    exit 1
+    STDERR.puts "error: #{message}"
+    exit 2
   end
 
   private def self.walk_ax_tree(node_by_id : Hash(String, Cdp::Accessibility::Node), io : IO, node_id : String, depth : Int32) : Nil
@@ -544,5 +559,34 @@ module Webb
 
   private def self.home_dir : String
     ENV["HOME"]? || ""
+  end
+
+  # detect_proxy checks for HTTPS_PROXY/HTTP_PROXY with credentials.
+  # Returns {proxy_server, username, password, needed}.
+  # ameba:disable Metrics/CyclomaticComplexity
+  def self.detect_proxy : {String, String, String, Bool}
+    proxy_env = ENV["HTTPS_PROXY"]? ||
+                ENV["https_proxy"]? ||
+                ENV["HTTP_PROXY"]? ||
+                ENV["http_proxy"]?
+    return {"", "", "", false} if proxy_env.nil? || proxy_env.empty?
+
+    begin
+      parsed = URI.parse(proxy_env)
+    rescue
+      return {"", "", "", false}
+    end
+
+    user_info = parsed.user
+    return {"", "", "", false} if user_info.nil? || user_info.empty?
+
+    password = parsed.password || ""
+    host = parsed.host || ""
+    port = parsed.port
+
+    return {"", "", "", false} if host.empty?
+
+    server = port ? "#{host}:#{port}" : host
+    {server, user_info, password, true}
   end
 end

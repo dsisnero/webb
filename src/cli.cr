@@ -26,6 +26,9 @@ module Webb
       when "--version"
         puts Webb::VERSION
         exit 0
+      when "help", "-h", "--help"
+        print_usage
+        exit 0
       when "start"
         cmd_start(cmd_args)
       when "connect"
@@ -122,66 +125,87 @@ module Webb
     end
 
     private def self.print_usage
-      # TODO: Load embedded help text
-      puts "webb - a Crystal port of rodney"
+      puts "webb - Chrome automation from the command line"
       puts ""
-      puts "Usage: webb <command> [args]"
+      puts "Browser lifecycle:"
+      puts "  webb start [--show] [--insecure | -k]  Launch Chrome (headless by default, --show for visible)"
+      puts "  webb connect <host:port>      Connect to existing Chrome on remote debug port"
+      puts "  webb stop                     Shut down Chrome"
+      puts "  webb status                   Show browser status"
       puts ""
-      puts "Commands:"
-      puts "  start          Start a browser session"
-      puts "  connect        Connect to an existing browser"
-      puts "  stop           Stop the browser session"
-      puts "  status         Show browser status"
-      puts "  open           Open a URL"
-      puts "  back           Navigate back"
-      puts "  forward        Navigate forward"
-      puts "  reload         Reload current page"
-      puts "  clear-cache    Clear browser cache"
-      puts "  url            Get current URL"
-      puts "  title          Get page title"
-      puts "  html           Get page HTML"
-      puts "  text           Get page text"
-      puts "  attr           Get element attribute"
-      puts "  pdf            Save page as PDF"
-      puts "  js             Execute JavaScript"
-      puts "  click          Click an element"
-      puts "  input          Type into an input"
-      puts "  clear          Clear an input"
-      puts "  select         Select option(s) from <select>"
-      puts "  submit         Submit a form"
-      puts "  hover          Hover over an element"
-      puts "  file           Set file(s) on file input"
-      puts "  download       Download a resource"
-      puts "  focus          Focus an element"
-      puts "  wait           Wait for element/condition"
-      puts "  waitload       Wait for page load"
-      puts "  waitstable     Wait for page to stabilize"
-      puts "  waitidle       Wait for network idle"
-      puts "  sleep          Sleep for N seconds"
-      puts "  screenshot     Take screenshot"
-      puts "  screenshot-el  Take screenshot of element"
-      puts "  pages          List pages"
-      puts "  page           Switch to page"
-      puts "  newpage        Create new page"
-      puts "  closepage      Close current page"
-      puts "  exists         Check if element exists"
-      puts "  count          Count matching elements"
-      puts "  visible        Check if element is visible"
-      puts "  assert         Assert condition"
-      puts "  axtree         Show accessibility tree"
-      puts "  axfind         Find in accessibility tree"
-      puts "  axnode         Show accessibility node"
+      puts "Navigation:"
+      puts "  webb open <url>               Navigate to URL"
+      puts "  webb back                     Go back in history"
+      puts "  webb forward                  Go forward in history"
+      puts "  webb reload [--hard]          Reload page (--hard bypasses cache)"
+      puts "  webb clear-cache              Clear the browser cache"
       puts ""
-      puts "Flags:"
-      puts "  --local        Use local .rodney/ directory"
-      puts "  --global       Use global ~/.rodney/ directory"
-      puts "  --version      Show version"
+      puts "Page info:"
+      puts "  webb url                      Print current URL"
+      puts "  webb title                    Print page title"
+      puts "  webb html [selector]          Print HTML (page or element)"
+      puts "  webb text <selector>          Print text content of element"
+      puts "  webb attr <selector> <name>   Print attribute value"
+      puts "  webb pdf [file]               Save page as PDF"
       puts ""
-      puts "Examples:"
-      puts "  webb start"
-      puts "  webb open https://example.com"
-      puts "  webb text h1"
-      puts "  webb screenshot page.png"
+      puts "Interaction:"
+      puts "  webb js <expression>          Evaluate JavaScript expression"
+      puts "  webb click <selector>         Click an element"
+      puts "  webb input <selector> <text>  Type text into an input field"
+      puts "  webb clear <selector>         Clear an input field"
+      puts "  webb file <selector> <path|-> Set file on a file input (- for stdin)"
+      puts "  webb download <sel> [file|-]  Download href/src target (- for stdout)"
+      puts "  webb select <selector> <val>  Select dropdown option by value"
+      puts "  webb submit <selector>        Submit a form"
+      puts "  webb hover <selector>         Hover over an element"
+      puts "  webb focus <selector>         Focus an element"
+      puts ""
+      puts "Waiting:"
+      puts "  webb wait <selector>          Wait for element to appear"
+      puts "  webb waitload                 Wait for page load"
+      puts "  webb waitstable               Wait for DOM to stabilize"
+      puts "  webb waitidle                 Wait for network idle"
+      puts "  webb sleep <seconds>          Sleep for N seconds"
+      puts ""
+      puts "Screenshots:"
+      puts "  webb screenshot [-w N] [-h N] [file]  Take page screenshot"
+      puts "  webb screenshot-el <sel> [f]  Screenshot an element"
+      puts ""
+      puts "Tabs:"
+      puts "  webb pages                    List all pages/tabs"
+      puts "  webb page <index>             Switch to page by index"
+      puts "  webb newpage [url]            Open a new page/tab"
+      puts "  webb closepage [index]        Close a page/tab"
+      puts ""
+      puts "Element checks:"
+      puts "  webb exists <selector>        Check if element exists (exit 1 if not)"
+      puts "  webb count <selector>         Count matching elements"
+      puts "  webb visible <selector>       Check if element is visible (exit 1 if not)"
+      puts "  webb assert <expr> [expected] [-m msg]  Assert JS expression (truthy or equality)"
+      puts ""
+      puts "Accessibility:"
+      puts "  webb ax-tree [--depth N] [--json]       Dump accessibility tree"
+      puts "  webb ax-find [--name N] [--role R] [--json]  Find accessible nodes"
+      puts "  webb ax-node <selector> [--json]        Show accessibility info for element"
+      puts ""
+      puts "Options:"
+      puts "  --local                         Use directory-scoped session (./.webb/)"
+      puts "  --global                        Use global session (~/.webb/)"
+      puts "  --version                       Print version and exit"
+      puts "  --help, -h, help                Show this help message"
+      puts ""
+      puts "By default, commands auto-detect: if ./.rodney/state.json exists in the"
+      puts "current directory, the local session is used; otherwise the global session."
+      puts ""
+      puts "Environment:"
+      puts "  RODNEY_HOME                     Override data directory (default: ~/.rodney)"
+      puts "  ROD_CHROME_BIN                   Path to Chrome/Chromium binary"
+      puts "  ROD_TIMEOUT                     Element query timeout in seconds (default: 30)"
+      puts ""
+      puts "Exit codes:"
+      puts "  0  Success"
+      puts "  1  Check failed (exists, visible, assert, ax-find returned no match)"
+      puts "  2  Error (bad arguments, no browser, timeout, etc.)"
     end
 
     # Command implementations
@@ -201,9 +225,14 @@ module Webb
 
       # Check if already running
       begin
-        Webb.load_state
+        existing = Webb.load_state
         # Try connecting to see if it's actually running
-        # TODO: Implement connect_browser
+        begin
+          browser = Webb.connect_browser(existing)
+          browser.close
+        rescue
+          # Browser not responding
+        end
         Webb.remove_state
         STDERR.puts "Warning: stale state file removed"
       rescue
@@ -238,10 +267,30 @@ module Webb
         launcher.bin(bin)
       end
 
-      # TODO: Implement proxy detection and support
-      # if server, user, pass, needed = detect_proxy()
-      #   # Launch proxy helper
-      # end
+      # Detect authenticated proxy and launch helper if needed
+      proxy_pid : Int32? = nil
+      proxy_port : Int32? = nil
+      server, user, pass, proxy_needed = Webb.detect_proxy
+      if proxy_needed
+        auth_header = "Basic #{Base64.strict_encode("#{user}:#{pass}")}"
+
+        # Find a free port for the local proxy
+        listener = TCPServer.new("127.0.0.1", 0)
+        proxy_port = listener.local_address.port
+        listener.close
+
+        # Launch ourselves as the proxy helper in the background
+        exe = Process.executable_path || "webb"
+        process = Process.new(exe, ["_proxy", proxy_port.to_s, server, auth_header])
+        proxy_pid = process.pid.to_i32
+
+        # Wait for the proxy to be ready
+        sleep 500.milliseconds
+
+        launcher.set("proxy-server", "http://127.0.0.1:#{proxy_port}")
+        ignore_cert_errors = true # Proxy requires ignoring cert errors
+        puts "Auth proxy started (PID #{proxy_pid}, port #{proxy_port}) -> #{server}"
+      end
 
       if ignore_cert_errors
         launcher.set("ignore-certificate-errors")
@@ -255,8 +304,8 @@ module Webb
         chrome_pid: pid,
         active_page: 0,
         data_dir: data_dir,
-        proxy_pid: nil,
-        proxy_port: nil
+        proxy_pid: proxy_pid,
+        proxy_port: proxy_port
       )
 
       Webb.save_state(state)
@@ -1020,8 +1069,55 @@ module Webb
     end
 
     private def self.cmd_internal_proxy(args : Array(String))
-      STDERR.puts "Internal proxy not implemented"
-      exit 1
+      if args.size < 3
+        Webb.fatal("usage: webb _proxy <port> <upstream> <authHeader>")
+      end
+      port = args[0].to_i
+      upstream = args[1]
+      auth_header = args[2]
+
+      server = HTTP::Server.new do |context|
+        if context.request.method == "CONNECT"
+          proxy_connect(context, upstream, auth_header)
+        else
+          proxy_http(context, upstream, auth_header)
+        end
+      end
+
+      server.bind_tcp("127.0.0.1", port)
+      server.listen # blocks forever
+
+
+    rescue ex : ArgumentError
+      Webb.fatal("invalid port: #{args[0]}")
+    end
+
+    private def self.proxy_connect(context : HTTP::Server::Context, upstream : String, auth_header : String)
+      # HTTP CONNECT tunneling requires socket hijacking not supported by Crystal's HTTP::Server
+      # See shard_issues/rod.001.md for details
+      context.response.status_code = 501
+      context.response.print("CONNECT tunneling not supported in this port")
+    end
+
+    private def self.proxy_http(context : HTTP::Server::Context, upstream : String, auth_header : String)
+      request = context.request
+      host, port_str = upstream.split(":")
+      port = port_str.to_i
+
+      # Rewrite the request URL to go through the upstream proxy
+      client = HTTP::Client.new(host, port)
+      headers = HTTP::Headers.new
+      request.headers.each { |k, v| headers[k] = v }
+      headers["Proxy-Authorization"] = auth_header
+
+      response = client.exec(request.method, request.resource, headers, request.body.try(&.gets_to_end))
+      client.close
+
+      response.headers.each { |k, v| context.response.headers[k] = v }
+      context.response.status_code = response.status_code
+      context.response.print(response.body)
+    rescue
+      context.response.status_code = 502
     end
   end
 end
