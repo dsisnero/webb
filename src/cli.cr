@@ -118,9 +118,7 @@ module Webb
       when "_proxy"
         cmd_internal_proxy(cmd_args) # hidden: runs the auth proxy helper
       else
-        STDERR.puts "Unknown command: #{cmd}"
-        print_usage
-        exit 1
+        Webb.fatal("unknown command: #{cmd}")
       end
     end
 
@@ -362,8 +360,7 @@ module Webb
       begin
         state = Webb.load_state
       rescue
-        puts "No active browser session"
-        return
+        Webb.fatal("no active browser session")
       end
 
       # Try to connect to browser
