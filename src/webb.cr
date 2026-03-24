@@ -134,11 +134,7 @@ module Webb
   # connect_browser connects to the running Chrome instance
   def self.connect_browser(state : State) : Rod::Browser
     browser = Rod::Browser.new.control_url(state.debug_url)
-    begin
-      browser.connect
-    rescue ex
-      fatal("failed to connect to browser (is it still running?): #{ex.message}")
-    end
+    browser.connect
     browser
   end
 
@@ -161,7 +157,11 @@ module Webb
   # with_page helper that loads state, connects browser, and returns active page
   def self.with_page : {State, Rod::Browser, Rod::Page}
     state = load_state
-    browser = connect_browser(state)
+    begin
+      browser = connect_browser(state)
+    rescue ex
+      fatal("failed to connect to browser (is it still running?): #{ex.message}")
+    end
     page = get_active_page(browser, state)
     # Apply default timeout so element queries don't hang forever
     page = page.timeout(DEFAULT_TIMEOUT)
