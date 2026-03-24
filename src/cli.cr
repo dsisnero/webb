@@ -109,11 +109,11 @@ module Webb
         cmd_visible(cmd_args)
       when "assert"
         cmd_assert(cmd_args)
-      when "axtree"
+      when "axtree", "ax-tree"
         cmd_ax_tree(cmd_args)
-      when "axfind"
+      when "axfind", "ax-find"
         cmd_ax_find(cmd_args)
-      when "axnode"
+      when "axnode", "ax-node"
         cmd_ax_node(cmd_args)
       when "_proxy"
         cmd_internal_proxy(cmd_args) # hidden: runs the auth proxy helper
@@ -253,8 +253,7 @@ module Webb
       # Set basic flags (using method chaining like Go API)
       launcher.no_sandbox
         .set("disable-gpu")
-        .set("single-process") # Required for screenshots in gVisor/container environments
-        .leakless(false)       # Keep Chrome alive after CLI exits
+        .leakless(false) # Keep Chrome alive after CLI exits
         .user_data_dir(data_dir)
 
       # Set headless mode
@@ -301,6 +300,9 @@ module Webb
 
       debug_url = launcher.launch
       pid = launcher.pid
+
+      # Remove Chrome from leakless tracking so it survives after CLI exits
+      Rod::Util::Leakless.tracked_processes.delete(pid.to_i32) rescue nil
 
       state = Webb::State.new(
         debug_url: debug_url,
@@ -931,8 +933,9 @@ module Webb
         Webb.fatal("usage: webb exists <selector>")
       end
       _, _, page = Webb.with_page
-      has, _ = page.has(args[0])
-      if has
+      # Use elements() to avoid waiting for non-existent elements
+      els = page.elements(args[0])
+      if !els.empty?
         puts "true"
         exit(0)
       else
@@ -955,16 +958,12 @@ module Webb
         Webb.fatal("usage: webb visible <selector>")
       end
       _, _, page = Webb.with_page
-      begin
-        el = page.element(args[0])
-        if el.visible?
-          puts "true"
-          exit(0)
-        else
-          puts "false"
-          exit(1)
-        end
-      rescue
+      # Use elements() to avoid waiting for non-existent elements
+      els = page.elements(args[0])
+      if !els.empty? && els[0].visible?
+        puts "true"
+        exit(0)
+      else
         puts "false"
         exit(1)
       end
