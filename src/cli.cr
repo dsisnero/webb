@@ -224,19 +224,22 @@ module Webb
       end
 
       # Check if already running
-      begin
-        existing = Webb.load_state
-        # Try connecting to see if it's actually running
+      if File.exists?(Webb.state_path)
         begin
-          browser = Webb.connect_browser(existing)
-          browser.close
+          existing = Webb.load_state
+          # Try connecting to see if it's actually running
+          begin
+            browser = Webb.connect_browser(existing)
+            browser.close
+          rescue
+            # Browser not responding
+          end
+          Webb.remove_state
+          STDERR.puts "Warning: stale state file removed"
         rescue
-          # Browser not responding
+          # Corrupt state file
+          Webb.remove_state
         end
-        Webb.remove_state
-        STDERR.puts "Warning: stale state file removed"
-      rescue
-        # No state file or corrupt, continue
       end
 
       # Parse flags

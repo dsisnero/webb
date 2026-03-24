@@ -146,7 +146,8 @@ module Webb
   def self.get_active_page(browser : Rod::Browser, state : State) : Rod::Page
     pages = browser.pages
     if pages.empty?
-      fatal("no pages open")
+      # Create a default page if none exist
+      return browser.page("about:blank")
     end
 
     idx = state.active_page
