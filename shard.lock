@@ -13,12 +13,8 @@ shards:
     version: 1.0.3
 
   goob:
-    path: ../goob
+    git: https://github.com/dsisnero/goob.git
     version: 0.6.0
-
-  gson:
-    path: ../gson
-    version: 0.1.0
 
   pluto:
     git: https://github.com/phenopolis/pluto.git
@@ -26,7 +22,7 @@ shards:
 
   rod:
     git: https://github.com/dsisnero/rod.git
-    version: 0.7.0
+    version: 0.8.0
 
   similar:
     git: https://github.com/dsisnero/similar.cr.git

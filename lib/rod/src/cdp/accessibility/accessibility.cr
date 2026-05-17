@@ -132,9 +132,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : GetPartialAXTreeResult
-      res = GetPartialAXTreeResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, GetPartialAXTreeResult, c)
     end
   end
 
@@ -157,9 +155,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : GetFullAXTreeResult
-      res = GetFullAXTreeResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, GetFullAXTreeResult, c)
     end
   end
 
@@ -180,9 +176,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : GetRootAXNodeResult
-      res = GetRootAXNodeResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, GetRootAXNodeResult, c)
     end
   end
 
@@ -207,9 +201,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : GetAXNodeAndAncestorsResult
-      res = GetAXNodeAndAncestorsResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, GetAXNodeAndAncestorsResult, c)
     end
   end
 
@@ -232,9 +224,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : GetChildAXNodesResult
-      res = GetChildAXNodesResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, GetChildAXNodesResult, c)
     end
   end
 
@@ -263,9 +253,7 @@ module Cdp::Accessibility
 
     # Call sends the request and returns the result.
     def call(c : Cdp::Client) : QueryAXTreeResult
-      res = QueryAXTreeResult.new
-      Cdp.call(proto_req, self, res, c)
-      res
+      Cdp.call(proto_req, self, QueryAXTreeResult, c)
     end
   end
 end
