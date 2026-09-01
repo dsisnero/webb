@@ -63,6 +63,8 @@ module Webb
         cmd_js(cmd_args)
       when "click"
         cmd_click(cmd_args)
+      when "click-text"
+        cmd_click_text(cmd_args)
       when "input"
         cmd_input(cmd_args)
       when "clear"
@@ -149,6 +151,7 @@ module Webb
       puts "Interaction:"
       puts "  webb js <expression>          Evaluate JavaScript expression"
       puts "  webb click <selector>         Click an element"
+      puts "  webb click-text <text>        Click a visible button, link, or control by text"
       puts "  webb input <selector> <text>  Type text into an input field"
       puts "  webb clear <selector>         Clear an input field"
       puts "  webb file <selector> <path|-> Set file on a file input (- for stdin)"
@@ -575,6 +578,19 @@ module Webb
       _, _, page = Webb.with_page
       el = page.element(args[0])
       el.click
+      sleep 100.milliseconds
+      puts "Clicked"
+    end
+
+    private def self.cmd_click_text(args : Array(String))
+      if args.empty?
+        Webb.fatal("usage: webb click-text <text>")
+      end
+
+      text = args.join(" ")
+      xpath = "//*[self::button or self::a or @role='button' or self::span][normalize-space(.)=#{text.to_json}][1]"
+      _, _, page = Webb.with_page
+      page.element_x(xpath).click
       sleep 100.milliseconds
       puts "Clicked"
     end
