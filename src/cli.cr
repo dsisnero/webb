@@ -596,8 +596,13 @@ module Webb
       while index < candidates.size
         candidate = candidates[index]
         if candidate.visible?
-          element = candidate
-          break
+          begin
+            candidate.interactable
+            element = candidate
+            break
+          rescue
+            # A hidden or off-screen duplicate; continue to the next visible match.
+          end
         end
         index += 1
       end
