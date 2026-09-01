@@ -2,7 +2,7 @@ require "json"
 require "base64"
 require "uri"
 require "rod"
-require "../lib/rod/src/cdp/accessibility/accessibility"
+require "rod/cdp/accessibility/accessibility"
 
 module Webb
   VERSION = "0.1.0"
