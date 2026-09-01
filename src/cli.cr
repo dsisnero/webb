@@ -590,7 +590,19 @@ module Webb
       text = args.join(" ")
       xpath = "//*[self::button or self::a or @role='button' or self::span][normalize-space(.)=#{text.to_json}][1]"
       _, _, page = Webb.with_page
-      page.element_x(xpath).click
+      element = nil.as(Rod::Element?)
+      candidates = page.elements_x(xpath)
+      index = 0
+      while index < candidates.size
+        candidate = candidates[index]
+        if candidate.visible?
+          element = candidate
+          break
+        end
+        index += 1
+      end
+      Webb.fatal("no visible interactive element with text: #{text.inspect}") unless element
+      element.not_nil!.click
       sleep 100.milliseconds
       puts "Clicked"
     end
