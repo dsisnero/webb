@@ -588,7 +588,7 @@ module Webb
       end
 
       text = args.join(" ")
-      xpath = "//*[self::button or self::a or @role='button' or self::span][normalize-space(.)=#{text.to_json}][1]"
+      xpath = "//*[normalize-space(.)=#{text.to_json}]/ancestor-or-self::*[self::button or self::a or @role='button' or @role='menuitem'][1]"
       _, _, page = Webb.with_page
       element = nil.as(Rod::Element?)
       candidates = page.elements_x(xpath)

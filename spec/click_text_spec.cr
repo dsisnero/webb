@@ -6,5 +6,6 @@ describe "webb click-text" do
     source.should contain("when \"click-text\"")
     source.should contain("candidates = page.elements_x(xpath)")
     source.should contain("candidate.interactable")
+    source.should contain("ancestor-or-self")
   end
 end
