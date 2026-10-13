@@ -67,6 +67,8 @@ module Webb
         cmd_click_text(cmd_args)
       when "input"
         cmd_input(cmd_args)
+      when "press"
+        cmd_press(cmd_args)
       when "clear"
         cmd_clear(cmd_args)
       when "select"
@@ -153,6 +155,7 @@ module Webb
       puts "  webb click <selector>         Click an element"
       puts "  webb click-text <text>        Click a visible button, link, or control by text"
       puts "  webb input <selector> <text>  Type text into an input field"
+      puts "  webb press <selector> Enter  Focus an element and press Enter"
       puts "  webb clear <selector>         Clear an input field"
       puts "  webb file <selector> <path|-> Set file on a file input (- for stdin)"
       puts "  webb download <sel> [file|-]  Download href/src target (- for stdout)"
@@ -622,6 +625,17 @@ module Webb
       el.select_all_text
       el.input(text)
       puts "Typed: #{text}"
+    end
+
+    private def self.cmd_press(args : Array(String))
+      unless args.size == 2 && args[1].downcase == "enter"
+        Webb.fatal("usage: webb press <selector> Enter")
+      end
+      _, _, page = Webb.with_page
+      element = page.element(args[0])
+      element.focus
+      page.keyboard.type(Rod::Input::ENTER)
+      puts "Pressed Enter"
     end
 
     private def self.cmd_clear(args : Array(String))
