@@ -131,6 +131,70 @@ private class AXSpecEnv
   end
 end
 
+private class InsecureTLSSpecEnv
+  getter url : String
+
+  @server : HTTP::Server
+
+  def initialize
+    dir = File.expand_path("../temp/tls", __DIR__)
+    Dir.mkdir_p(dir)
+    cert = File.join(dir, "cert.pem")
+    key = File.join(dir, "key.pem")
+
+    unless File.exists?(cert) && File.exists?(key)
+      status = Process.run("openssl", [
+        "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+        "-keyout", key, "-out", cert, "-days", "1",
+        "-subj", "/CN=127.0.0.1",
+        "-addext", "subjectAltName=IP:127.0.0.1",
+      ], output: Process::Redirect::Close, error: Process::Redirect::Close)
+      raise "openssl req failed to generate the self-signed test certificate" unless status.success?
+    end
+
+    context = OpenSSL::SSL::Context::Server.new
+    context.certificate_chain = cert
+    context.private_key = key
+
+    @server = HTTP::Server.new do |http|
+      http.response.content_type = "text/html"
+      http.response.print([
+        "<!DOCTYPE html>",
+        "<html><head><title>Secure Test</title></head>",
+        "<body><h1>HTTPS Test Page</h1></body></html>",
+      ].join)
+    end
+
+    addr = @server.bind_tls("127.0.0.1", 0, context)
+    @url = "https://127.0.0.1:#{addr.port}/"
+    spawn { @server.listen }
+  end
+
+  def close : Nil
+    @server.close rescue nil
+  end
+end
+
+# Mirrors the launcher setup in the Go TestInsecureFlag_WithSelfSignedCert
+# subtests: identical flags, with ignore-certificate-errors toggled.
+private def launch_spec_browser(ignore_cert_errors : Bool) : Rod::Util::Launcher::Launcher
+  launcher = Rod::Util::Launcher::Launcher.new
+    .set("disable-gpu")
+    .set("single-process")
+    .headless(true)
+    .leakless(false)
+    .no_sandbox(true)
+  launcher.set("ignore-certificate-errors") if ignore_cert_errors
+
+  if bin = ENV["ROD_CHROME_BIN"]?
+    launcher.bin(bin)
+  elsif File::Info.executable?(AXSpecEnv::CHROME_BIN)
+    launcher.bin(AXSpecEnv::CHROME_BIN)
+  end
+
+  launcher
+end
+
 private module WebbSpecSupport
   @@ax_env : AXSpecEnv? = nil
 
@@ -847,6 +911,43 @@ describe Webb do
         el.set_files([tmp1, tmp2])
       ensure
         page.close
+      end
+    end
+  end
+
+  describe "--insecure with a self-signed certificate" do
+    it "matches TestInsecureFlag_WithSelfSignedCert/WithoutInsecureFlag" do
+      env = InsecureTLSSpecEnv.new
+      launcher = launch_spec_browser(ignore_cert_errors: false)
+      browser = Rod::Browser.new.control_url(launcher.launch)
+      browser.connect
+      begin
+        page = browser.page("about:blank")
+        error = expect_raises(Rod::NavigationError) do
+          page.navigate(env.url)
+        end
+        error.message.to_s.should contain("ERR_CERT_AUTHORITY_INVALID")
+      ensure
+        browser.close rescue nil
+        launcher.kill rescue nil
+        env.close
+      end
+    end
+
+    it "matches TestInsecureFlag_WithSelfSignedCert/WithInsecureFlag" do
+      env = InsecureTLSSpecEnv.new
+      launcher = launch_spec_browser(ignore_cert_errors: true)
+      browser = Rod::Browser.new.control_url(launcher.launch)
+      browser.connect
+      begin
+        page = browser.page("about:blank")
+        page.navigate(env.url)
+        page.wait_load
+        page.info.title.should eq("Secure Test")
+      ensure
+        browser.close rescue nil
+        launcher.kill rescue nil
+        env.close
       end
     end
   end

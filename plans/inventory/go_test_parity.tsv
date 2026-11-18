@@ -47,7 +47,7 @@ main_test.go::test::TestFormatAssertFail_EqualityNoMessage	ported	spec/webb_spec
 main_test.go::test::TestFormatAssertFail_EqualityWithMessage	ported	spec/webb_spec.cr::format_assert_fail equality with message	Ported from upstream test
 main_test.go::test::TestFormatAssertFail_TruthyNoMessage	ported	spec/webb_spec.cr::format_assert_fail truthy no message	Ported from upstream test
 main_test.go::test::TestFormatAssertFail_TruthyWithMessage	ported	spec/webb_spec.cr::format_assert_fail truthy with message	Ported from upstream test
-main_test.go::test::TestInsecureFlag_WithSelfSignedCert	partial	-	Needs self-signed HTTPS fixture; --insecure already sets ignore-certificate-errors
+main_test.go::test::TestInsecureFlag_WithSelfSignedCert	ported	spec/webb_spec.cr::--insecure with a self-signed certificate	Both Go subtests: cert error without the flag, title parity with it
 main_test.go::test::TestMain	ported	spec/webb_spec.cr::AXSpecEnv	Harness equivalent: one headless Chrome plus the six fixture routes
 main_test.go::test::TestMimeToExt	ported	spec/webb_spec.cr::mime_to_ext	Ported from upstream test
 main_test.go::test::TestParseAssertArgs_EqualityWithMessage	ported	spec/webb_spec.cr::parse_assert_args equality with message	Ported from upstream test
