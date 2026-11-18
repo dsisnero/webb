@@ -96,7 +96,7 @@ copy the skill's Ruby helpers into this repo.
 ```bash
 # Regeneration refuses to overwrite a curated manifest unless forced; prefer the
 # gate. For a reviewed reset of the test manifest only:
-PORT_PARSER=regex PORT_FORCE_OVERWRITE=1 \
+PORT_PARSER=tree-sitter PORT_FORCE_OVERWRITE=1 \
   ./scripts/generate_go_test_parity_manifest.sh . plans/inventory/go_test_parity.tsv \
   vendor/rodney go
 

@@ -1,0 +1,10 @@
+{
+  "base": "/Volumes/extreme_ssd/repos/github.com/dsisnero/webb/vendor/rodney",
+  "parser_requested": "tree-sitter",
+  "backend": "chiasmus-tree-sitter",
+  "binary": "/Users/dominic/.cache/chiasmus/toolchains/darwin-aarch64/v0.3.2/chiasmus-discover --language go --dir /Volumes/extreme_ssd/repos/github.com/dsisnero/webb/vendor/rodney --parser tree-sitter --cache-dir /Users/dominic/.cache/chiasmus",
+  "include_paths": [
+    "."
+  ],
+  "exclude_patterns": []
+}

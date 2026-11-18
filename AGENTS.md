@@ -55,22 +55,29 @@ resolve the skill from `PARITY_SKILL_DIR` (default: the path above). Check the
 command's target when first adopting this skill or when inventory behavior
 changes. Updating the installed skill does not update copied repository scripts.
 
-The curated ledger uses `regex` discovery vocabulary. Keep that mode for its
-regular gate until a reviewed manifest and ID migration changes it. Before
+The curated ledger is discovered with **tree-sitter**
+(`PARITY_PARSER=tree-sitter` in the `Makefile`). The expected backend is
+`chiasmus-tree-sitter`; a gate that reports `PARITY_DISCOVERY_BACKEND=regex` has
+silently fallen back and must be treated as a failure, not a pass. Before
 relying on discovery, run:
 
 ```bash
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
-"${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go regex
-PORT_PARSER=regex make inventory
+"${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go tree-sitter
+PORT_PARSER=tree-sitter make inventory
 ```
 
-Check `PARITY_DISCOVERY_BACKEND` in the gate output and, when manifests are
-regenerated, `backend` in their `.metadata.json` files. A requested parser mode
-or installed Ruby gem does not prove tree-sitter ran. A `regex` ledger may
-remain the authoritative gate while native discovery is evaluated separately.
-Chiasmus binary releases are resolved by the installed skill; they are distinct
-from the skill scripts.
+The ledger's scope is the declaration kinds present in the manifests
+(`class`, `const`) plus upstream tests. Tree-sitter discovery also emits Go
+`function` facts, but the skill's curated Go filter drops the native
+`class`/`function` labels, so a regeneration that widens the manifest kinds
+must be reviewed row by row. Function-level coverage is a tracked plan item, not
+a silent omission.
+
+Check `PARITY_DISCOVERY_BACKEND` in the gate output and `backend` in the
+committed `plans/inventory/*.metadata.json` files. A requested parser mode or an
+installed Ruby gem does not prove tree-sitter ran. Chiasmus binary releases are
+resolved by the installed skill; they are distinct from the skill scripts.
 
 ## Session continuity (read this first)
 

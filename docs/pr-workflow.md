@@ -47,7 +47,7 @@ When porting Go code, update `plans/inventory/go_port_inventory.tsv`:
 Use the helper scripts to regenerate and validate:
 
 ```bash
-PORT_PARSER=regex ./scripts/generate_go_port_inventory.sh . \
+PORT_PARSER=tree-sitter ./scripts/generate_go_port_inventory.sh . \
   plans/inventory/go_port_inventory.tsv vendor/rodney go
 make inventory                          # Report gaps
 ```

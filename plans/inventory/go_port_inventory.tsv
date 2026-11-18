@@ -1,6 +1,9 @@
-# baseline=simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f) parser=regex scope=exported-api
+# baseline=simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f) parser=tree-sitter scope=declarations+tests
 # source_id	kind	status	crystal_refs	notes
-main.go::struct::State	struct	ported	src/webb.cr::Webb::State	Ported state struct fields and JSON keys
+main.go::class::State	class	ported	src/webb.cr::Webb::State	Go struct; tree-sitter labels it class
+main.go::const::scopeAuto	const	ported	src/webb.cr::Webb::ScopeMode::Auto	scope mode enum member (order matches Go iota)
+main.go::const::scopeGlobal	const	ported	src/webb.cr::Webb::ScopeMode::Global	scope mode enum member (order matches Go iota)
+main.go::const::scopeLocal	const	ported	src/webb.cr::Webb::ScopeMode::Local	scope mode enum member (order matches Go iota)
 main_test.go::test::TestAXFind_ByName	test	ported	spec/webb_spec.cr::query_ax_nodes by name	Ported from upstream live-browser test
 main_test.go::test::TestAXFind_ByNameAndRole	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role	Ported from upstream live-browser test
 main_test.go::test::TestAXFind_ByNameAndRoleExact	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role exact	Ported from upstream live-browser test

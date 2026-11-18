@@ -8,7 +8,7 @@ make build     # Compile binary to bin/webb
 make format    # Check formatting (crystal tool format --check)
 make lint      # Lint and auto-fix (ameba --fix, then ameba)
 make test      # Run specs (crystal spec)
-make inventory # Parity ledger gate (regex backend, vendor/rodney)
+make inventory # Parity ledger gate (tree-sitter backend, vendor/rodney)
 make clean     # Remove temp/ contents and AppleDouble sidecars
 ```
 
@@ -45,8 +45,9 @@ forwarding wrappers around the installed cross-language parity skill
 the skill, not the wrappers, when gate behavior changes. Never copy the skill's
 Ruby helpers back into `scripts/`.
 
-The curated ledger is regex-derived (`parser=regex`), matching the
-`# baseline=` header of each manifest and the policy recorded in `AGENTS.md`.
+The curated ledger is discovered with tree-sitter (`parser=tree-sitter` in the
+manifest headers and `<manifest>.metadata.json` sidecars), matching the policy
+recorded in `AGENTS.md`.
 `make inventory` runs all three checks (port inventory, source parity, test
 parity) against `vendor/rodney`; `make parity-verify` checks the installed
 skill and reports `PARITY_DISCOVERY_BACKEND`.

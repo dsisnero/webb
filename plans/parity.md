@@ -13,20 +13,25 @@ is one feature: one branch, one commit, one ledger update.
 - **Next up:**
   1. Port `main_test.go::TestInsecureFlag_WithSelfSignedCert` (Phase 1)
   2. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2)
-  3. Evaluate native `tree-sitter` discovery as a spike (Phase 2)
+  3. Expand the ledger to Go `function`/method declarations (Phase 2)
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command;
     `--insecure` parses and sets `ignore-certificate-errors`, but has no
     end-to-end spec yet.
   - `spec/webb_spec.cr`: 62 examples, 0 pending, 0 failures.
-  - Ledger: 63/64 rows `ported`, 1 `partial`
-    (`TestInsecureFlag_WithSelfSignedCert`). Exported Go API (`State`) mapped.
+  - Ledger: 67 rows — 4 source declarations (`State` + 3 scope consts) and 63
+    upstream tests; 66 `ported`, 1 `partial`
+    (`TestInsecureFlag_WithSelfSignedCert`).
 - **Scoping notes / gotchas:**
-  - The ledger is **regex-derived** (`parser=regex`). Discovery surfaces the
-    exported Go API plus upstream tests only; unexported helpers are not rows.
-    Do not switch the gate to `tree-sitter` without a reviewed manifest
-    regeneration and an `AGENTS.md` policy update.
+  - Discovery runs through the verified chiasmus **tree-sitter** toolchain
+    (`PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter`). A `regex` backend in the
+    gate output is a silent fallback, not a pass.
+  - The ledger's scope is the manifest declaration kinds (`class`, `const`)
+    plus upstream tests. Tree-sitter also emits Go `function` facts, but the
+    skill's curated Go filter drops the native `class`/`function` labels, so
+    widening the ledger to functions is a reviewed migration (see Phase 2), not
+    a flag flip.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
@@ -36,7 +41,7 @@ is one feature: one branch, one commit, one ledger update.
 - **Last port commit:** `696f70c` (Update rod to 0.8.0, class-based `Cdp.call`)
 - **Gates:** `make format` pass; `make lint` pass (5 files, 0 failures);
   `make test` pass (62 examples, 0 failures); `make inventory` pass
-  (1 API item, 63 tests, regex backend).
+  (4 declarations, 63 tests, `chiasmus-tree-sitter` backend).
 
 Keep this block accurate after every feature: the next session reads it first
 (see `AGENTS.md` → **How to resume**).
@@ -80,9 +85,11 @@ Each item is still one commit; none of them touch ported behavior.
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
       one commit; never append across releases.
-- [ ] **Evaluate native `tree-sitter` discovery** — spike only: compare
-      discovered IDs with the curated regex ledger, report drift, and keep the
-      `regex` gate authoritative until a reviewed manifest migration lands.
+- [ ] **Expand the ledger to Go function/method declarations** — tree-sitter
+      discovery already reports them; the skill's curated Go kind map drops the
+      native labels, so this is a reviewed migration: regenerate into
+      `temp/`, diff against the current rows, then add the `function`/`method`
+      rows (status + real `crystal_refs`) in one commit and re-run the gate.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
@@ -92,6 +99,9 @@ Reference for what is already ported; do not re-open without a divergence:
 
 - Test harness: Go `TestMain` (one headless Chrome + six fixture routes) is
   `AXSpecEnv` in `spec/webb_spec.cr`.
+- Discovery: the parity gate runs on the chiasmus tree-sitter toolchain; the
+  ledger is re-based to tree-sitter IDs (`class`/`const` + tests) with
+  `.metadata.json` provenance.
 - File uploads: `TestFile_SetFileOnInput` and `TestFile_MultipleFiles` are the
   `.file browser parity` examples.
 - AX tree/find/node, assert family, argument parsing, state-dir resolution,

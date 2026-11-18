@@ -37,15 +37,17 @@ make format
 make lint
 make test
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
-"${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go regex
+"${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go tree-sitter
+PORT_PARSER=tree-sitter make inventory
 make inventory
 ```
 
-Lint and tests must pass before changing anything. Run the inventory gate
-and compare any drift with the **Where we are** block; recorded upstream drift
-may be the next feature to fix. Confirm `PARITY_DISCOVERY_BACKEND=regex` in the
-gate output; the curated ledger is regex-derived and that is the policy recorded
-in `AGENTS.md`.
+Lint and tests must pass before changing anything. Run the inventory gate and
+compare any drift with the **Where we are** block; recorded upstream drift may
+be the next feature to fix. Confirm
+`PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in the gate output; a `regex`
+backend means discovery silently fell back and the gate result is not
+trustworthy. The policy is recorded in `AGENTS.md`.
 
 ## 4. Pick the next feature
 
