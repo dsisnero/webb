@@ -10,4 +10,6 @@
 .dolt/
 *.db
 /webb
-/bin/
+
+# macOS Apple Double files
+._*

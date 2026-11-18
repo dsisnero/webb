@@ -1,242 +1,213 @@
-# Agent Instructions
+# webb
 
-This is a port of Go https://github.com/simonw/rodney.git to
-Crystal language. Since it is a port, all logic must match the Go implementation
-only differening in Crystal language idioms and libs. If you have
-a question, the go code is the source of truth. We want to port all go code and
-go tests. The Go src is available at ./vendor/
+> **How to resume:** read `plans/parity.md` first and use its **Where we are**
+> block (current focus + ordered "Next up"), then run `make lint` and
+> `make test`. Details: [docs/resuming.md](docs/resuming.md). Do not re-derive
+> state from git.
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get
-started.
+Crystal port of rodney (Go) from
+[simonw/rodney](https://github.com/simonw/rodney), vendored at `vendor/rodney`
+(release `v0.4.0`, commit `9e7ae93900bcb5316d02623706bc8861feec836f`).
 
-## Quick Reference
+Upstream behavior is the contract: all logic must match the Go implementation,
+differing only in Crystal idioms and libraries. Port all Go code and Go tests.
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
-```
-
-## Issue Tracking Workflow
-
-**DO NOT use internal todo list or task list tools** - Use beads for all issue
-tracking and work management:
-
-1. **Strategic, multi-session work**: Track in beads using `bd create`
-2. **Dependencies and blockers**: Use `bd dep add` to link issues
-3. **Session planning**: Use `bd ready` to find unblocked work
-4. **Progress tracking**: Use `bd update <id> --status in_progress` when
-   starting, `bd close <id>` when complete
-
-**When creating multiple tasks**: Use parallel subagents for efficiency with
-`bd create` commands.
-
-**Example workflow**:
+## Commands
 
 ```bash
-# Create issues for test porting
-bd create --title="Port [module] tests from Go to Crystal spec" --type=task --priority=2
-bd create --title="Port [module] tests from Go to Crystal spec" --type=task --priority=2
-bd create --title="Port [module] tests from Go to Crystal spec" --type=task --priority=2
-
-# Claim work
-bd update beads-xxx --status=in_progress
-
-# Complete work
-bd close beads-xxx beads-yyy beads-zzz
+make install        # shards install (with BEADS_DIR set)
+make update         # shards update
+make format         # crystal tool format --check
+make lint           # ameba --fix, then ameba
+make test           # crystal spec
+make build          # crystal build src/webb.cr -o bin/webb
+make inventory      # parity ledger gate (regex backend, vendor/rodney)
+make parity-verify  # verify the installed parity skill + discovery backend
+make clean          # remove temp/ contents and AppleDouble sidecars
 ```
 
-## Landing the Plane (Session Completion)
+## Docs
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT
-complete until `git push` succeeds.
+- [Resuming work](docs/resuming.md)
+- [Architecture](docs/architecture.md)
+- [Development](docs/development.md)
+- [Coding Guidelines](docs/coding-guidelines.md)
+- [Testing](docs/testing.md)
+- [PR Workflow](docs/pr-workflow.md)
 
-**MANDATORY WORKFLOW:**
+## Principles
 
-1. **File issues for remaining work** - Create issues for anything that needs
-   follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-   - **Crystal-specific quality gates**:
+1. Upstream behavior is the source of truth; `vendor/rodney` wins over local
+   preference.
+2. Port behavior, not style.
+3. Port upstream tests early and never weaken assertions.
+4. Track parity in `plans/parity.md` and `plans/inventory/`.
+5. Commit one completed feature at a time.
 
-      ```bash
-      crystal tool format --check
-      ameba --fix
-      ameba
-      crystal spec
-      ```
+## Parity tooling
 
-      Ensure no formatting issues remain, all ameba errors are fixed, and all
-      tests pass before committing.
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+The active cross-language parity skill is
+`/Users/dominic/.agents/skills/crystal_forge/skills/cross-language-crystal-parity`.
+Run its current `scripts/` directly; `make inventory` must invoke those scripts
+or a thin forwarding wrapper, never a copied parity implementation. The scripts
+in `scripts/` are forwarding wrappers (see `scripts/parity_skill_lib.sh`) and
+resolve the skill from `PARITY_SKILL_DIR` (default: the path above). Check the
+command's target when first adopting this skill or when inventory behavior
+changes. Updating the installed skill does not update copied repository scripts.
+
+The curated ledger uses `regex` discovery vocabulary. Keep that mode for its
+regular gate until a reviewed manifest and ID migration changes it. Before
+relying on discovery, run:
+
+```bash
+PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
+"${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go regex
+PORT_PARSER=regex make inventory
+```
+
+Check `PARITY_DISCOVERY_BACKEND` in the gate output and, when manifests are
+regenerated, `backend` in their `.metadata.json` files. A requested parser mode
+or installed Ruby gem does not prove tree-sitter ran. A `regex` ledger may
+remain the authoritative gate while native discovery is evaluated separately.
+Chiasmus binary releases are resolved by the installed skill; they are distinct
+from the skill scripts.
+
+## Session continuity (read this first)
+
+`plans/parity.md` is the single source of truth for where we are. At the start
+of every session:
+
+1. Read `plans/parity.md` and use its **Where we are** block to find the current
+   focus, the ordered "Next up" list, and per-area chunk status. Do not
+   re-derive state from git history.
+2. Skim `git log --oneline -10` and `git status` to confirm the working tree.
+3. Confirm the **Parity tooling** command uses the installed skill scripts and
+   the ledger's parser mode, then run `make lint`, `make test`, and
+   `make inventory` before changes.
+
+See [docs/resuming.md](docs/resuming.md) for the full resume checklist.
+
+### Keeping `plans/parity.md` resumable
+
+- `plans/parity.md` starts with a **Where we are** block (`Current focus`,
+  `Next up`, chunk status by area). Keep it accurate after every feature.
+- Work items are feature-sized (roughly one branch/commit). Per-symbol state
+  lives in `plans/inventory/go_port_inventory.tsv`, not in the plan.
+- The ledger is a **current-state** artifact of the pinned baseline (say so in
+  its leading `# baseline=` comment). Re-base it when the target release
+  changes; never append across versions.
+- If `plans/parity.md` grows too large, split it into `plans/<area>.md` files,
+  link each from `plans/parity.md`, and mark each split file
+  complete/in-progress plus the file being worked on next.
+
+### Definition of done for every feature (required)
+
+A feature is complete only when all of the following are true, and all of it
+must be committed as **one** atomic commit before starting the next feature:
+
+1. the API surface is implemented;
+2. upstream tests (or equivalent characterization specs) exist and pass;
+3. gates pass: `make format`, `make lint`, `make test`, and `make inventory`;
+4. parity inventory rows for the feature are updated
+   (`plans/inventory/go_port_inventory.tsv`) and `make inventory` passes — it
+   checks every row against the pinned tree *and* that each `crystal_refs` file
+   still exists, which is the half that rots when this repo's own files move;
+5. `plans/parity.md` status is updated and the **Where we are** block refreshed
+   (current focus + next up);
+6. any intentional divergence is documented (in `plans/parity.md` and/or the
+   commit message).
+
+### Commit message
+
+Start with `port:` and a one-line feature name, then bullets for what changed,
+then the upstream revision (`simonw/rodney v0.4.0 (9e7ae93)`). Include
+new/changed files, divergences, and the gate results so a new session can
+resume from the commit alone.
+
+## Issue tracking with bd (beads)
+
+This project uses **bd** for issue tracking. Do not create markdown TODO lists
+or duplicate tracking systems.
+
+**Known outage:** in this checkout `bd` currently fails
+(`database "webb" not found` on the Dolt server, and `bd bootstrap` ends in
+`dolt commit: nothing to commit`). The durable issue record is the git-tracked
+`.beads/issues.jsonl`; both `bd bootstrap` and `bd import` have consumed that
+file, so restore it with `git checkout -- .beads/issues.jsonl` if it goes
+missing. See [docs/resuming.md](docs/resuming.md) → Environment notes.
+
+```bash
+bd ready                              # unblocked work
+bd show <id>                          # issue details
+bd update <id> --status in_progress   # claim work
+bd close <id> --reason "Done"         # complete work
+bd create "Title" --description="..." -t bug|feature|task -p 0-4
+bd create "Title" --description="..." -p 1 --deps discovered-from:<parent-id>
+```
+
+- Issue types: `bug`, `feature`, `task`, `epic`, `chore`.
+- Priorities: `0` critical, `1` high, `2` medium (default), `3` low,
+  `4` backlog.
+- Link discovered work with `discovered-from` dependencies instead of widening
+  the current task.
+- Use `--json` for programmatic output.
+
+## Landing the plane (session completion)
+
+**When ending a work session**, complete ALL steps below. Work is NOT complete
+until `git push` succeeds.
+
+1. **File issues for remaining work** — anything that needs follow-up.
+2. **Run quality gates** — `make format`, `make lint`, `make test`,
+   `make inventory`. No formatting issues, no ameba failures, all specs green.
+3. **Update issue status** — close finished work, update in-progress items.
+4. **Push to remote** — mandatory:
 
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
 
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+   (`bd dolt push`, if bd works again, goes alongside `git push`.)
+5. **Clean up** — clear stashes, prune remote branches.
+6. **Verify** — all changes committed AND pushed.
+7. **Hand off** — provide context for the next session.
 
-**CRITICAL RULES:**
+**Critical rules:**
 
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+- Work is NOT complete until `git push` succeeds.
+- NEVER stop before pushing — that strands work locally.
+- NEVER say "ready to push when you are" — YOU must push.
+- If push fails, resolve and retry until it succeeds.
 
-## Crystal Development Guidelines
+## Crystal development guidelines
 
-This is a Crystal port of the Go code from `./vendor/`. Follow Crystal idioms and
-best practices:
+- Use Crystal's built-in formatter: `crystal tool format`.
+- Use ameba for linting: `ameba --fix`, then `ameba` to verify.
+- Prefer Crystal's standard library over custom implementations.
+- Use Crystal's type system effectively (avoid unnecessary `as` casts).
+- Follow Crystal naming conventions (snake_case for methods/variables,
+  CamelCase for classes).
+- Write specs for new functionality using Crystal's built-in spec framework.
 
-- Use Crystal's built-in formatter: `crystal tool format`
-- Use ameba for linting: `ameba --fix` then `ameba` to verify
-- Prefer Crystal's standard library over custom implementations
-- Use Crystal's type system effectively (avoid unnecessary `as` casts)
-- Follow Crystal naming conventions (snake_case for methods/variables, CamelCase
-  for classes)
-- Write specs for new functionality using Crystal's built-in spec framework
-
-### Test Porting Guidelines
+### Test porting guidelines
 
 When porting Go tests to Crystal specs:
 
-1. **Port test logic exactly** - Don't adjust test assertions or expected values
-2. **Use Crystal idioms for structure** - Convert Go test tables to Crystal `it`
-   blocks
-3. **Mark missing functionality as pending** - Use `pending` for tests that
-   can't run yet
-4. **Follow Go test patterns** - Maintain the same test coverage and edge cases
-5. **Verify against Go implementation** - Ensure Crystal behavior matches Go
-   exactly
+1. **Port test logic exactly** — don't adjust assertions or expected values.
+2. **Use Crystal idioms for structure** — convert Go test tables to Crystal
+   `it` blocks.
+3. **Mark missing functionality as pending** — use `pending` only when a test
+   genuinely cannot run yet, and reference the blocking shard issue.
+4. **Follow Go test patterns** — keep the same coverage and edge cases.
+5. **Verify against Go** — Crystal behavior must match Go exactly.
 
-Example: If a Go test expects compressed data of specific size, replicate that
-check in Crystal even if Crystal's compression produces slightly different
-output.
+## File system guidelines
 
-## File System Guidelines
-
-- Use `./temp` directory for temporary files created during testing or
-  development
-- Never commit temporary files to git (they are already in `.gitignore`)
-- Clean up temporary files after use (the `make clean` rule removes `./temp`
-  contents)
-
-<!-- BEGIN BEADS INTEGRATION -->
-## Issue Tracking with bd (beads)
-
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
-
-### Why bd?
-
-- Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Dolt-powered version control with native sync
-- Agent-optimized: JSON output, ready work detection, discovered-from links
-- Prevents duplicate tracking systems and confusion
-
-### Quick Start
-
-**Check for ready work:**
-
-```bash
-bd ready --json
-```
-
-**Create new issues:**
-
-```bash
-bd create "Issue title" --description="Detailed context" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" --description="What this issue is about" -p 1 --deps discovered-from:bd-123 --json
-```
-
-**Claim and update:**
-
-```bash
-bd update <id> --claim --json
-bd update bd-42 --priority 1 --json
-```
-
-**Complete work:**
-
-```bash
-bd close bd-42 --reason "Completed" --json
-```
-
-### Issue Types
-
-- `bug` - Something broken
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature with subtasks
-- `chore` - Maintenance (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Workflow for AI Agents
-
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task atomically**: `bd update <id> --claim`
-3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
-
-### Auto-Sync
-
-bd automatically syncs via Dolt:
-
-- Each write auto-commits to Dolt history
-- Use `bd dolt push`/`bd dolt pull` for remote sync
-- No manual export/import needed!
-
-### Important Rules
-
-- ✅ Use bd for ALL task tracking
-- ✅ Always use `--json` flag for programmatic use
-- ✅ Link discovered work with `discovered-from` dependencies
-- ✅ Check `bd ready` before asking "what should I work on?"
-- ❌ Do NOT create markdown TODO lists
-- ❌ Do NOT use external issue trackers
-- ❌ Do NOT duplicate tracking systems
-
-For more details, see README.md and docs/QUICKSTART.md.
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-
-<!-- END BEADS INTEGRATION -->
+- Use `./temp` for temporary files created during testing or development.
+- Never commit temporary files (they are gitignored).
+- Clean up after use: `make clean` empties `./temp` and removes AppleDouble
+  sidecars.
+- This volume is exFAT: macOS writes `._*` sidecars, and a `._foo_spec.cr`
+  breaks spec discovery. `make format|lint|test` strip them first.

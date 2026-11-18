@@ -21,6 +21,15 @@ webb stop           →  connects and shuts down Chrome, cleans up state
 
 Each CLI invocation is a short-lived process. Chrome runs independently and tabs persist between commands.
 
+## Documentation
+
+- **[Resuming Work](docs/resuming.md)** — Start-of-session checklist: where we are, clean baseline, next feature
+- **[Architecture](docs/architecture.md)** — Stateless CLI design, state persistence, scope modes, proxy support, accessibility commands
+- **[Development](docs/development.md)** — Build targets, porting workflow, issue tracking with bd, directory layout
+- **[Testing](docs/testing.md)** — Spec structure, test categories, parity manifests, running tests
+- **[Coding Guidelines](docs/coding-guidelines.md)** — Upstream parity rules, naming conventions, exit codes, Crystal patterns
+- **[PR Workflow](docs/pr-workflow.md)** — Quality gates, PR template, review checklist, CI pipeline
+
 ## Installation
 
 1. Install Crystal (>= 1.19.1) and Shards.

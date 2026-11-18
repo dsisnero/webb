@@ -1,2 +1,3 @@
+# baseline=simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f) parser=regex scope=exported-api
 # source_api_id	status	crystal_refs	notes
 main.go::struct::State	mapped	src/webb.cr::Webb::State	Ported with JSON serialization

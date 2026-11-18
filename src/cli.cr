@@ -859,7 +859,7 @@ module Webb
       Webb.save_state(state)
       info = pages[idx].info
       puts "Switched to [#{idx}] #{info.title} - #{info.url}"
-    rescue ex : ArgumentError
+    rescue ArgumentError
       Webb.fatal("invalid index: #{args[0]}")
     rescue
       Webb.fatal("failed to switch page")
@@ -919,7 +919,7 @@ module Webb
       state.active_page = Math.max(state.active_page, 0)
       Webb.save_state(state)
       puts "Closed page #{idx}"
-    rescue ex : ArgumentError
+    rescue ArgumentError
       Webb.fatal("invalid index: #{args[0]}")
     rescue
       Webb.fatal("failed to close page")
@@ -999,7 +999,7 @@ module Webb
       else
         print Webb.format_ax_tree(result.nodes)
       end
-    rescue ex : ArgumentError
+    rescue ArgumentError
       Webb.fatal("invalid depth value")
     end
 
@@ -1092,9 +1092,7 @@ module Webb
 
       server.bind_tcp("127.0.0.1", port)
       server.listen # blocks forever
-
-
-    rescue ex : ArgumentError
+    rescue ArgumentError
       Webb.fatal("invalid port: #{args[0]}")
     end
 
