@@ -8,37 +8,46 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** expanding the ledger to Go function/method declarations
-  now that discovery runs on tree-sitter (Phase 2).
+- **Current focus:** reviewing Crystal mappings for the Go functions in the
+  refreshed source manifest (Phase 2).
 - **Next up:**
-  1. Expand the ledger to Go `function`/method declarations (Phase 2)
-  2. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2)
+  1. Verify mappings for Go functions and any receiver methods in scope, then
+     expand the curated ledger (Phase 2).
+  2. Audit the three `partial` test rows against the current 64 Crystal specs
+     and update statuses and references where the evidence supports it (Phase 2).
+  3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
   - `spec/webb_spec.cr`: 64 examples, 0 pending, 0 failures.
-  - Ledger: 67 rows — 4 source declarations (`State` + 3 scope consts) and 63
-    upstream tests; all `ported`.
+  - Curated ledger: 67 rows across 4 source declarations (`State` and 3
+    scope constants) and 63 upstream tests. The ledger records 64 as `ported`
+    and keeps `TestMain`, `TestFile_MultipleFiles`, and
+    `TestFile_SetFileOnInput` marked `partial`.
+  - Source manifest: 82 declarations at `v0.4.0` (1 class, 3 constants, and 78
+    functions). `State` keeps its reviewed mapping. The 81 added rows are
+    marked `missing` in the source manifest pending mapping review.
 - **Scoping notes / gotchas:**
-  - Discovery runs through the verified chiasmus **tree-sitter** toolchain
-    (`PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter`). A `regex` backend in the
-    gate output is a silent fallback, not a pass.
-  - The ledger's scope is the manifest declaration kinds (`class`, `const`)
-    plus upstream tests. Tree-sitter also emits Go `function` facts, but the
-    skill's curated Go filter drops the native `class`/`function` labels, so
-    widening the ledger to functions is a reviewed migration (see Phase 2), not
-    a flag flip.
+  - Discovery runs through the verified Chiasmus **tree-sitter** toolchain.
+    Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate.
+    Treat a reported `regex` backend as a failed gate.
+  - The source manifest and curated ledger declare their kind scopes with
+    `# kinds=`. The curated scope is `class,const,test`. The source manifest
+    supplies IDs for supported declaration kinds. The Go `scopeMode` named
+    type is emitted as `definition.type`, which is outside this scope alongside
+    auxiliary facts such as `definition.function` and `reference.call`.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `696f70c` (Update rod to 0.8.0, class-based `Cdp.call`)
-- **Gates:** `make format` pass; `make lint` pass (5 files, 0 failures);
-  `make test` pass (64 examples, 0 failures); `make inventory` pass
-  (4 declarations, 63 tests, `chiasmus-tree-sitter` backend).
+- **Last port commit:** `a729f6c` (`--insecure` over a self-signed HTTPS origin).
+- **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
+  (64 examples), and `make parity-verify` passed. `make inventory` passed with
+  4 curated source rows, 82 source manifest rows, and 63 tests on
+  `chiasmus-tree-sitter`.
 
 Keep this block accurate after every feature: the next session reads it first
 (see `AGENTS.md` → **How to resume**).
@@ -81,11 +90,17 @@ Each item is still one commit; none of them touch ported behavior.
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
       one commit; never append across releases.
-- [ ] **Expand the ledger to Go function/method declarations** — tree-sitter
-      discovery already reports them; the skill's curated Go kind map drops the
-      native labels, so this is a reviewed migration: regenerate into
-      `temp/`, diff against the current rows, then add the `function`/`method`
-      rows (status + real `crystal_refs`) in one commit and re-run the gate.
+- [x] **Refresh Go source declaration discovery** — regenerate the source
+      manifest against the pinned Go tree with the corrected skill, preserve
+      the `State` mapping, and declare the curated ledger's existing kind
+      scope explicitly.
+- [ ] **Expand the ledger to Go function/method declarations** — review the
+      pinned source manifest against the Crystal code and specs. Record
+      statuses and real `crystal_refs` with the reviewed mappings, add the
+      relevant kinds to the curated scope, and re-run `make inventory`.
+- [ ] **Audit the three partial test rows** — compare the current Crystal specs
+      with `TestMain`, `TestFile_MultipleFiles`, and `TestFile_SetFileOnInput`.
+      Update the ledger entries with reviewed statuses and Crystal references.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
@@ -96,15 +111,16 @@ Reference for what is already ported; do not re-open without a divergence:
 - Test harness: Go `TestMain` (one headless Chrome + six fixture routes) is
   `AXSpecEnv` in `spec/webb_spec.cr`.
 - Discovery: the parity gate runs on the chiasmus tree-sitter toolchain; the
-  ledger is re-based to tree-sitter IDs (`class`/`const` + tests) with
-  `.metadata.json` provenance.
+  curated ledger uses tree-sitter IDs with explicit `class,const,test`
+  coverage. The refreshed source manifest records discovery provenance in
+  `.metadata.json`.
 - File uploads: `TestFile_SetFileOnInput` and `TestFile_MultipleFiles` are the
   `.file browser parity` examples.
 - AX tree/find/node, assert family, argument parsing, state-dir resolution,
   data-URL/download helpers, and scope flags: 60 ported test rows.
 - `--insecure` over self-signed HTTPS: both upstream subtests are the
-  `--insecure with a self-signed certificate` examples; the whole upstream test
-  suite (63 tests) is now `ported`.
+  `--insecure with a self-signed certificate` examples. The test manifest
+  includes all 63 upstream tests.
 - Exported Go API surface: `State` with matching JSON keys.
 
 ## Intentional divergences

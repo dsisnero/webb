@@ -1,4 +1,5 @@
 # baseline=simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f) parser=tree-sitter scope=declarations+tests
+# kinds=class,const,test
 # source_id	kind	status	crystal_refs	notes
 main.go::class::State	class	ported	src/webb.cr::Webb::State	Go struct; tree-sitter labels it class
 main.go::const::scopeAuto	const	ported	src/webb.cr::Webb::ScopeMode::Auto	scope mode enum member (order matches Go iota)

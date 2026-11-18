@@ -1,9 +1,9 @@
 PARITY_SKILL_DIR ?= $(HOME)/.agents/skills/crystal_forge/skills/cross-language-crystal-parity
 PARITY_SOURCE_DIR ?= vendor/rodney
 PARITY_LANGUAGE ?= go
-# Ledger policy: discovery runs through the verified chiasmus tree-sitter
-# toolchain. The curated manifests scope the ledger to the declaration kinds
-# they contain (class/const) plus upstream tests; see AGENTS.md.
+# Discovery runs through the verified chiasmus tree-sitter toolchain.
+# The source manifest and curated ledger declare their kind scope via `kinds=`.
+# See AGENTS.md.
 PARITY_PARSER ?= tree-sitter
 
 .PHONY: install update sidecars format lint test build inventory parity-verify clean

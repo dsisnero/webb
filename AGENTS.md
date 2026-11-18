@@ -21,7 +21,7 @@ make format         # crystal tool format --check
 make lint           # ameba --fix, then ameba
 make test           # crystal spec
 make build          # crystal build src/webb.cr -o bin/webb
-make inventory      # parity ledger gate (regex backend, vendor/rodney)
+make inventory      # tree-sitter parity gates against vendor/rodney
 make parity-verify  # verify the installed parity skill + discovery backend
 make clean          # remove temp/ contents and AppleDouble sidecars
 ```
@@ -55,11 +55,10 @@ resolve the skill from `PARITY_SKILL_DIR` (default: the path above). Check the
 command's target when first adopting this skill or when inventory behavior
 changes. Updating the installed skill does not update copied repository scripts.
 
-The curated ledger is discovered with **tree-sitter**
-(`PARITY_PARSER=tree-sitter` in the `Makefile`). The expected backend is
-`chiasmus-tree-sitter`; a gate that reports `PARITY_DISCOVERY_BACKEND=regex` has
-silently fallen back and must be treated as a failure, not a pass. Before
-relying on discovery, run:
+The parity gates use **tree-sitter** (`PARITY_PARSER=tree-sitter` in the
+`Makefile`). Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in the
+output. Treat a reported `regex` backend as a failed gate. Before relying on
+discovery, run:
 
 ```bash
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
@@ -67,12 +66,14 @@ PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-cry
 PORT_PARSER=tree-sitter make inventory
 ```
 
-The ledger's scope is the declaration kinds present in the manifests
-(`class`, `const`) plus upstream tests. Tree-sitter discovery also emits Go
-`function` facts, but the skill's curated Go filter drops the native
-`class`/`function` labels, so a regeneration that widens the manifest kinds
-must be reviewed row by row. Function-level coverage is a tracked plan item, not
-a silent omission.
+`go_source_parity.tsv` records the pinned source declarations discovered under
+its `# kinds=` scope. The scope includes `function`, `method`, and `interface`
+for Go discovery backends that emit those labels.
+The curated `go_port_inventory.tsv` declares `# kinds=class,const,test` and
+records Crystal port status for that scope. When reviewing function and method
+mappings, update statuses and `crystal_refs` with evidence from the Crystal
+implementation and specs, then widen the curated scope as described in the
+plan.
 
 Check `PARITY_DISCOVERY_BACKEND` in the gate output and `backend` in the
 committed `plans/inventory/*.metadata.json` files. A requested parser mode or an
@@ -102,7 +103,8 @@ See [docs/resuming.md](docs/resuming.md) for the full resume checklist.
   lives in `plans/inventory/go_port_inventory.tsv`, not in the plan.
 - The ledger is a **current-state** artifact of the pinned baseline (say so in
   its leading `# baseline=` comment). Re-base it when the target release
-  changes; never append across versions.
+  changes; never append across versions. Keep its `# kinds=` declaration
+  explicit so losing the final row of a kind still fails the gate.
 - If `plans/parity.md` grows too large, split it into `plans/<area>.md` files,
   link each from `plans/parity.md`, and mark each split file
   complete/in-progress plus the file being worked on next.

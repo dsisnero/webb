@@ -11,14 +11,20 @@ back to a known-good state.
   re-derive state from git history.
 - `plans/inventory/go_port_inventory.tsv` — the per-symbol ledger (status +
   `crystal_refs`), keyed to the baseline in its own leading `# baseline=`
-  comment and re-based when the target release changes. Run `make inventory`
-  before trusting it: it fails on a stale row and on a `crystal_refs` file that
-  no longer exists. Use it to see what is left inside the current chunk:
+  comment and re-based when the target release changes. Its `# kinds=` comment
+  defines which declaration kinds must stay covered. Run `make inventory` to
+  validate that scope and the referenced Crystal files. Inspect the ledger to
+  see what is left inside the current chunk:
 
   ```bash
   grep -v '^#' plans/inventory/go_port_inventory.tsv \
     | cut -f3 | sort | uniq -c
   ```
+
+- `plans/inventory/go_source_parity.tsv` — the source declarations discovered
+  for the pin. `missing` rows are awaiting a reviewed Crystal mapping. Use
+  this file to identify declarations to review before expanding the curated
+  ledger's scope.
 
 ## 2. Confirm the working tree
 
@@ -39,15 +45,14 @@ make test
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
 "${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go tree-sitter
 PORT_PARSER=tree-sitter make inventory
-make inventory
 ```
 
 Lint and tests must pass before changing anything. Run the inventory gate and
 compare any drift with the **Where we are** block; recorded upstream drift may
 be the next feature to fix. Confirm
-`PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in the gate output; a `regex`
-backend means discovery silently fell back and the gate result is not
-trustworthy. The policy is recorded in `AGENTS.md`.
+`PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate's output and the
+same `backend` in the committed manifest metadata. The policy is recorded in
+`AGENTS.md`.
 
 ## 4. Pick the next feature
 
