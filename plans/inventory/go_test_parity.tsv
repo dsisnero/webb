@@ -41,14 +41,14 @@ main_test.go::test::TestExtractScopeArgs_LastFlagWins	ported	spec/webb_spec.cr::
 main_test.go::test::TestExtractScopeArgs_LocalFlag	ported	spec/webb_spec.cr::extract_scope_args local flag	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_LocalFlagAfterCommand	ported	spec/webb_spec.cr::extract_scope_args local after cmd	Ported from upstream test
 main_test.go::test::TestExtractScopeArgs_NoFlags	ported	spec/webb_spec.cr::extract_scope_args no flags	Ported from upstream test
-main_test.go::test::TestFile_MultipleFiles	partial	-	Browser-dependent test, pending rod shard fixes
-main_test.go::test::TestFile_SetFileOnInput	partial	-	Browser-dependent test, pending rod shard fixes
+main_test.go::test::TestFile_MultipleFiles	ported	spec/webb_spec.cr::.file browser parity	Sets two temp files via set_files; mirrors Go TestFile_MultipleFiles
+main_test.go::test::TestFile_SetFileOnInput	ported	spec/webb_spec.cr::.file browser parity	Asserts #file-name is populated after set_files; mirrors Go TestFile_SetFileOnInput
 main_test.go::test::TestFormatAssertFail_EqualityNoMessage	ported	spec/webb_spec.cr::format_assert_fail equality no message	Ported from upstream test
 main_test.go::test::TestFormatAssertFail_EqualityWithMessage	ported	spec/webb_spec.cr::format_assert_fail equality with message	Ported from upstream test
 main_test.go::test::TestFormatAssertFail_TruthyNoMessage	ported	spec/webb_spec.cr::format_assert_fail truthy no message	Ported from upstream test
 main_test.go::test::TestFormatAssertFail_TruthyWithMessage	ported	spec/webb_spec.cr::format_assert_fail truthy with message	Ported from upstream test
-main_test.go::test::TestInsecureFlag_WithSelfSignedCert	partial	-	Browser-dependent test with HTTPS, pending rod shard fixes
-main_test.go::test::TestMain	partial	src/cli.cr::Webb::CLI.run	CLI structure implemented, test setup pending
+main_test.go::test::TestInsecureFlag_WithSelfSignedCert	partial	-	Needs self-signed HTTPS fixture; --insecure already sets ignore-certificate-errors
+main_test.go::test::TestMain	ported	spec/webb_spec.cr::AXSpecEnv	Harness equivalent: one headless Chrome plus the six fixture routes
 main_test.go::test::TestMimeToExt	ported	spec/webb_spec.cr::mime_to_ext	Ported from upstream test
 main_test.go::test::TestParseAssertArgs_EqualityWithMessage	ported	spec/webb_spec.cr::parse_assert_args equality with message	Ported from upstream test
 main_test.go::test::TestParseAssertArgs_ExprAndExpected	ported	spec/webb_spec.cr::parse_assert_args expr and expected	Ported from upstream test
