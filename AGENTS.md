@@ -15,7 +15,7 @@ differing only in Crystal idioms and libraries. Port all Go code and Go tests.
 ## Commands
 
 ```bash
-make install        # shards install (with BEADS_DIR set)
+make install        # shards install
 make update         # shards update
 make format         # crystal tool format --check
 make lint           # ameba --fix, then ameba
@@ -124,43 +124,16 @@ then the upstream revision (`simonw/rodney v0.4.0 (9e7ae93)`). Include
 new/changed files, divergences, and the gate results so a new session can
 resume from the commit alone.
 
-## Issue tracking with bd (beads)
-
-This project uses **bd** for issue tracking. Do not create markdown TODO lists
-or duplicate tracking systems.
-
-**Known outage:** in this checkout `bd` currently fails
-(`database "webb" not found` on the Dolt server, and `bd bootstrap` ends in
-`dolt commit: nothing to commit`). The durable issue record is the git-tracked
-`.beads/issues.jsonl`; both `bd bootstrap` and `bd import` have consumed that
-file, so restore it with `git checkout -- .beads/issues.jsonl` if it goes
-missing. See [docs/resuming.md](docs/resuming.md) → Environment notes.
-
-```bash
-bd ready                              # unblocked work
-bd show <id>                          # issue details
-bd update <id> --status in_progress   # claim work
-bd close <id> --reason "Done"         # complete work
-bd create "Title" --description="..." -t bug|feature|task -p 0-4
-bd create "Title" --description="..." -p 1 --deps discovered-from:<parent-id>
-```
-
-- Issue types: `bug`, `feature`, `task`, `epic`, `chore`.
-- Priorities: `0` critical, `1` high, `2` medium (default), `3` low,
-  `4` backlog.
-- Link discovered work with `discovered-from` dependencies instead of widening
-  the current task.
-- Use `--json` for programmatic output.
-
 ## Landing the plane (session completion)
 
 **When ending a work session**, complete ALL steps below. Work is NOT complete
 until `git push` succeeds.
 
-1. **File issues for remaining work** — anything that needs follow-up.
+1. **Record remaining work** — add unchecked items to `plans/parity.md` for
+   anything that needs follow-up.
 2. **Run quality gates** — `make format`, `make lint`, `make test`,
    `make inventory`. No formatting issues, no ameba failures, all specs green.
-3. **Update issue status** — close finished work, update in-progress items.
+3. **Update plan status** — tick finished items and refresh **Where we are**.
 4. **Push to remote** — mandatory:
 
    ```bash
@@ -169,7 +142,6 @@ until `git push` succeeds.
    git status  # MUST show "up to date with origin"
    ```
 
-   (`bd dolt push`, if bd works again, goes alongside `git push`.)
 5. **Clean up** — clear stashes, prune remote branches.
 6. **Verify** — all changes committed AND pushed.
 7. **Hand off** — provide context for the next session.

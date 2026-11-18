@@ -3,7 +3,7 @@
 ## Quick Reference
 
 ```bash
-make install   # Install shards (with BEADS_DIR set)
+make install   # Install shards
 make build     # Compile binary to bin/webb
 make format    # Check formatting (crystal tool format --check)
 make lint      # Lint and auto-fix (ameba --fix, then ameba)
@@ -51,18 +51,6 @@ The curated ledger is regex-derived (`parser=regex`), matching the
 parity) against `vendor/rodney`; `make parity-verify` checks the installed
 skill and reports `PARITY_DISCOVERY_BACKEND`.
 
-## Issue Tracking with `bd`
-
-```bash
-bd ready              # Find unblocked work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
-```
-
-See `AGENTS.md` for the full bd workflow.
-
 ## Source of Truth
 
 `vendor/rodney/` is a git submodule pointing to `https://github.com/simonw/rodney`.
@@ -85,6 +73,6 @@ produce the same outputs for the same inputs. The only allowed differences are:
 | `vendor/rodney/` | Go source of truth (git submodule) |
 | `plans/parity.md` | Curated parity roadmap (**Where we are**) |
 | `plans/inventory/` | Parity tracking TSV files |
-| `scripts/` | Parity gate wrappers over the installed skill, bd/inventory helpers |
+| `scripts/` | Parity gate wrappers over the installed skill, inventory helpers |
 | `lib/` | Installed shard dependencies (gitignored) |
 | `temp/` | Temporary files (gitignored) |

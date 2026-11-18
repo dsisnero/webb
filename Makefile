@@ -8,10 +8,10 @@ PARITY_PARSER ?= regex
 .PHONY: install update sidecars format lint test build inventory parity-verify clean
 
 install:
-	BEADS_DIR=$$(pwd)/.beads shards install
+	shards install
 
 update:
-	BEADS_DIR=$$(pwd)/.beads shards update
+	shards update
 
 # exFAT/network volumes grow AppleDouble `._*` sidecars; a `._foo_spec.cr`
 # sidecar breaks Crystal test discovery, so strip them before local gates.

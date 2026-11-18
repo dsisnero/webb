@@ -62,19 +62,9 @@ the current phase). For each feature:
 
 ## Environment notes
 
-This checkout lives on an exFAT volume, which has two real consequences:
-
-- **AppleDouble sidecars.** macOS writes `._*` sidecars next to files; a
-  `._foo_spec.cr` sidecar breaks Crystal spec discovery. `make format`,
-  `make lint`, `make test` and `make clean` strip them first. If a git pack
-  operation prints `non-monotonic index .../._pack-*.idx`, delete the sidecars
-  with `find .git -name '._*' -delete`.
-- **`bd` (beads/Dolt) is currently unusable here.** `bd ready` fails with
-  `database "webb" not found`, `bd bootstrap` ends in
-  `dolt commit: nothing to commit`, and Dolt's auto-backup cannot create its
-  hardlinks (`operation not supported`). Do not run `bd bootstrap` or
-  `bd import` as a quick fix: both have consumed the git-tracked
-  `.beads/issues.jsonl`, so restore it with
-  `git checkout -- .beads/issues.jsonl` before doing anything else. The JSONL
-  is the durable issue record until the Dolt data directory lives on a
-  hardlink-capable filesystem (e.g. APFS).
+This checkout lives on an exFAT volume, which has one real consequence: macOS
+writes AppleDouble `._*` sidecars next to files, and a `._foo_spec.cr` sidecar
+breaks Crystal spec discovery. `make format`, `make lint`, `make test` and
+`make clean` strip them first. If a git pack operation prints
+`non-monotonic index .../._pack-*.idx`, delete the sidecars with
+`find .git -name '._*' -delete`.

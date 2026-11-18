@@ -30,19 +30,13 @@ lives in `plans/inventory/`; keep this file human-curated.
     exported Go API plus upstream tests only; unexported helpers are not rows.
     Do not switch the gate to `tree-sitter` without a reviewed manifest
     regeneration and an `AGENTS.md` policy update.
-  - `bd` (beads) is currently unusable in this checkout: the Dolt server
-    reports `database "webb" not found` and `bd bootstrap` fails with
-    `dolt commit: nothing to commit`. The volume is exFAT, where Dolt's backup
-    hardlink also fails (`operation not supported`). Issue state is still
-    recoverable from the git-tracked `.beads/issues.jsonl` (3 issues). See
-    `docs/resuming.md` → Environment notes before trying to repair it.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last commit:** `696f70c` (Update rod to 0.8.0, class-based `Cdp.call`)
+- **Last port commit:** `696f70c` (Update rod to 0.8.0, class-based `Cdp.call`)
 - **Gates:** `make format` pass; `make lint` pass (5 files, 0 failures);
   `make test` pass (62 examples, 0 failures); `make inventory` pass
   (1 API item, 63 tests, regex backend).
@@ -63,7 +57,6 @@ Keep this block accurate after every feature: the next session reads it first
 - [ ] Re-base `plans/inventory/*.tsv` only when the pin moves off `v0.4.0`
 - [ ] Re-evaluate native `tree-sitter` discovery as a separate change; keep the
       curated `regex` gate authoritative until then
-- [ ] Restore `bd` on a non-exFAT data directory so issue tracking works again
 
 ## Intentional divergences
 
