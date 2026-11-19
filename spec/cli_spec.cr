@@ -155,6 +155,15 @@ private class CLISpecHarness
     @debug_url || raise "debug URL missing"
   end
 
+  # raw_state_home writes arbitrary state.json contents, for the corrupt-state
+  # branches `status` shares with Go's loadState error.
+  def raw_state_home(name : String, contents : String) : String
+    dir = File.join(File.dirname(@browser_home), name)
+    Dir.mkdir_p(dir)
+    File.write(File.join(dir, "state.json"), contents)
+    dir
+  end
+
   # state_home writes a state.json with the given debug URL and PID into a
   # named temp home — the setup `stop` needs for its different branches.
   def state_home(name : String, debug_url : String, chrome_pid : Int32) : String
@@ -528,6 +537,23 @@ describe "CLI process contract" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should eq("error: no browser session (run 'webb start' first)\n")
+  end
+
+  # Go's cmdStatus turns a loadState error into a line on stdout and exits 0
+  # (main.go:505-510); only `stop` fatals on a missing session.
+  it "reports no active browser session without failing" do
+    result = run_cli("status")
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    result.stdout.should eq("No active browser session\n")
+  end
+
+  it "reports a corrupt state file as no active browser session" do
+    home = CLISpecSupport.harness.raw_state_home("status_corrupt_home", "{not json")
+    result = CLISpecSupport.harness.run(["status"], home)
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    result.stdout.should eq("No active browser session\n")
   end
 
   # Documented divergence: upstream's help.txt advertises `start --show`, but
@@ -1047,6 +1073,39 @@ describe "CLI against a live browser" do
     result.stderr.should be_empty
     result.stdout.should contain("Pages: 0")
     result.stdout.should_not contain("Current:")
+  end
+
+  # Go prints the session, then the page count and current page (main.go:516-526).
+  it "prints the session, page count, and current page" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("status")
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    # Go echoes the saved session, not the launcher: `connect` can rewrite
+    # `chrome_pid` to 0, so read the state the command reads.
+    state = harness.read_state(harness.browser_home)
+    result.stdout.should eq([
+      "Browser running (PID #{state.chrome_pid})",
+      "Debug URL: #{state.debug_url}",
+      "Pages: 1",
+      "Active page: 0",
+      "Current: CLI Fixture - #{harness.fixture_url}",
+    ].join('\n') + "\n")
+  end
+
+  # Go prints the same line for a saved browser it cannot reach and still exits 0
+  # (main.go:511-515).
+  it "reports an unreachable session without failing" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("status_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 4242)
+
+    result = harness.run(["status"], home)
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    result.stdout.should eq("Browser not responding (PID 4242, state may be stale)\n")
   end
 
   it "opens a URL when the browser has no pages" do

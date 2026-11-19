@@ -459,21 +459,28 @@ module Webb
     end
 
     private def self.cmd_status(args : Array(String))
-      begin
-        state = Webb.load_state
-      rescue
+      # Go's cmdStatus turns any loadState error into a line on stdout and
+      # returns (main.go:505-510); only `stop` fatals on a missing session.
+      state = Webb.load_state?
+      if state.nil?
         puts "No active browser session"
         return
       end
 
-      begin
-        browser = Webb.connect_browser(state)
+      browser = begin
+        Webb.connect_browser(state)
       rescue
         puts "Browser not responding (PID #{state.chrome_pid}, state may be stale)"
         return
       end
 
-      pages = browser.pages
+      # Go ignores a listing failure (`pages, _ := browser.Pages()`) and reports
+      # the session with Pages: 0 instead of failing the command.
+      pages = begin
+        browser.pages
+      rescue
+        [] of Rod::Page
+      end
       puts "Browser running (PID #{state.chrome_pid})"
       puts "Debug URL: #{state.debug_url}"
       puts "Pages: #{pages.size}"

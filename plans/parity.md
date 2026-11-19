@@ -8,15 +8,18 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** slicing the remaining `partial` ledger rows into
-  features. The command-level port is complete: `cmdStart`, `cmdWaitStable`, and
-  the `_proxy` helper (CONNECT tunneling) were the last rows with concrete
-  divergence notes, and the `lib/rod` gaps behind them are fixed upstream.
+- **Current focus:** slicing the remaining 45 `partial` ledger rows into
+  features. The command-level port is complete: `cmdStart`, `cmdWaitStable`, the
+  `_proxy` helper (CONNECT tunneling), and `cmdStatus` were the rows with
+  concrete divergence notes, and the `lib/rod` gaps behind them are fixed
+  upstream.
 - **Next up:**
   1. Slice the remaining `partial` rows into features. List them with
      `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
      only need output/error coverage, which the CLI harness makes cheap. Start
-     with rows whose note names a specific divergence.
+     with rows whose note names a specific divergence — `cmdTitle` is next
+     (`page.info` has no Go `failed to get page info` fatal), then the AX
+     commands (`cmdAXTree`/`cmdAXFind`/`cmdAXNode`).
   2. Re-base the ledger when the pin moves off `v0.4.0`.
   3. Split this file once it passes one screen (Phase 2).
   4. Optional: add a Chrome-through-the-proxy example. The `_proxy` contract is
@@ -25,11 +28,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 42 examples (17
-    process-contract, 3 `_proxy`, 4 `start` session, 18 live-browser). Suite
-    total: 106 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 46 examples (19
+    process-contract, 3 `_proxy`, 4 `start` session, 20 live-browser). Suite
+    total: 110 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 30 are `ported`, 46
+    tests. All 78 function IDs have Crystal references: 31 are `ported`, 45
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -69,10 +72,10 @@ is one feature: one branch, one commit, one ledger update.
     > 20. Chrome launch retries three times because it intermittently loses
     the debug-URL race under load. If a run looks slow, check the load and
     `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: tunnel CONNECT through the auth proxy` (see
+- **Last port commit:** `port: give status Go's four output paths` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (106 examples), `make build` (CLI), and `make parity-verify` passed.
+  (110 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -397,6 +400,23 @@ Each item is scoped to a single commit. See the entries below for verification d
         the plan's `partial`/`ported` choice does not describe). `loadState`,
         `saveState`, `connectBrowser`, and `proc_unix.go::setSysProcAttr` notes
         updated to say what is now covered and what still is not.
+- [x] **Give `status` Go's four output paths** — the row carried the note that
+      only the zero-page case was covered. `cmd_status` also disagreed with Go on
+      the error branches: it called the fatal `Webb.load_state`, so a missing or
+      corrupt state file exited 2 with `error: no browser session ...` where Go
+      prints `No active browser session` and exits 0 (`main.go:505-510`).
+      - Red: `status` with an empty `RODNEY_HOME` printed the fatal on stderr and
+        exited 2; a `{not json` state file printed
+        `error: corrupt state file: ...` and exited 2.
+      - Green: `load_state?` (Go's error return) supplies the session, both error
+        cases print the stdout line and exit 0, and a page-listing failure now
+        degrades to `Pages: 0` like Go's ignored `pages, _ := browser.Pages()`.
+      - Coverage: four examples — no session, corrupt state, unreachable session
+        (`Browser not responding (PID 4242, state may be stale)`), and a live
+        session asserting the exact five lines, read back from the state file so
+        `connect`'s `chrome_pid: 0` rewrite cannot mask a mismatch.
+      - Ledger: `cmdStatus` → `ported`; `loadState` note now records that both
+        `cmd_start` and `cmd_status` use `load_state?`.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
