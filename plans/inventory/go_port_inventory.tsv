@@ -71,7 +71,7 @@ main.go::function::main	function	ported	src/main.cr,src/cli.cr::Webb::CLI.run	Pr
 main.go::function::mimeToExt	function	ported	src/webb.cr::Webb.mime_to_ext	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::nextAvailableFile	function	partial	src/webb.cr::Webb.next_available_file	Crystal helper is implemented; direct edge-case parity coverage remains pending
 main.go::function::parseAssertArgs	function	ported	src/webb.cr::Webb.parse_assert_args	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
-main.go::function::printUsage	function	ported	src/cli.cr::Webb::CLI.print_usage	Help matches vendor/rodney/help.txt modulo the webb name, plus ROD_CHROME_BIN/ROD_TIMEOUT lines the port really reads; spec/cli_spec.cr compares the full text. State paths corrected from .webb to the real .rodney
+main.go::function::printUsage	function	ported	src/cli.cr::Webb::CLI.print_usage	Output is vendor/rodney/help.txt with only the CLI name changed; spec/cli_spec.cr compares the whole block, and the state paths match the real .rodney directories
 main.go::function::proxyConnect	function	intentional_divergence	src/cli.cr::Webb::CLI.proxy_connect	Returns 501 instead of tunneling; see shard_issues/rod.001.md
 main.go::function::proxyHTTP	function	partial	src/cli.cr::Webb::CLI.proxy_http	HTTP forwarding is present; request and response behavior needs an upstream proxy fixture
 main.go::function::queryAXNodes	function	ported	src/webb.cr::Webb.query_ax_nodes	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr

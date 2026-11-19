@@ -139,10 +139,9 @@ Each item is scoped to a single commit. See the entries below for verification d
       - the usage advertised `./.webb/` and `~/.webb/` while the code and docs
         use `.rodney`;
       - the `Use "webb start --local"` hint was missing.
-      The usage is now byte-equal to `vendor/rodney/help.txt` after the `webb`
-      rename, plus the two env knobs the port really reads, and a spec compares
-      the full text so future command changes cannot drift silently. Ledger:
-      `main` and `printUsage` → `ported`.
+      The usage is now `vendor/rodney/help.txt` byte-for-byte with only the CLI
+      name changed, and a spec compares the full text so future command changes
+      cannot drift silently. Ledger: `main` and `printUsage` → `ported`.
 - [x] **Add a browser-backed CLI harness** — `CLISpecHarness` now launches one
       headless Chrome with the same flags as `AXSpecEnv`, serves a fixture page
       from an in-process `HTTP::Server`, and writes a `state.json` with the
@@ -212,10 +211,6 @@ Reference for what is already ported; do not re-open without a divergence:
 - HTTPS `CONNECT` proxy: Crystal's `HTTP::Server` cannot hijack the socket, so
   proxy tunneling answers `501 Not Implemented` instead of tunneling
   (`shard_issues/rod.001.md`).
-- CLI usage text is `webb`-branded and adds `ROD_CHROME_BIN` and `ROD_TIMEOUT`
-  to upstream's `help.txt`; both are env knobs the port really reads. Everything
-  else in the output is upstream text verbatim, and `spec/cli_spec.cr` compares
-  the whole block.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case. Open
   shard gap: `Page#wait_stable` skips go-rod's `WaitRequestIdle`

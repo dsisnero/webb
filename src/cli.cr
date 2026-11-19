@@ -200,8 +200,6 @@ module Webb
       puts ""
       puts "Environment:"
       puts "  RODNEY_HOME                     Override data directory (default: ~/.rodney)"
-      puts "  ROD_CHROME_BIN                   Path to Chrome/Chromium binary"
-      puts "  ROD_TIMEOUT                     Element query timeout in seconds (default: 30)"
       puts ""
       puts "Exit codes:"
       puts "  0  Success"

@@ -247,20 +247,11 @@ describe "CLI process contract" do
     stdout.should_not contain(".webb")
   end
 
-  # Everything but the port name and the two documented env knobs is upstream's
-  # help.txt verbatim; this keeps the usage text honest as commands change.
-  it "matches upstream help.txt except for the port name and documented env knobs" do
+  # Upstream's help.txt is the contract: only the CLI name changes.
+  it "matches upstream help.txt with only the port name changed" do
     upstream = File.read(File.expand_path("../vendor/rodney/help.txt", __DIR__))
       .gsub(/(?<![.\w])rodney/, "webb")
-    expected = upstream.sub(
-      "  RODNEY_HOME                     Override data directory (default: ~/.rodney)\n",
-      String.build do |io|
-        io << "  RODNEY_HOME                     Override data directory (default: ~/.rodney)\n"
-        io << "  ROD_CHROME_BIN                   Path to Chrome/Chromium binary\n"
-        io << "  ROD_TIMEOUT                     Element query timeout in seconds (default: 30)\n"
-      end,
-    )
-    run_cli("help").stdout.should eq(expected)
+    run_cli("help").stdout.should eq(upstream)
   end
 end
 
