@@ -615,7 +615,13 @@ module Webb
         Webb.fatal("usage: webb attr <selector> <attribute>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
+      # Go wraps any Element() error, including the not-found one: `fatal(
+      # "element not found: %v", err)` (main.go:712-717).
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
       val = el.attribute(args[1])
       if val.nil?
         Webb.fatal("attribute #{args[1].inspect} not found")

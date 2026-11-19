@@ -556,6 +556,13 @@ describe "CLI process contract" do
     result.stdout.should eq("No active browser session\n")
   end
 
+  it "requires a selector and an attribute for attr" do
+    result = run_cli("attr", "#topic")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb attr <selector> <attribute>\n")
+  end
+
   # Documented divergence: upstream's help.txt advertises `start --show`, but
   # cmdStart's validation loop accepts only --insecure/-k, so `rodney start
   # --show` exits 2 with "unknown flag: --show". Crystal keeps the advertised
@@ -1073,6 +1080,43 @@ describe "CLI against a live browser" do
     result.stderr.should be_empty
     result.stdout.should contain("Pages: 0")
     result.stdout.should_not contain("Current:")
+  end
+
+  # Go's cmdAttr wraps any Element() error as `element not found: %v`
+  # (main.go:712-718) and fatals on a missing attribute with %q quoting.
+  it "prints an attribute value" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("attr", "#topic", "aria-label")
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    result.stdout.should eq("Topic\n")
+  end
+
+  it "fails with element not found when attr matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    # ROD_TIMEOUT keeps the lookup short (rodney reads the same variable). The
+    # wrapped error is go-rod's page deadline, not the not-found text: Go's
+    # retry loop returns the ctx error once `page.Timeout` expires.
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["attr", "#missing", "id"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
+  it "fails with attribute not found when the attribute is absent" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("attr", "#topic", "data-nope")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: attribute \"data-nope\" not found\n")
   end
 
   # Go prints the session, then the page count and current page (main.go:516-526).
