@@ -323,25 +323,34 @@ module Webb
         Webb.fatal("usage: webb connect <host:port>")
       end
       hostport = args[0]
-      unless hostport =~ /\A[^:]+:\d+\z/
+      unless valid_host_port?(hostport)
         Webb.fatal("argument must be host:port (e.g. localhost:9222): #{hostport}")
       end
 
       # Fetch the WebSocket debugger URL from Chrome's /json/version endpoint
-      response = HTTP::Client.get("http://#{hostport}/json/version")
-      unless response.success?
-        Webb.fatal("could not reach browser at #{hostport}")
+      begin
+        response = HTTP::Client.get("http://#{hostport}/json/version")
+      rescue ex
+        Webb.fatal("could not reach browser at #{hostport}: #{ex.message}")
       end
 
-      body = JSON.parse(response.body)
+      begin
+        body = JSON.parse(response.body)
+      rescue
+        Webb.fatal("unexpected response from browser at #{hostport}")
+      end
       ws_url = body["webSocketDebuggerUrl"]?.try(&.as_s)
       if ws_url.nil? || ws_url.empty?
         Webb.fatal("unexpected response from browser at #{hostport}")
       end
 
       # Verify the connection works
-      browser = Rod::Browser.new.control_url(ws_url)
-      browser.connect
+      begin
+        browser = Rod::Browser.new.control_url(ws_url)
+        browser.connect
+      rescue ex
+        Webb.fatal("could not connect to browser: #{ex.message}")
+      end
 
       state = Webb::State.new(
         debug_url: ws_url,
@@ -351,10 +360,41 @@ module Webb
         proxy_pid: nil,
         proxy_port: nil
       )
-      Webb.save_state(state)
+      begin
+        Webb.save_state(state)
+      rescue ex
+        Webb.fatal("failed to save state: #{ex.message}")
+      end
 
       puts "Connected to browser at #{hostport}"
       puts "Debug URL: #{ws_url}"
+    end
+
+    # Mirrors Go's net.SplitHostPort: bracketed IPv6 hosts are accepted, the
+    # port must be numeric, extra colons are rejected, and an address without a
+    # port is invalid (an explicit trailing colon is allowed, as in Go).
+    private def self.valid_host_port?(hostport : String) : Bool
+      host = hostport
+      port = ""
+      colon = host.rindex(':')
+      if colon && valid_optional_port?(host[colon..])
+        host = host[0, colon]
+        port = hostport[(colon + 1)..]
+      end
+
+      if host.starts_with?('[') && host.ends_with?(']')
+        return !port.empty? || hostport.ends_with?(':')
+      end
+      return false if host.includes?(':')
+
+      !port.empty? || hostport.ends_with?(':')
+    end
+
+    private def self.valid_optional_port?(port : String) : Bool
+      return true if port.empty?
+      return false unless port[0] == ':'
+
+      port[1..].each_char.all?(&.ascii_number?)
     end
 
     private def self.cmd_stop(args : Array(String))

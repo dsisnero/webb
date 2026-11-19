@@ -22,6 +22,7 @@ private class CLISpecHarness
   @control : Rod::Browser?
   @server : HTTP::Server?
   @fixture_url : String?
+  @debug_url : String?
 
   def initialize
     @repo = File.expand_path("..", __DIR__)
@@ -66,6 +67,13 @@ private class CLISpecHarness
     @browser_home
   end
 
+  # debug_port is the HTTP debugging port of the live browser.
+  def debug_port : Int32
+    start_browser
+    url = @debug_url || raise "debug URL missing"
+    URI.parse(url).port || raise "debug URL has no port: #{url}"
+  end
+
   # reset_pages closes every page so a spec can start from the empty-browser
   # state. Closing the last page leaves Chrome alive and listable.
   def reset_pages : Nil
@@ -108,6 +116,7 @@ private class CLISpecHarness
 
     debug_url = launch_with_retry(launcher)
     @launcher = launcher
+    @debug_url = debug_url
 
     # One long-lived control connection; specs use it to reset pages. It is
     # never #close'd, because rod's Browser#close shuts Chrome down.
@@ -253,6 +262,33 @@ describe "CLI process contract" do
       .gsub(/(?<![.\w])rodney/, "webb")
     run_cli("help").stdout.should eq(upstream)
   end
+
+  it "rejects a connect argument without a port" do
+    result = run_cli("connect", "nope")
+    result.status.should eq(2)
+    result.stderr.should eq("error: argument must be host:port (e.g. localhost:9222): nope\n")
+  end
+
+  it "rejects a connect argument with extra colons or a non-numeric port" do
+    run_cli("connect", "a:b:c").stderr.should eq(
+      "error: argument must be host:port (e.g. localhost:9222): a:b:c\n"
+    )
+    run_cli("connect", "localhost:abc").stderr.should eq(
+      "error: argument must be host:port (e.g. localhost:9222): localhost:abc\n"
+    )
+  end
+
+  it "accepts a bracketed IPv6 host:port and reports the connection cause" do
+    result = run_cli("connect", "[::1]:1")
+    result.status.should eq(2)
+    result.stderr.should start_with("error: could not reach browser at [::1]:1: ")
+  end
+
+  it "reports the connection cause when the browser is unreachable" do
+    result = run_cli("connect", "127.0.0.1:1")
+    result.status.should eq(2)
+    result.stderr.should start_with("error: could not reach browser at 127.0.0.1:1: ")
+  end
 end
 
 describe "CLI against a live browser" do
@@ -278,6 +314,19 @@ describe "CLI against a live browser" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
     run_cli_live("title").stdout.should eq("CLI Fixture\n")
     run_cli_live("url").stdout.should eq("#{CLISpecSupport.harness.fixture_url}\n")
+  end
+
+  it "connects to a running browser and stores its debug URL" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    port = CLISpecSupport.harness.debug_port
+    result = run_cli_live("connect", "127.0.0.1:#{port}")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should contain("Connected to browser at 127.0.0.1:#{port}\n")
+    result.stdout.should contain("Debug URL: ws://")
+
+    run_cli_live("title").stdout.should eq("CLI Fixture\n")
   end
 
   it "reports no pages open when the browser has none" do
