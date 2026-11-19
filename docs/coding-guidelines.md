@@ -19,6 +19,25 @@ the **source of truth** — Crystal is just the translation layer.
 - **Concurrency**: Crystal fibers vs Go goroutines (used sparingly; most code is
   synchronous)
 
+### Divergence Rule
+
+Port the Go behavior as-is. Diverge only when one of these holds:
+
+1. Crystal cannot express it (e.g. `HTTP::Server` cannot hijack a socket, so
+   HTTPS `CONNECT` proxying returns 501 — `shard_issues/rod.001.md`);
+2. the Crystal stdlib does the same thing with the same observable result
+   (e.g. `URI.parse` for URL handling);
+3. the Go algorithm needs primitives Crystal lacks, in which case translate
+   Go's own algorithm rather than inventing a new one (e.g. `net.SplitHostPort`
+   in `valid_host_port?`).
+
+Everything else is a bug in the port, not a design choice. Classes vs structs,
+macros, and generics are implementation tools, not permission to change
+behavior: `State` stays a struct with Go's exact JSON keys, and the CLI stays an
+explicit `case` dispatch rather than a macro table. Any remaining divergence
+needs a `shard_issues/` entry or a plan note **and** a spec that pins the
+Crystal behavior, so it is visible instead of accidental.
+
 ## Code Organization
 
 | Concern | Location | Pattern |
