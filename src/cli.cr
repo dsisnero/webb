@@ -398,49 +398,34 @@ module Webb
     end
 
     private def self.cmd_stop(args : Array(String))
-      begin
-        state = Webb.load_state
-      rescue
-        Webb.fatal("no active browser session")
-      end
+      state = Webb.load_state
 
-      # Try to connect to browser
       begin
         browser = Webb.connect_browser(state)
-        # Only close the browser if we launched it (chrome_pid > 0)
-        # For externally connected browsers (chrome_pid == 0), just remove state
-        if state.chrome_pid > 0
-          browser.close
-          puts "Chrome stopped"
-        else
-          puts "Browser disconnected"
-        end
+        # Only close (and kill) the browser if we launched it
+        browser.close if state.chrome_pid > 0
       rescue
-        # If we can't connect, try to kill the process if we own it
+        # Could not connect: kill by PID only if we launched the browser
         if state.chrome_pid > 0
           begin
             Process.signal(Signal::TERM, state.chrome_pid)
-            puts "Sent TERM signal to browser process #{state.chrome_pid}"
           rescue
-            puts "Could not terminate browser process #{state.chrome_pid}"
+            # Ignore a process that is already gone
           end
-        else
-          puts "Browser not responding"
         end
       end
 
-      # Remove proxy if running
+      # If ChromePID == 0 we connected to an external browser: clear state only.
       if (proxy_pid = state.proxy_pid) && proxy_pid > 0
         begin
           Process.signal(Signal::TERM, proxy_pid)
-          puts "Stopped proxy (PID #{proxy_pid})"
         rescue
-          # Ignore if proxy already dead
+          # Ignore if the proxy is already dead
         end
       end
 
-      # Clean up state file
       Webb.remove_state
+      puts "Chrome stopped"
     end
 
     private def self.cmd_status(args : Array(String))

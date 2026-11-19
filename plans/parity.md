@@ -8,12 +8,12 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** finishing the lifecycle rows; `cmdStart` and `cmdStop` are
-  the last function rows with concrete divergence notes.
+- **Current focus:** the lifecycle rows; `cmdStop` now matches Go and
+  `cmdStart` is the last row with a concrete divergence note.
 - **Next up:**
-  1. `cmdStart` (Go pins single-process and runs a detached proxy helper;
-     Crystal launches through rod) and `cmdStop` (Go always prints
-     `Chrome stopped`; Crystal reports which action it took).
+  1. `cmdStart` — Go pins single-process and runs a detached `_proxy` helper
+     when an authenticated proxy is detected; Crystal launches through rod and
+     skips the helper.
   2. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
      (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
   3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
@@ -21,11 +21,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 29 examples; 15 run
-    the CLI as a process, 14 drive it against a live headless Chrome through a
-    temp `state.json`. Suite total: 93 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 33 examples; 16 run
+    the CLI as a process, 17 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 97 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 25 are `ported`, 51
+    tests. All 78 function IDs have Crystal references: 26 are `ported`, 50
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -47,10 +47,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: match Go's numeric argument diagnostics` (see
+- **Last port commit:** `port: make stop match Go's lifecycle behavior` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (93 examples), `make build` (CLI), and `make parity-verify` passed.
+  (97 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -234,6 +234,22 @@ Each item is scoped to a single commit. See the entries below for verification d
       - Verified Crystal's `String#to_i`/`to_f` are already strict, so the only
         gap was diagnostics and exit codes; a negative sleep exits 0 in both.
       - Ledger: `cmdScreenshot` and `cmdSleep` → `ported`.
+- [x] **Make `stop` match Go's lifecycle behavior** — Crystal printed
+      `Browser disconnected` for external sessions and `Browser not responding`
+      for stale ones, plus TERM/connect chatter Go never emits. Go always ends
+      with `Chrome stopped`.
+      - Red: an external session and a stale session both printed the wrong
+        line; the no-session message already matched because `load_state` fatals
+        before the old rescue could run.
+      - Green: `cmd_stop` follows Go — `load_state` fatal, connect and close the
+        browser only when `chrome_pid > 0`, TERM by PID when the connection
+        fails, TERM the proxy helper, remove state, print `Chrome stopped`.
+      - Coverage: a process example for the no-session path, plus live examples
+        for an external session (browser must survive), a stale session, and an
+        owned throwaway Chrome (the process must die). The harness gained
+        `state_home` and `owned_browser`, and reuses one `new_launcher` helper.
+      - Ledger: `cmdStop` → `ported`. `cmdStart` is now the only row left with a
+        concrete divergence note.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

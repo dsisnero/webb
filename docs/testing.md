@@ -62,7 +62,7 @@ run_cli_live("open", CLISpecSupport.harness.fixture_url).stdout.should eq("CLI F
 | `.infer_download_filename` | ~25 | 2 | Filename extraction from URL and data URL |
 | `.download` (parity) | ~80 | 3 | Downloading link targets (fetch, data:, img src) |
 | `.file` (parity) | ~60 | 2 | File input setting (single, multiple) |
-| CLI process contract (`spec/cli_spec.cr`) | ~700 | 29 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses, connect validation and failure paths, sleep and screenshot argument diagnostics, live `open`/`title`/`url`/`status`/`connect`/`select`/`submit`/`screenshot`, `waitstable` timing, and the no-session / zero-page error paths |
+| CLI process contract (`spec/cli_spec.cr`) | ~800 | 33 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses, connect validation and failure paths, sleep and screenshot argument diagnostics, stop paths, live `open`/`title`/`url`/`status`/`connect`/`select`/`submit`/`screenshot`, `waitstable` timing, and the no-session / zero-page error paths |
 
 ### Test Pattern
 

@@ -23,6 +23,7 @@ private class CLISpecHarness
   @server : HTTP::Server?
   @fixture_url : String?
   @debug_url : String?
+  @throwaways : Array(Rod::Util::Launcher::Launcher) = [] of Rod::Util::Launcher::Launcher
 
   def initialize
     @repo = File.expand_path("..", __DIR__)
@@ -79,6 +80,36 @@ private class CLISpecHarness
     URI.parse(url).port || raise "debug URL has no port: #{url}"
   end
 
+  # debug_url is the shared browser's websocket debug URL.
+  def debug_url : String
+    start_browser
+    @debug_url || raise "debug URL missing"
+  end
+
+  # state_home writes a state.json with the given debug URL and PID into a
+  # named temp home — the setup `stop` needs for its different branches.
+  def state_home(name : String, debug_url : String, chrome_pid : Int32) : String
+    dir = File.join(File.dirname(@browser_home), name)
+    Dir.mkdir_p(dir)
+    state = Webb::State.new(
+      debug_url: debug_url,
+      chrome_pid: chrome_pid,
+      active_page: 0,
+      data_dir: dir,
+    )
+    File.write(File.join(dir, "state.json"), state.to_pretty_json)
+    dir
+  end
+
+  # owned_browser launches a throwaway Chrome that the spec "owns" (its PID is
+  # recorded in state) without touching the shared browser.
+  def owned_browser : Tuple(String, Int32)
+    launcher = new_launcher
+    debug_url = launch_with_retry(launcher)
+    @throwaways << launcher
+    {debug_url, launcher.pid}
+  end
+
   # reset_pages closes every page so a spec can start from the empty-browser
   # state. Closing the last page leaves Chrome alive and listable.
   def reset_pages : Nil
@@ -98,6 +129,10 @@ private class CLISpecHarness
   def close : Nil
     @server.try(&.close)
     @launcher.try(&.kill)
+    @throwaways.each do |launcher|
+      launcher.kill rescue nil
+    end
+    @throwaways.clear
     @server = nil
     @control = nil
     @launcher = nil
@@ -106,19 +141,7 @@ private class CLISpecHarness
   private def start_browser : Nil
     return unless @launcher.nil?
 
-    # Same launcher flags as the Go TestMain / AXSpecEnv harness.
-    launcher = Rod::Util::Launcher::Launcher.new
-      .set("disable-gpu")
-      .set("single-process")
-      .headless(true)
-      .leakless(false)
-      .no_sandbox(true)
-    if bin = ENV["ROD_CHROME_BIN"]?
-      launcher.bin(bin)
-    elsif File::Info.executable?(CHROME_BIN)
-      launcher.bin(CHROME_BIN)
-    end
-
+    launcher = new_launcher
     debug_url = launch_with_retry(launcher)
     @launcher = launcher
     @debug_url = debug_url
@@ -159,6 +182,22 @@ private class CLISpecHarness
       data_dir: @browser_home,
     )
     File.write(File.join(@browser_home, "state.json"), state.to_pretty_json)
+  end
+
+  # Same launcher flags as the Go TestMain / AXSpecEnv harness.
+  private def new_launcher : Rod::Util::Launcher::Launcher
+    launcher = Rod::Util::Launcher::Launcher.new
+      .set("disable-gpu")
+      .set("single-process")
+      .headless(true)
+      .leakless(false)
+      .no_sandbox(true)
+    if bin = ENV["ROD_CHROME_BIN"]?
+      launcher.bin(bin)
+    elsif File::Info.executable?(CHROME_BIN)
+      launcher.bin(CHROME_BIN)
+    end
+    launcher
   end
 
   # Chrome occasionally loses the debug-URL race under load ("Cannot use V8
@@ -331,6 +370,13 @@ describe "CLI process contract" do
     height.status.should eq(2)
     height.stderr.should start_with("error: invalid height: ")
   end
+
+  it "stops with the no-session error when the state directory is empty" do
+    result = run_cli("stop")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: no browser session (run 'webb start' first)\n")
+  end
 end
 
 describe "CLI against a live browser" do
@@ -428,6 +474,48 @@ describe "CLI against a live browser" do
     ensure
       File.delete?(path)
     end
+  end
+
+  it "stops an external browser without closing it and forgets the state" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("external_home", harness.debug_url, 0)
+
+    result = harness.run(["stop"], home)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Chrome stopped\n")
+    File.exists?(File.join(home, "state.json")).should be_false
+    # We did not launch this browser, so it must still answer.
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+  end
+
+  it "stops a stale session without a browser and forgets the state" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+
+    result = harness.run(["stop"], home)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Chrome stopped\n")
+    File.exists?(File.join(home, "state.json")).should be_false
+  end
+
+  it "closes a browser it owns and forgets the state" do
+    harness = CLISpecSupport.harness
+    debug_url, pid = harness.owned_browser
+    home = harness.state_home("owned_home", debug_url, pid)
+
+    result = harness.run(["stop"], home)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Chrome stopped\n")
+    File.exists?(File.join(home, "state.json")).should be_false
+
+    deadline = Time.instant + 10.seconds
+    while Process.exists?(pid) && Time.instant < deadline
+      sleep 100.milliseconds
+    end
+    Process.exists?(pid).should be_false
   end
 
   it "reports no pages open when the browser has none" do
