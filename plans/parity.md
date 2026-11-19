@@ -11,15 +11,20 @@ is one feature: one branch, one commit, one ledger update.
 - **Current focus:** closing `partial` function rows with process-level
   evidence; the CLI output harness now exists and the test rows are done.
 - **Next up:**
-  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
-     cover its `DOM stable` output with the new CLI harness.
-  2. Characterize `getActivePage` on an empty browser and reconcile the
+  1. Add a browser-backed CLI harness: launch one headless Chrome, write a
+     `state.json` with its debug URL into a temp `RODNEY_HOME`, and point the
+     existing `CLISpecHarness` at it. That unlocks process-level coverage for
+     the `cmd*` rows, which no spec can reach today.
+  2. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`):
+     assert `DOM stable` on stdout and an elapsed time near one second through
+     the browser-backed harness, and fix the `100.milliseconds` call.
+  3. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
-  3. Work through remaining partial function rows in feature-sized changes,
+  4. Work through remaining partial function rows in feature-sized changes,
      starting with the rows that carry a concrete divergence note
      (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
      `cmdStart`, `cmdStop`).
-  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  5. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -145,9 +150,14 @@ Each item is scoped to a single commit. See the entries below for verification d
       rename, plus the two env knobs the port really reads, and a spec compares
       the full text so future command changes cannot drift silently. Ledger:
       `main` and `printUsage` → `ported`.
+- [ ] **Add a browser-backed CLI harness** — extend `CLISpecHarness` to launch a
+      headless Chrome, write its debug URL into `temp/cli_spec/home/state.json`,
+      and run commands against it. Every `cmd*` row that needs stdout, stderr,
+      or an exit status is blocked on this.
 - [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
-      passes `100.milliseconds` where Go waits `time.Second`; fix the duration
-      and cover the `DOM stable` CLI output with the harness added above.
+      passes `100.milliseconds` where Go waits `time.Second`; assert `DOM
+      stable` and an elapsed time near one second through the browser-backed
+      harness, then fix the call.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
