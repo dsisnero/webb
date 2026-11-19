@@ -1,77 +1,84 @@
-# rod.003: launcher logs to stdout and its managed browser path is wrong
+# rod.003: managed-browser download noise and layout
 
-**Shard:** `lib/rod` (`dsisnero/rod`, local patch)
+**Shard:** `lib/rod` (`dsisnero/rod`)
 **Priority:** Low
-**Type:** behavior gap + bug
+**Type:** behavior gap + environment interaction
 
-## Description
+Two gaps showed up once `cmd_start` actually launched Chrome. The first was
+fixed upstream in `1f7636a`; the second is an interaction with this repo's
+exFAT volume.
 
-Two unrelated gaps in `lib/rod/src/rod/util/launcher.cr` show up as soon as a
-command actually launches Chrome (the CLI only did so once `cmd_start` was
-ported).
+## 1. Launch log on stdout (resolved upstream)
 
-### 1. Launch and download progress is logged at INFO on stdout
+`Launcher` used to bind `@logger = ::Log.for("rod.launcher")` and emit
+`@logger.info { "Launching browser: ..." }` inside `launch`. Crystal's default
+`Log` backend writes INFO to **stdout**, so `webb start` printed a leading
+`INFO - rod.launcher: Launching browser: ...` line that go-rod never produces
+(its `logger` field is `io.Discard`, and `Launcher.Logger(w)` only forwards the
+browser's own stdout/stderr).
 
-`Launcher#initialize` binds `@logger = ::Log.for("rod.launcher")` and
-`Launcher#launch` emits `@logger.info { "Launching browser: ..." }`, plus
-`Browser#download` emits one line per host. Crystal's default `Log` backend
-writes INFO to **stdout**.
+Fixed in `dsisnero/rod` `1f7636a` ("port: launcher output contract (no launch
+log, real logger(io))"): the `::Log` property is gone, `logger(io : IO)` is the
+only sink API (defaulting to discard), and the launcher no longer logs the
+launch. `cmd_start` therefore carries **no** logger workaround; the CLI prints
+Go's two lines by itself.
 
-go-rod's launcher has no such log path at all: its `logger` field is
-`io.Discard` and `Launcher.Logger(w)` only forwards the *browser's* own
-stdout/stderr, so `rodney start` prints exactly two lines.
+That commit is not tagged yet, so `shard.yml` tracks `branch: main` and
+`shard.lock` pins `0.7.0+git.commit.1f7636a...`. Drop `branch: main` once a tag
+contains the fix.
 
-Upstream `cmdStart` (`vendor/rodney/main.go:426-427`) prints
-`Chrome started (PID %d)` and `Debug URL: %s` and nothing else, so the shard's
-INFO line breaks the CLI's output contract.
+### Remaining: the downloader still logs at INFO
 
-Workaround here: `Webb::CLI.cmd_start` points `launcher.logger` and
-`launcher.browser.logger` at `::Log.new("rod.launcher", nil, :none)` (a logger
-with no backend) before launching.
+`Browser#download` (`lib/rod/src/rod/util/launcher.cr`) still emits
+`@logger.info { "Trying to download from ..." }` / `"Successfully downloaded"`
+through `@logger = ::Log.for("rod.launcher")`, which lands on stdout. go-rod's
+`Browser` hands `fetchup` a nil logger, so it logs nothing.
 
-### 2. `Browser#bin_path` does not match the macOS archive layout
+This only shows up on the managed-download path, which currently fails anyway
+(item 2), and no CLI spec exercises it — the harness always passes
+`ROD_CHROME_BIN`. Not worked around; whoever fixes `Browser` should drop those
+INFO calls (or give `Browser#logger` the same discard default as
+`Launcher#log_io`).
 
-`Browser#bin_path` resolves to `<dir>/Chromium.app/Contents/MacOS/Chromium`,
-but the macOS chromium snapshot (`chrome-mac.zip`) extracts to
-`<dir>/chrome-mac/Chromium.app/Contents/MacOS/Chromium`. `Browser#get` then
-downloads successfully and returns a path that does not exist, so the launch
-fails with `File::NotFoundError`.
+## 2. `strip_first_dir` is skipped on an exFAT volume
 
-go-rod avoids this by calling `fetchup.StripFirstDir(dir)` at the end of
-`Browser.Download()`, which removes the archive's single top-level folder.
-`lib/rod` has no equivalent step.
+`Browser#bin_path` resolves to `<dir>/Chromium.app/Contents/MacOS/Chromium`.
+The macOS snapshot (`chrome-mac.zip`) extracts to
+`<dir>/chrome-mac/Chromium.app/...`, and `Browser#download` calls
+`strip_first_dir(dir)` at the end — the port of go-rod's
+`fetchup.StripFirstDir` — to remove that top-level folder.
 
-Workaround here: `spec/cli_spec.cr` always passes `ROD_CHROME_BIN`, which is
-also the documented upstream override, so the suite never exercises the managed
-download.
+`strip_first_dir` starts with:
 
-## Impact
+```crystal
+entries = Dir.children(dir)
+return unless entries.size == 1
+```
 
-- Any command that launches Chrome prints a leading `INFO - rod.launcher: ...`
-  line unless the logger is replaced.
-- `webb start` without `ROD_CHROME_BIN` and without Chrome in a well-known
-  location downloads ~130 MB and then fails to launch the result.
+macOS writes AppleDouble sidecars (`._chrome-mac`) next to extracted files on
+exFAT. The directory then holds **two** entries, the guard returns early, no
+strip happens, and the launch fails with
+`No such file or directory .../chromium-<rev>/Chromium.app/Contents/MacOS/Chromium`.
+On APFS/HFS+ the same download works.
 
-## Reproduction
+This is why `spec/cli_spec.cr` always passes `ROD_CHROME_BIN` (also the
+documented upstream override), so the suite never touches the managed download.
+
+### Reproduction
 
 ```bash
 rm -rf temp/manual && mkdir -p temp/manual
 env -i HOME=$PWD/temp/manual RODNEY_HOME=$PWD/temp/manual ./bin/webb start
 ```
 
-1. Before the fix, stdout starts with `INFO - rod.launcher: Launching browser:`
-   even when `ROD_CHROME_BIN` points at a real Chrome.
-2. Without `ROD_CHROME_BIN`, the download logs succeed and the launch raises
-   `No such file or directory .../chromium-<rev>/Chromium.app/Contents/MacOS/Chromium`,
-   while the extracted tree is `.../chromium-<rev>/chrome-mac/Chromium.app/...`.
+`~/.cache/rod/browser/chromium-<rev>/` then contains `chrome-mac` and
+`._chrome-mac`, while the launcher looks for `Chromium.app` one level up.
 
-## Fix
+### Fix
 
-1. Drop the launch/download INFO logs, or route the shard's logger to a
-   `Log::IOBackend` bound at `:warn` so INFO output never reaches stdout.
-2. On macOS, join `bin_path` with `chrome-mac`, or port go-rod's
-   `fetchup.StripFirstDir` step so the archive's top-level folder is removed
-   after extraction.
-
-Remove the `silent_logger` workaround in `cmd_start` once (1) lands, and drop
-`ROD_CHROME_BIN` from the spec harness once (2) lands.
+Optional, and only worth doing if the shard is expected to run on exFAT
+volumes: make `strip_first_dir` ignore `._*` entries (or strip when exactly one
+*non-sidecar* entry is a directory) before `Browser#get` validates `bin_path`.
+go-rod has the same strictness, so this is a host-environment shim rather than
+a parity gap. `make clean` does not reach into `~/.cache/rod`, so a stale
+`chromium-<rev>` directory must be removed by hand after a failed attempt.

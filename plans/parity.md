@@ -56,9 +56,12 @@ is one feature: one branch, one commit, one ledger update.
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
   - The CLI harness always passes `ROD_CHROME_BIN`. Without it, rod's launcher
-    downloads a managed build whose `bin_path` does not match the macOS archive
-    layout, so the launch fails (`shard_issues/rod.003.md`, which also covers
-    the shard's stdout INFO logging that `cmd_start` has to silence).
+    downloads a managed build that cannot be found on this exFAT volume, because
+    macOS's `._*` sidecars defeat the downloader's `strip_first_dir` step
+    (`shard_issues/rod.003.md`).
+  - `shard.yml` tracks rod `branch: main` (locked at `1f7636a`) because the
+    launcher output-contract fix is not tagged yet. Go back to tag tracking when
+    a release contains it.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
@@ -283,11 +286,12 @@ Each item is scoped to a single commit. See the entries below for verification d
       - **Save failure:** `save_state` raises now become Go's
         `failed to save state: ...` fatal (exit 2, not 1).
       - **Extra output:** dropped Crystal's third line, `Data directory: ...`.
-      - **Log noise:** rod's launcher logs `Launching browser: ...` at INFO on
-        stdout, which go-rod never prints (its logger is `io.Discard`). Both
-        `launcher.logger` and `launcher.browser.logger` now get a logger with no
-        backend, so `start` prints exactly Go's lines. Recorded as
-        `shard_issues/rod.003.md`.
+      - **Log noise:** rod's launcher used to log `Launching browser: ...` at INFO
+        on stdout, which go-rod never prints (its logger is `io.Discard`).
+        Fixed upstream in `dsisnero/rod` `1f7636a`, which removes the `::Log`
+        property and makes `logger(io : IO)` the only sink API with a discard
+        default, so `cmd_start` needs no logger workaround. The downloader still
+        logs at INFO on the managed path (`shard_issues/rod.003.md`).
       - **Proxy helper:** still spawned with `Process.new` (no `setsid`), but its
         stdio now goes to `/dev/null` the way Go's nil stdio does. That is what
         lets the helper outlive the parent without holding the caller's pipes
@@ -349,5 +353,7 @@ Reference for what is already ported; do not re-open without a divergence:
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case. Open
   shard gaps: `Page#wait_stable` skips go-rod's `WaitRequestIdle`
-  (`shard_issues/rod.002.md`), and the launcher logs to stdout and resolves a
-  broken managed-browser path (`shard_issues/rod.003.md`).
+  (`shard_issues/rod.002.md`), and the managed-browser download path logs at
+  INFO and cannot strip the archive root on this exFAT volume
+  (`shard_issues/rod.003.md`; its launcher-log half is fixed upstream in
+  `1f7636a`).

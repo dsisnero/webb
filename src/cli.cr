@@ -237,14 +237,6 @@ module Webb
 
       launcher = Rod::Util::Launcher::Launcher.new
 
-      # go-rod's launcher and downloader print nothing (their logger is
-      # io.Discard); the Crystal shard logs launch/download progress at INFO on
-      # stdout, which would break the two-line output this command shares with
-      # Go. Point both at a logger with no backend.
-      silent_logger = ::Log.new("rod.launcher", nil, :none)
-      launcher.logger = silent_logger
-      launcher.browser.logger = silent_logger
-
       # Set basic flags (using method chaining like Go API)
       launcher.no_sandbox
         .set("disable-gpu")
