@@ -8,10 +8,11 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** auditing the three partial upstream test rows (Phase 2).
+- **Current focus:** Phase 2 ledger hygiene; the three partial test rows are
+  resolved and only function rows remain.
 - **Next up:**
-  1. Audit the three `partial` test rows against the current 64 Crystal specs
-     and update statuses and references where the evidence supports it (Phase 2).
+  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
+     cover its CLI output; the audit found Crystal passes 100 ms.
   2. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
   3. Work through remaining partial function rows in feature-sized changes.
@@ -24,8 +25,7 @@ is one feature: one branch, one commit, one ledger update.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
     tests. All 78 function IDs have Crystal references: 15 are `ported`, 61
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
-    IDs. `TestMain`, `TestFile_MultipleFiles`, and `TestFile_SetFileOnInput`
-    remain `partial`.
+    IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
     functions, and 1 type). Implementation statuses are in the curated
     ledger. The generated source snapshot keeps its discovery baseline
@@ -45,7 +45,8 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `a729f6c` (`--insecure` over a self-signed HTTPS origin).
+- **Last port commit:** `port: audit the three partial upstream test rows` (see
+  `git log -1 --oneline`).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
   (64 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
@@ -111,9 +112,23 @@ Each item is scoped to a single commit. See the entries below for verification d
       actual CLI also caught the invalid PID constructor in `stop`. The build
       now targets `src/main.cr`, and the repaired `stop` sent TERM to two
       disposable processes and removed its state file in a CLI smoke check.
-- [ ] **Audit the three partial test rows** — compare the current Crystal specs
-      with `TestMain`, `TestFile_MultipleFiles`, and `TestFile_SetFileOnInput`.
-      Update the ledger entries with reviewed statuses and Crystal references.
+- [x] **Audit the three partial test rows** — every row had working Crystal
+      coverage; the ledger was stale, and one spec drifted from upstream.
+      - `TestMain` → `ported` (`spec/webb_spec.cr::AXSpecEnv`): same launcher
+        flags, `ROD_CHROME_BIN` override, and the six fixture routes, created in
+        `before_all` and closed in `after_all`. Divergences: Crystal also kills
+        the launcher and falls back to a local Chrome path.
+      - `TestFile_SetFileOnInput` → `ported`: assertions match Go. The spec now
+        waits `1.second` to mirror `MustWaitStable()` =
+        `WaitStable(time.Second)` (it drifted to 100 ms) and removes its temp
+        file in `ensure`, as Go does with `defer os.Remove`.
+      - `TestFile_MultipleFiles` → `ported`: same `set_files` call with no
+        post-condition beyond not raising; both temp files are now removed.
+      - Discovery: `plans/inventory/go_test_parity.tsv` already recorded all
+        three as `ported`; only the curated ledger still said `partial`.
+- [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
+      passes `100.milliseconds` where Go waits `time.Second`; fix the duration
+      and cover the `DOM stable` CLI output in one change.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

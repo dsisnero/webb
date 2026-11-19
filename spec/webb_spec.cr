@@ -883,34 +883,36 @@ describe Webb do
   describe ".file browser parity" do
     it "matches TestFile_SetFileOnInput" do
       page = navigate_to("/upload")
+      tmp = File.tempname("webb-test-upload-", ".txt")
+      File.write(tmp, "test content")
       begin
-        tmp = File.tempname("webb-test-upload-", ".txt")
-        File.write(tmp, "test content")
-
         el = page.element("#file-input")
         el.set_files([tmp])
 
-        page.wait_stable(100.milliseconds)
+        # Go calls MustWaitStable(), which is WaitStable(time.Second).
+        page.wait_stable(1.second)
         name_el = page.element("#file-name")
         text = name_el.text
         text.should_not be_empty
       ensure
         page.close
+        File.delete?(tmp)
       end
     end
 
     it "matches TestFile_MultipleFiles" do
       page = navigate_to("/upload")
+      tmp1 = File.tempname("webb-test-upload1-", ".txt")
+      File.write(tmp1, "file 1")
+      tmp2 = File.tempname("webb-test-upload2-", ".txt")
+      File.write(tmp2, "file 2")
       begin
-        tmp1 = File.tempname("webb-test-upload1-", ".txt")
-        File.write(tmp1, "file 1")
-        tmp2 = File.tempname("webb-test-upload2-", ".txt")
-        File.write(tmp2, "file 2")
-
         el = page.element("#file-input")
         el.set_files([tmp1, tmp2])
       ensure
         page.close
+        File.delete?(tmp1)
+        File.delete?(tmp2)
       end
     end
   end
