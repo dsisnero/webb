@@ -26,7 +26,7 @@ main.go::function::cmdForward	function	partial	src/cli.cr::Webb::CLI.cmd_forward
 main.go::function::cmdHTML	function	partial	src/cli.cr::Webb::CLI.cmd_html	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdHover	function	partial	src/cli.cr::Webb::CLI.cmd_hover	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdInput	function	partial	src/cli.cr::Webb::CLI.cmd_input	Crystal command implementation is present; compare CLI output and error paths with upstream
-main.go::function::cmdInternalProxy	function	partial	src/cli.cr::Webb::CLI.cmd_internal_proxy	Loopback proxy serves HTTP; HTTPS CONNECT returns 501; see shard_issues/rod.001.md
+main.go::function::cmdInternalProxy	function	ported	src/cli.cr::Webb::CLI.cmd_internal_proxy	Serves raw TCP on 127.0.0.1:<port> and dispatches CONNECT/plain requests like Go's handler (main.go:1909). Fatal listen error uses Go's `proxy listen failed: ...`. Covered by spec/cli_spec.cr `CLI auth proxy`
 main.go::function::cmdJS	function	partial	src/cli.cr::Webb::CLI.cmd_js	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdNewPage	function	partial	src/cli.cr::Webb::CLI.cmd_new_page	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdOpen	function	ported	src/cli.cr::Webb::CLI.cmd_open	Go's structure: own load/connect/list, creates a page at the URL when none are open (saving active_page 0), otherwise navigates the active page. Both branches covered by spec/cli_spec.cr
@@ -72,8 +72,8 @@ main.go::function::mimeToExt	function	ported	src/webb.cr::Webb.mime_to_ext	Mappe
 main.go::function::nextAvailableFile	function	partial	src/webb.cr::Webb.next_available_file	Crystal helper is implemented; direct edge-case parity coverage remains pending
 main.go::function::parseAssertArgs	function	ported	src/webb.cr::Webb.parse_assert_args	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::printUsage	function	ported	src/cli.cr::Webb::CLI.print_usage	Output is vendor/rodney/help.txt with only the CLI name changed; spec/cli_spec.cr compares the whole block, and the state paths match the real .rodney directories
-main.go::function::proxyConnect	function	intentional_divergence	src/cli.cr::Webb::CLI.proxy_connect	Returns 501 instead of tunneling; see shard_issues/rod.001.md
-main.go::function::proxyHTTP	function	partial	src/cli.cr::Webb::CLI.proxy_http	HTTP forwarding is present; request and response behavior needs an upstream proxy fixture
+main.go::function::proxyConnect	function	ported	src/cli.cr::Webb::CLI.proxy_connect	Dials the upstream with Go's 30s timeout, sends the CONNECT with Proxy-Authorization, inspects bytes 9..12 of the reply, then splices both ways; 502 `upstream dial/write/read failed` and `upstream rejected CONNECT` match http.Error. Covered by spec/cli_spec.cr tunnel and rejection examples
+main.go::function::proxyHTTP	function	ported	src/cli.cr::Webb::CLI.proxy_http	Forwards the absolute-form request to the upstream proxy with Proxy-Authorization, then copies status/headers/body back with hop-by-hop framing rewritten; 502 `upstream request failed` matches Go. Covered by spec/cli_spec.cr
 main.go::function::queryAXNodes	function	ported	src/webb.cr::Webb.query_ax_nodes	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::removeState	function	partial	src/webb.cr::Webb.remove_state	File.delete can raise; Go ignores removal errors
 main.go::function::resolveStateDir	function	ported	src/webb.cr::Webb.resolve_state_dir	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr

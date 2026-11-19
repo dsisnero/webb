@@ -1180,54 +1180,191 @@ module Webb
       end
     end
 
+    # cmd_internal_proxy is the hidden helper cmd_start spawns for authenticated
+    # proxies: `webb _proxy <port> <upstream> <authHeader>` (main.go:1870). Go
+    # runs an http.Server and hijacks CONNECT into a raw tunnel; Crystal's
+    # HTTP::Server cannot hand a connection back, so this serves the sockets
+    # itself and parses requests the way net/http does before dispatching.
     private def self.cmd_internal_proxy(args : Array(String))
       if args.size < 3
         Webb.fatal("usage: webb _proxy <port> <upstream> <authHeader>")
       end
-      port = args[0].to_i
       upstream = args[1]
       auth_header = args[2]
 
-      server = HTTP::Server.new do |context|
-        if context.request.method == "CONNECT"
-          proxy_connect(context, upstream, auth_header)
-        else
-          proxy_http(context, upstream, auth_header)
-        end
+      listener = begin
+        TCPServer.new("127.0.0.1", args[0].to_i)
+      rescue ex
+        Webb.fatal("proxy listen failed: #{ex.message}")
       end
 
-      server.bind_tcp("127.0.0.1", port)
-      server.listen # blocks forever
-    rescue ArgumentError
-      Webb.fatal("invalid port: #{args[0]}")
+      loop do
+        client = listener.accept?
+        break if client.nil?
+
+        spawn serve_proxy_connection(client, upstream, auth_header)
+      end
     end
 
-    private def self.proxy_connect(context : HTTP::Server::Context, upstream : String, auth_header : String)
-      # HTTP CONNECT tunneling requires socket hijacking not supported by Crystal's HTTP::Server
-      # See shard_issues/rod.001.md for details
-      context.response.status_code = 501
-      context.response.print("CONNECT tunneling not supported in this port")
+    # serve_proxy_connection handles one proxied request, mirroring the dispatch
+    # inside Go's handler (main.go:1881-1892).
+    private def self.serve_proxy_connection(client : TCPSocket, upstream : String, auth_header : String) : Nil
+      request = begin
+        HTTP::Request.from_io(client)
+      rescue
+        nil
+      end
+
+      case request
+      when HTTP::Request
+        if request.method == "CONNECT"
+          proxy_connect(client, request.resource, upstream, auth_header)
+        else
+          proxy_http(client, request, upstream, auth_header)
+        end
+      when HTTP::Status
+        # net/http answers a malformed request with the status it parsed.
+        client << proxy_status_line(request.value) << "\r\n"
+        client << "Connection: close\r\n\r\n"
+        client.flush
+      end
+    rescue
+      # Go leaves aborted connections to the server loop.
+    ensure
+      client.close rescue nil
     end
 
-    private def self.proxy_http(context : HTTP::Server::Context, upstream : String, auth_header : String)
-      request = context.request
-      host, port_str = upstream.split(":")
-      port = port_str.to_i
+    # proxy_connect tunnels a CONNECT request through the operator's proxy with
+    # credentials, then copies both ways (main.go:1895-1946).
+    private def self.proxy_connect(client : TCPSocket, authority : String, upstream : String, auth_header : String) : Nil
+      upstream_conn = begin
+        dial_proxy_upstream(upstream)
+      rescue
+        write_proxy_error(client, 502, "upstream dial failed")
+        return
+      end
 
-      # Rewrite the request URL to go through the upstream proxy
-      client = HTTP::Client.new(host, port)
-      headers = HTTP::Headers.new
-      request.headers.each { |k, v| headers[k] = v }
+      begin
+        upstream_conn << "CONNECT #{authority} HTTP/1.1\r\n"
+        upstream_conn << "Host: #{authority}\r\n"
+        upstream_conn << "Proxy-Authorization: #{auth_header}\r\n\r\n"
+        upstream_conn.flush
+      rescue
+        upstream_conn.close rescue nil
+        write_proxy_error(client, 502, "upstream write failed")
+        return
+      end
+
+      # Go reads once and inspects bytes 9..12 of the reply, so a split reply is
+      # rejected the same way.
+      buffer = Bytes.new(4096)
+      size = begin
+        upstream_conn.read(buffer)
+      rescue
+        upstream_conn.close rescue nil
+        write_proxy_error(client, 502, "upstream read failed")
+        return
+      end
+
+      reply = String.new(buffer[0, size])
+      unless reply.size >= 12 && reply[9, 3] == "200"
+        upstream_conn.close rescue nil
+        write_proxy_error(client, 502, "upstream rejected CONNECT")
+        return
+      end
+
+      client << "HTTP/1.1 200 Connection Established\r\n\r\n"
+      client.flush
+      tunnel_proxied(client, upstream_conn)
+    end
+
+    # tunnel_proxied splices both directions until either side closes, like the
+    # two io.Copy goroutines in proxyConnect. The client socket stays owned by
+    # serve_proxy_connection, which closes it once; closing it here as well would
+    # race with that ensure and risk a double close on a recycled descriptor.
+    private def self.tunnel_proxied(client : TCPSocket, upstream_conn : TCPSocket) : Nil
+      done = Channel(Nil).new(2)
+
+      spawn do
+        IO.copy(client, upstream_conn) rescue nil
+        upstream_conn.close rescue nil
+        done.send(nil)
+      end
+
+      spawn do
+        IO.copy(upstream_conn, client) rescue nil
+        done.send(nil)
+      end
+
+      2.times { done.receive }
+    end
+
+    # proxy_http forwards a plain HTTP proxy request to the operator's proxy and
+    # copies the response back (main.go:1948-1980).
+    private def self.proxy_http(client : TCPSocket, request : HTTP::Request, upstream : String, auth_header : String) : Nil
+      host, _, port = upstream.rpartition(':')
+      headers = request.headers.dup
       headers["Proxy-Authorization"] = auth_header
 
-      response = client.exec(request.method, request.resource, headers, request.body.try(&.gets_to_end))
-      client.close
+      proxy_client = HTTP::Client.new(host, port.to_i)
+      response = begin
+        proxy_client.exec(request.method, request.resource, headers, request.body)
+      rescue
+        write_proxy_error(client, 502, "upstream request failed")
+        return
+      ensure
+        proxy_client.close rescue nil
+      end
 
-      response.headers.each { |k, v| context.response.headers[k] = v }
-      context.response.status_code = response.status_code
-      context.response.print(response.body)
-    rescue
-      context.response.status_code = 502
+      # Go copies the upstream headers and lets the server set the length; the
+      # body is dechunked here, so hop-by-hop framing is rewritten.
+      client << proxy_status_line(response.status_code) << "\r\n"
+      response.headers.each do |name, values|
+        next if hop_by_hop_header?(name)
+        next if name.compare("content-length", case_insensitive: true) == 0
+
+        values.each { |value| client << "#{name}: #{value}\r\n" }
+      end
+      client << "Content-Length: #{response.body.bytesize}\r\n"
+      client << "Connection: close\r\n\r\n"
+      client << response.body
+      client.flush
+    end
+
+    # dial_proxy_upstream dials the operator's proxy with Go's 30s timeout.
+    private def self.dial_proxy_upstream(upstream : String) : TCPSocket
+      host, _, port = upstream.rpartition(':')
+      TCPSocket.new(host, port.to_i, connect_timeout: 30.seconds)
+    end
+
+    # write_proxy_error mirrors Go's http.Error: the message plus a newline as
+    # text/plain, with nosniff and an explicit length.
+    private def self.write_proxy_error(client : TCPSocket, status : Int32, message : String) : Nil
+      body = "#{message}\n"
+      client << proxy_status_line(status) << "\r\n"
+      client << "Content-Type: text/plain; charset=utf-8\r\n"
+      client << "X-Content-Type-Options: nosniff\r\n"
+      client << "Content-Length: #{body.bytesize}\r\n"
+      client << "Connection: close\r\n\r\n"
+      client << body
+      client.flush
+    end
+
+    private def self.proxy_status_line(code : Int32) : String
+      reason = HTTP::Status.from_value?(code).try(&.description) || ""
+      "HTTP/1.1 #{code} #{reason}".rstrip
+    end
+
+    # hop_by_hop_header? lists the headers a proxy must not forward verbatim
+    # (RFC 7230 6.1); Go's http.Server drops them for the same reason.
+    private def self.hop_by_hop_header?(name : String) : Bool
+      case name.downcase
+      when "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+           "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade"
+        true
+      else
+        false
+      end
     end
   end
 end

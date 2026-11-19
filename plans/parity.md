@@ -9,9 +9,9 @@ is one feature: one branch, one commit, one ledger update.
 ## Where we are
 
 - **Current focus:** slicing the remaining `partial` ledger rows into
-  features. The command-level port is complete: `cmdStart` and `cmdWaitStable`
-  were the last two rows with concrete divergence notes, and the `lib/rod` gaps
-  behind them (`wait_stable`, the managed download on exFAT) are fixed upstream.
+  features. The command-level port is complete: `cmdStart`, `cmdWaitStable`, and
+  the `_proxy` helper (CONNECT tunneling) were the last rows with concrete
+  divergence notes, and the `lib/rod` gaps behind them are fixed upstream.
 - **Next up:**
   1. Slice the remaining `partial` rows into features. List them with
      `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
@@ -19,18 +19,18 @@ is one feature: one branch, one commit, one ledger update.
      with rows whose note names a specific divergence.
   2. Re-base the ledger when the pin moves off `v0.4.0`.
   3. Split this file once it passes one screen (Phase 2).
-  4. Re-check `rod.001` (CONNECT tunneling) only if Crystal ships a socket
-     upgrade; it is a webb + stdlib problem, not a shard one.
+  4. Optional: add a Chrome-through-the-proxy example. The `_proxy` contract is
+     covered at the socket level, not yet with a real HTTPS origin.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 39 examples (17
-    process-contract, 4 `start` session, 18 live-browser). Suite total: 103
-    examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 42 examples (17
+    process-contract, 3 `_proxy`, 4 `start` session, 18 live-browser). Suite
+    total: 106 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 27 are `ported`, 48
-    `partial`, and 3 `intentional_divergence`. The pin has no receiver method
+    tests. All 78 function IDs have Crystal references: 30 are `ported`, 46
+    `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
     functions, and 1 type). Implementation statuses are in the curated
@@ -58,21 +58,21 @@ is one feature: one branch, one commit, one ledger update.
     rod's launcher would otherwise download a ~130 MB snapshot. The managed path
     now works on this volume too (rod `5e6a630` ignores `._*` when stripping the
     archive's top-level folder).
-  - `shard.yml` tracks rod `branch: main` (locked at `5e6a630`) because the
+  - `shard.yml` tracks rod `branch: main` (locked at `7356dd8`) because the
     fixes this repo needs are not tagged yet. Go back to tag tracking when a
     release contains them.
-  - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
-    because Crystal's `HTTP::Server` cannot hijack the socket
-    (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler). This one is webb +
-    Crystal stdlib, not the rod shard; do not look for it upstream.
+  - `_proxy` is a raw `TCPServer`, not an `HTTP::Server`, because Go hijacks
+    CONNECT (`main.go:1930-1943`) and Crystal's server cannot hand a connection
+    back. Do not "simplify" it into `HTTP::Server` again; that is what produced
+    the old 501.
   - Suite runtime tracks host load (`uptime`): ~30 s idle, minutes at load
     > 20. Chrome launch retries three times because it intermittently loses
     the debug-URL race under load. If a run looks slow, check the load and
     `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: wait for network idle in waitstable` (see
+- **Last port commit:** `port: tunnel CONNECT through the auth proxy` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (103 examples), `make build` (CLI), and `make parity-verify` passed.
+  (106 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -207,14 +207,51 @@ Each item is scoped to a single commit. See the entries below for verification d
       - Spec detail worth keeping: go-rod only sees requests that **start after**
         the wait subscribes, and it still ends once `d` idle elapses. The fixture
         therefore polls (`setInterval`) instead of firing one late request.
-      - Two corrections recorded so they are not re-investigated: rod.003 §1 was
-        wrong — go-rod's `NewBrowser` sets `Logger: log.New(os.Stdout, ...)`
+      - Correction recorded so it is not re-investigated: rod.003 §1 was wrong —
+        go-rod's `NewBrowser` sets `Logger: log.New(os.Stdout, ...)`
         (`browser.go:107`) and hands it to `fetchup` (`browser.go:140`), so
-        download progress on stdout is upstream behavior and the port keeps it;
-        and rod.001 is a webb + Crystal-stdlib problem, not a shard one.
+        download progress on stdout is upstream behavior and the port keeps it.
       - Ledger: `cmdWaitStable` → `ported`. `shard_issues/rod.002.md` and
-        `rod.003.md` are deleted (closed); `rod.001.md` now says outright that
-        nothing in the rod repo can fix it.
+        `rod.003.md` are deleted (closed).
+- [x] **Port the authenticated proxy (CONNECT tunneling)** — `_proxy` answered
+      `501 Not Implemented` for CONNECT because Crystal's `HTTP::Server` cannot
+      hijack a socket. That was our own handler's shape, not a port limit: the
+      rodney contract is `vendor/rodney/main.go:1870-1980`, and a proxy does not
+      need `HTTP::Server` at all.
+      - Green: `cmd_internal_proxy` now serves raw `TCPSocket`s on
+        `127.0.0.1:<port>` and parses each request with `HTTP::Request.from_io`
+        before dispatching, the way `net/http` does. `proxy_connect` dials the
+        operator's proxy with Go's 30 s timeout, sends
+        `CONNECT <authority>` with `Proxy-Authorization`, inspects bytes 9..12 of
+        the reply (a split reply is rejected exactly as in Go), answers
+        `HTTP/1.1 200 Connection Established`, then splices both ways.
+        `proxy_http` forwards the absolute-form request upstream and copies the
+        response back with hop-by-hop framing rewritten.
+      - Error paths keep Go's `http.Error` shape: `502` plus
+        `upstream dial failed` / `upstream write failed` / `upstream read failed`
+        / `upstream rejected CONNECT` / `upstream request failed` as
+        `text/plain` with `nosniff`, and a listen failure fatals with
+        `proxy listen failed: ...`.
+      - Coverage: `CLI auth proxy` runs the real helper process against a
+        `CONNECT`-capable upstream fixture — a tunnel round trip through an echo
+        server, an upstream `407` surfacing as Go's `502
+        upstream rejected CONNECT`, and a plain HTTP request forwarded with
+        credentials. Upstream rodney has no proxy tests at all, so this is
+        coverage the Go tree does not have.
+      - Socket ownership: the client socket is closed once by the connection
+        handler, never by the copy fiber. Closing it in both places crashed the
+        spec process (a double close on a recycled descriptor), which is why the
+        splice helper leaves the client to its owner.
+      - Found in `lib/rod` while proving it: `IdleCounter#wait`
+        (`src/rod/util/utils.cr`) used `ctx.done.receive` in its `select`, and a
+        cancelled context *closes* that channel, so the fiber `wait_request_idle`
+        spawns died with `Channel::ClosedError` and printed
+        `Unhandled exception in spawn` on the CLI's stderr (any `waitstable` or
+        `waitidle` run could hit it). Fix prepared with a red → green spec in
+        the shard: `ctx.done.receive?` in that branch plus a spec
+        (`spec/utils_sleeper_spec.cr`), landed as rod `7356dd8`.
+      - Ledger: `cmdInternalProxy`, `proxyConnect`, and `proxyHTTP` → `ported`.
+        `shard_issues/rod.001.md` is deleted (closed).
 - [x] **Match Go's page semantics on an empty browser** — Crystal used to
       fabricate `about:blank` where Go fails; the divergence reached every
       command through `withPage` and `open`.
@@ -378,13 +415,10 @@ Reference for what is already ported; do not re-open without a divergence:
   `rodney start --show` exits 2 with `unknown flag: --show`. Crystal accepts the
   flag (and keeps `[--show]` in its own unknown-flag usage line). Pinned by
   `spec/cli_spec.cr` → "accepts --show, which upstream advertises but rejects".
-- HTTPS `CONNECT` proxy: Crystal's `HTTP::Server` cannot hijack the socket, so
-  proxy tunneling answers `501 Not Implemented` instead of tunneling
-  (`shard_issues/rod.001.md`). This is webb + Crystal stdlib; the rod shard has
-  no `rodney` port, so it is not a shard issue.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case. No
-  open shard gaps: `Page#wait_stable` now runs `WaitRequestIdle` (rod
-  `c459108`) and the managed download strips its archive root on exFAT (rod
-  `5e6a630`, an intentional exFAT-only shim recorded in the shard's own
-  `plans/parity.md`).
+  open shard gaps and `shard_issues/` is empty: `Page#wait_stable` now runs
+  `WaitRequestIdle` (rod `c459108`), the managed download strips its archive
+  root on exFAT (rod `5e6a630`, an intentional exFAT-only shim recorded in the
+  shard's own `plans/parity.md`), and `IdleCounter#wait` returns cleanly when
+  its context is cancelled (rod `7356dd8`).

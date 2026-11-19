@@ -73,6 +73,50 @@ private class CLISpecHarness
     Result.new(stdout.to_s, stderr.to_s, status.exit_code)
   end
 
+  # free_port reserves and releases a loopback port, the way cmd_start picks one
+  # for the auth proxy helper.
+  def free_port : Int32
+    server = TCPServer.new("127.0.0.1", 0)
+    port = server.local_address.port
+    server.close
+    port
+  end
+
+  # spawn_cli starts the CLI without waiting, for long-running commands such as
+  # the hidden `_proxy` helper.
+  def spawn_cli(args : Array(String), home : String = @home) : Process
+    process_env = {"HOME" => home, "RODNEY_HOME" => home}
+    chrome_bin = ENV["ROD_CHROME_BIN"]? || (CHROME_BIN if File::Info.executable?(CHROME_BIN))
+    process_env["ROD_CHROME_BIN"] = chrome_bin if chrome_bin
+
+    Process.new(
+      @binary,
+      args,
+      env: process_env,
+      clear_env: true,
+      chdir: @workdir,
+      input: Process::Redirect::Close,
+      output: Process::Redirect::Close,
+      error: Process::Redirect::Close,
+    )
+  end
+
+  # wait_for_port blocks until something accepts on the loopback port, so a spec
+  # can talk to a freshly spawned helper.
+  def wait_for_port(port : Int32, timeout : Time::Span = 5.seconds) : Nil
+    deadline = Time.instant + timeout
+    loop do
+      begin
+        TCPSocket.new("127.0.0.1", port).close
+        return
+      rescue
+        raise "nothing accepted on 127.0.0.1:#{port}" if Time.instant > deadline
+
+        sleep 50.milliseconds
+      end
+    end
+  end
+
   # fixture_url starts the shared browser and fixture server on first use and
   # returns the page URL the CLI should navigate to.
   def fixture_url : String
@@ -500,6 +544,246 @@ describe "CLI process contract" do
   end
 end
 
+# UpstreamProxyFixture stands in for the authenticated proxy an operator's
+# HTTPS_PROXY points at: it records the credentials the helper sends, then either
+# tunnels a CONNECT to the requested target or answers a plain HTTP request.
+private class UpstreamProxyFixture
+  getter address : String
+  getter request_lines = [] of String
+  getter proxy_auth : String? = nil
+
+  @server : TCPServer
+  @reject_with : String?
+  @closing = false
+
+  def initialize(@reject_with : String? = nil)
+    @server = TCPServer.new("127.0.0.1", 0)
+    @address = "127.0.0.1:#{@server.local_address.port}"
+    spawn { serve }
+  end
+
+  # close wakes the accept loop with a throwaway connection instead of closing
+  # the listener from another fiber, which would race accept? on a reused fd.
+  def close : Nil
+    return if @closing
+    @closing = true
+    TCPSocket.new("127.0.0.1", @server.local_address.port).close rescue nil
+  end
+
+  private def serve : Nil
+    while client = @server.accept?
+      if @closing
+        client.close rescue nil
+        break
+      end
+      spawn { handle(client) }
+    end
+  rescue
+    # Server closed by the spec.
+  ensure
+    @server.close rescue nil
+  end
+
+  private def handle(client : TCPSocket) : Nil
+    request_line = client.gets('\n').to_s.chomp
+    @request_lines << request_line
+    headers = read_headers(client)
+    @proxy_auth = headers["proxy-authorization"]?
+
+    if request_line.starts_with?("CONNECT ")
+      @reject_with.try do |status|
+        client << "HTTP/1.1 #{status}\r\n\r\n"
+        client.flush
+        return
+      end
+      authority = request_line.split(' ')[1]
+      host, _, port = authority.partition(':')
+      target = TCPSocket.new(host, port.to_i)
+      client << "HTTP/1.1 200 Connection Established\r\n\r\n"
+      client.flush
+      splice(client, target)
+    else
+      body = "upstream: #{request_line}"
+      client << "HTTP/1.1 200 OK\r\n"
+      client << "Content-Type: text/plain\r\n"
+      client << "Content-Length: #{body.bytesize}\r\n"
+      client << "\r\n"
+      client << body
+      client.flush
+    end
+  rescue
+    # A spec failed mid-flight; cleanup happens in the example.
+  ensure
+    client.close rescue nil
+  end
+
+  private def read_headers(client : TCPSocket) : Hash(String, String)
+    headers = {} of String => String
+    while line = client.gets('\n')
+      line = line.chomp
+      break if line.empty?
+
+      name, _, value = line.partition(':')
+      headers[name.downcase] = value.strip
+    end
+    headers
+  end
+
+  private def splice(client : TCPSocket, target : TCPSocket) : Nil
+    done = Channel(Nil).new(2)
+    spawn do
+      IO.copy(client, target) rescue nil
+      target.close rescue nil
+      done.send(nil)
+    end
+    spawn do
+      IO.copy(target, client) rescue nil
+      done.send(nil)
+    end
+    2.times { done.receive }
+  end
+end
+
+# ProxyEchoServer echoes every line back, standing in for the HTTPS origin at the
+# far end of the tunnel.
+private class ProxyEchoServer
+  getter address : String
+
+  @server : TCPServer
+  @closing = false
+
+  def initialize
+    @server = TCPServer.new("127.0.0.1", 0)
+    @address = "127.0.0.1:#{@server.local_address.port}"
+    spawn { serve }
+  end
+
+  # close wakes the accept loop instead of closing the listener from another
+  # fiber (see UpstreamProxyFixture#close).
+  def close : Nil
+    return if @closing
+    @closing = true
+    TCPSocket.new("127.0.0.1", @server.local_address.port).close rescue nil
+  end
+
+  private def serve : Nil
+    while client = @server.accept?
+      if @closing
+        client.close rescue nil
+        break
+      end
+      spawn do
+        while line = client.gets('\n')
+          client << line
+          client.flush
+        end
+      rescue
+      ensure
+        client.close rescue nil
+      end
+    end
+  rescue
+    # Server closed by the spec.
+  ensure
+    @server.close rescue nil
+  end
+end
+
+# read_proxy_head reads a proxy response head (status line plus headers).
+private def read_proxy_head(client : TCPSocket) : String
+  head = IO::Memory.new
+  while line = client.gets('\n')
+    head << line
+    break if line == "\r\n" || line == "\n"
+  end
+  head.to_s
+end
+
+describe "CLI auth proxy" do
+  it "tunnels CONNECT through the authenticated upstream proxy" do
+    harness = CLISpecSupport.harness
+    echo = ProxyEchoServer.new
+    upstream = UpstreamProxyFixture.new
+    port = harness.free_port
+    proxy = harness.spawn_cli(["_proxy", port.to_s, upstream.address, "Basic dXNlcjpwYXNz"])
+
+    begin
+      harness.wait_for_port(port)
+      client = TCPSocket.new("127.0.0.1", port)
+      client.read_timeout = 10.seconds
+      begin
+        client << "CONNECT #{echo.address} HTTP/1.1\r\nHost: #{echo.address}\r\n\r\n"
+        read_proxy_head(client).should start_with("HTTP/1.1 200 ")
+        client << "ping through the tunnel\n"
+        client.gets('\n').should eq("ping through the tunnel\n")
+      ensure
+        client.close rescue nil
+      end
+
+      upstream.request_lines.first.should eq("CONNECT #{echo.address} HTTP/1.1")
+      upstream.proxy_auth.should eq("Basic dXNlcjpwYXNz")
+    ensure
+      proxy.signal(Signal::TERM) rescue nil
+      proxy.wait rescue nil
+      upstream.close
+      echo.close
+    end
+  end
+
+  # Go answers a non-200 upstream reply with http.Error(..., 502, "upstream
+  # rejected CONNECT") (main.go:1920-1924).
+  it "reports an upstream CONNECT rejection as 502" do
+    harness = CLISpecSupport.harness
+    upstream = UpstreamProxyFixture.new(reject_with: "407 Proxy Authentication Required")
+    port = harness.free_port
+    proxy = harness.spawn_cli(["_proxy", port.to_s, upstream.address, "Basic dXNlcjpwYXNz"])
+
+    begin
+      harness.wait_for_port(port)
+      client = TCPSocket.new("127.0.0.1", port)
+      client.read_timeout = 10.seconds
+      begin
+        client << "CONNECT example.test:443 HTTP/1.1\r\nHost: example.test:443\r\n\r\n"
+        read_proxy_head(client).should start_with("HTTP/1.1 502 ")
+        client.gets_to_end.should eq("upstream rejected CONNECT\n")
+      ensure
+        client.close rescue nil
+      end
+    ensure
+      proxy.signal(Signal::TERM) rescue nil
+      proxy.wait rescue nil
+      upstream.close
+    end
+  end
+
+  it "forwards plain HTTP requests through the upstream proxy" do
+    harness = CLISpecSupport.harness
+    upstream = UpstreamProxyFixture.new
+    port = harness.free_port
+    proxy = harness.spawn_cli(["_proxy", port.to_s, upstream.address, "Basic dXNlcjpwYXNz"])
+
+    begin
+      harness.wait_for_port(port)
+      client = TCPSocket.new("127.0.0.1", port)
+      client.read_timeout = 10.seconds
+      begin
+        client << "GET http://example.test/thing HTTP/1.1\r\nHost: example.test\r\n\r\n"
+        response = client.gets_to_end
+        response.should contain("HTTP/1.1 200")
+        response.should contain("upstream: GET http://example.test/thing HTTP/1.1")
+      ensure
+        client.close rescue nil
+      end
+
+      upstream.proxy_auth.should eq("Basic dXNlcjpwYXNz")
+    ensure
+      proxy.signal(Signal::TERM) rescue nil
+      proxy.wait rescue nil
+      upstream.close
+    end
+  end
+end
+
 describe "CLI start" do
   after_all do
     CLISpecSupport.close
@@ -781,8 +1065,8 @@ describe "CLI against a live browser" do
     result = run_cli_live("waitstable")
     elapsed = Time.instant - started
 
-    result.status.should eq(0)
     result.stderr.should be_empty
+    result.status.should eq(0)
     result.stdout.should eq("DOM stable\n")
     # Go: MustWaitStable() = WaitStable(time.Second), so the command cannot
     # return in 100ms. Allow 10% slack for process startup noise.
@@ -802,8 +1086,8 @@ describe "CLI against a live browser" do
     result = run_cli_live("waitstable")
     elapsed = Time.instant - started
 
-    result.status.should eq(0)
     result.stderr.should be_empty
+    result.status.should eq(0)
     result.stdout.should eq("DOM stable\n")
     elapsed.should be >= 3.5.seconds
   end
