@@ -140,11 +140,13 @@ module Webb
 
   # get_active_page returns the currently active page
   def self.get_active_page(browser : Rod::Browser, state : State) : Rod::Page
-    pages = browser.pages
-    if pages.empty?
-      # Create a default page if none exist
-      return browser.page("about:blank")
+    begin
+      pages = browser.pages
+    rescue ex
+      fatal("failed to list pages: #{ex.message}")
     end
+
+    fatal("no pages open") if pages.empty?
 
     idx = state.active_page
     if idx < 0 || idx >= pages.size
@@ -160,7 +162,7 @@ module Webb
     begin
       browser = connect_browser(state)
     rescue ex
-      fatal("failed to connect to browser (is it still running?): #{ex.message}")
+      fatal(ex.message.to_s)
     end
     page = get_active_page(browser, state)
     # Apply default timeout so element queries don't hang forever

@@ -30,8 +30,10 @@ Browser parity tests live in `spec/webb_spec.cr`. CLI process tests live in
   `temp/cli_spec/browser_home` instead. On first use the harness launches one
   headless Chrome (same flags as `AXSpecEnv`), serves a fixture page titled
   `CLI Fixture` from an in-process `HTTP::Server`, and writes a `state.json`
-  holding the launcher's debug URL and PID. `after_all` kills the launcher and
-  the server, so no Chrome outlives the suite.
+  holding the launcher's debug URL and PID. `reset_pages` closes every page
+  through one long-lived control connection so a spec can start from zero pages;
+  it never calls `Browser#close`, which shuts Chrome down. `after_all` kills the
+  launcher and the server, so no Chrome outlives the suite.
 
 ```crystal
 result = run_cli("bogus")
@@ -60,7 +62,7 @@ run_cli_live("open", CLISpecSupport.harness.fixture_url).stdout.should eq("CLI F
 | `.infer_download_filename` | ~25 | 2 | Filename extraction from URL and data URL |
 | `.download` (parity) | ~80 | 3 | Downloading link targets (fetch, data:, img src) |
 | `.file` (parity) | ~60 | 2 | File input setting (single, multiple) |
-| CLI process contract (`spec/cli_spec.cr`) | ~270 | 11 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses, live `open`/`title`/`url`, `waitstable` timing, and the no-session error |
+| CLI process contract (`spec/cli_spec.cr`) | ~380 | 14 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses, live `open`/`title`/`url`/`status`, `waitstable` timing, and the no-session / zero-page error paths |
 
 ### Test Pattern
 

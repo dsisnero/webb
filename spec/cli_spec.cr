@@ -19,6 +19,7 @@ private class CLISpecHarness
   @browser_home : String
   @workdir : String
   @launcher : Rod::Util::Launcher::Launcher?
+  @control : Rod::Browser?
   @server : HTTP::Server?
   @fixture_url : String?
 
@@ -65,10 +66,27 @@ private class CLISpecHarness
     @browser_home
   end
 
+  # reset_pages closes every page so a spec can start from the empty-browser
+  # state. Closing the last page leaves Chrome alive and listable.
+  def reset_pages : Nil
+    start_browser
+    control = @control || raise "control browser not started"
+    deadline = Time.instant + 2.seconds
+    loop do
+      pages = control.pages
+      break if pages.empty?
+      pages.each { |page| page.close rescue nil }
+      raise "could not close every page" if Time.instant > deadline
+
+      sleep 50.milliseconds
+    end
+  end
+
   def close : Nil
     @server.try(&.close)
     @launcher.try(&.kill)
     @server = nil
+    @control = nil
     @launcher = nil
   end
 
@@ -88,8 +106,14 @@ private class CLISpecHarness
       launcher.bin(CHROME_BIN)
     end
 
-    debug_url = launcher.launch
+    debug_url = launch_with_retry(launcher)
     @launcher = launcher
+
+    # One long-lived control connection; specs use it to reset pages. It is
+    # never #close'd, because rod's Browser#close shuts Chrome down.
+    control = Rod::Browser.new.control_url(debug_url)
+    control.connect
+    @control = control
 
     server = HTTP::Server.new do |context|
       context.response.content_type = "text/html"
@@ -113,6 +137,24 @@ private class CLISpecHarness
       data_dir: @browser_home,
     )
     File.write(File.join(@browser_home, "state.json"), state.to_pretty_json)
+  end
+
+  # Chrome occasionally loses the debug-URL race under load ("Cannot use V8
+  # Proxy resolver in single process mode" kills the process before the URL is
+  # printed), so retry a few times before failing the suite.
+  private def launch_with_retry(launcher : Rod::Util::Launcher::Launcher) : String
+    attempts = 0
+    loop do
+      attempts += 1
+      begin
+        return launcher.launch
+      rescue ex
+        raise ex if attempts >= 3
+
+        launcher.kill rescue nil
+        sleep 500.milliseconds
+      end
+    end
   end
 
   private def build(repo : String) : Nil
@@ -245,6 +287,34 @@ describe "CLI against a live browser" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
     run_cli_live("title").stdout.should eq("CLI Fixture\n")
     run_cli_live("url").stdout.should eq("#{CLISpecSupport.harness.fixture_url}\n")
+  end
+
+  it "reports no pages open when the browser has none" do
+    CLISpecSupport.harness.reset_pages
+
+    result = run_cli_live("title")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: no pages open\n")
+  end
+
+  it "reports zero pages in status without failing" do
+    CLISpecSupport.harness.reset_pages
+
+    result = run_cli_live("status")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should contain("Pages: 0")
+    result.stdout.should_not contain("Current:")
+  end
+
+  it "opens a URL when the browser has no pages" do
+    CLISpecSupport.harness.reset_pages
+
+    result = run_cli_live("open", CLISpecSupport.harness.fixture_url)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("CLI Fixture\n")
   end
 
   it "waits about a second for DOM stability, like MustWaitStable()" do

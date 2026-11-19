@@ -8,27 +8,25 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** reconciling browser/page semantics (getActivePage, then
-  the remaining partial rows); the CLI timing contract is settled.
+- **Current focus:** working through the remaining `partial` rows now that page
+  semantics match Go; `cmdConnect` heads the list.
 - **Next up:**
-  1. Characterize `getActivePage` on an empty browser and reconcile the
-     behavior of `withPage` and `open` with the pinned Go implementation.
-  2. Work through remaining partial function rows in feature-sized changes,
+  1. Work through remaining partial function rows in feature-sized changes,
      starting with the rows that carry a concrete divergence note
      (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
      `cmdStart`, `cmdStop`).
-  3. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
+  2. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
      (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
-  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 11 examples; 7 run
-    the CLI as a process, 4 drive it against a live headless Chrome through a
-    temp `state.json`. Suite total: 75 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 14 examples; 7 run
+    the CLI as a process, 7 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 78 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 17 are `ported`, 59
+    tests. All 78 function IDs have Crystal references: 20 are `ported`, 56
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -50,10 +48,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: align cmd_wait_stable with MustWaitStable` (see
-  `git log -1 --oneline`).
-- **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
-  (75 examples), `make build` (CLI), and `make parity-verify` passed.
+- **Last port commit:** `port: match Go page semantics for an empty browser`
+  (see `git log -1 --oneline`).
+- **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
+  (78 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -168,6 +166,26 @@ Each item is scoped to a single commit. See the entries below for verification d
         duration where go-rod waits for `WaitRequestIdle`, so a page with
         in-flight requests finishes early. Recorded as
         `shard_issues/rod.002.md` with a reproduction and the one-line fix.
+- [x] **Match Go's page semantics on an empty browser** — Crystal used to
+      fabricate `about:blank` where Go fails; the divergence reached every
+      command through `withPage` and `open`.
+      - Red: `webb title` with zero pages exited 0 in the harness (a fresh
+        launcher passes `--no-startup-window`, so zero pages is the default
+        start state); Go prints `no pages open` and exits 2.
+      - Green: `getActivePage` now matches Go exactly (empty → fatal, listing
+        failure → `failed to list pages: ...`, index clamped to 0), `withPage`
+        fatals with rod's own message instead of a Crystal wrapper, and `open`
+        follows Go's own load/connect/list branch: create a page at the URL
+        when none are open (saving `active_page` 0), else navigate.
+      - Follow-on bug caught by the harness: `status` began exiting 2 on zero
+        pages because `fatal` cannot be rescued. Go prints `Pages: 0` and skips
+        the `Current:` line, so `status` now guards on `pages.empty?`; the spec
+        asserts exit 0 and no `Current:`.
+      - Ledger: `getActivePage`, `withPage`, and `cmdOpen` → `ported`;
+        `cmdStatus` note updated (still `partial`).
+      - Harness: `reset_pages` closes every page through one long-lived control
+        connection (never `Browser#close`, which shuts Chrome down), so a spec
+        can start from zero pages deterministically.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

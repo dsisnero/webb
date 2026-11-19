@@ -426,14 +426,18 @@ module Webb
       puts "Pages: #{pages.size}"
       puts "Active page: #{state.active_page}"
 
-      begin
-        page = Webb.get_active_page(browser, state)
-        info = page.info
-        if info
-          puts "Current: #{info.title} - #{info.url}"
+      # Go only prints this line when getActivePage reports no error, which
+      # excludes the zero-page case.
+      unless pages.empty?
+        begin
+          page = Webb.get_active_page(browser, state)
+          info = page.info
+          if info
+            puts "Current: #{info.title} - #{info.url}"
+          end
+        rescue
+          # Ignore if we can't get page info
         end
-      rescue
-        # Ignore if we can't get page info
       end
     end
 
@@ -448,15 +452,26 @@ module Webb
         url = "http://" + url
       end
 
-      state, browser, page = Webb.with_page
+      state = Webb.load_state
+      begin
+        browser = Webb.connect_browser(state)
+      rescue ex
+        Webb.fatal(ex.message.to_s)
+      end
 
-      # If no pages exist, create one
-      pages = browser.pages
+      begin
+        pages = browser.pages
+      rescue ex
+        Webb.fatal("failed to list pages: #{ex.message}")
+      end
+
+      # If no pages exist, create one; otherwise navigate the active page.
       if pages.empty?
         page = browser.page(url)
         state.active_page = 0
         Webb.save_state(state)
       else
+        page = Webb.get_active_page(browser, state)
         begin
           page.navigate(url)
         rescue ex
