@@ -11,12 +11,19 @@ is one feature: one branch, one commit, one ledger update.
 - **Current focus:** Phase 2 ledger hygiene; the three partial test rows are
   resolved and only function rows remain.
 - **Next up:**
-  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
-     cover its CLI output; the audit found Crystal passes 100 ms.
-  2. Characterize `getActivePage` on an empty browser and reconcile the
+  1. Add a CLI output harness (run the built `bin/webb`, capture stdout,
+     stderr, and exit status) so command rows can be signed off. Most of the 61
+     `partial` function rows say "compare CLI output and error paths"; there are
+     no CLI specs today.
+  2. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
+     cover its `DOM stable` output; the audit found Crystal passes 100 ms.
+  3. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
-  3. Work through remaining partial function rows in feature-sized changes.
-  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  4. Work through remaining partial function rows in feature-sized changes,
+     starting with the rows that carry a concrete divergence note
+     (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
+     `cmdStart`, `cmdStop`).
+  5. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -128,7 +135,8 @@ Each item is scoped to a single commit. See the entries below for verification d
         three as `ported`; only the curated ledger still said `partial`.
 - [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
       passes `100.milliseconds` where Go waits `time.Second`; fix the duration
-      and cover the `DOM stable` CLI output in one change.
+      and cover the `DOM stable` CLI output in one change. Needs the CLI output
+      harness above (or lands together with it).
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
