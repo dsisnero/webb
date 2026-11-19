@@ -8,30 +8,26 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** closing `partial` function rows with process-level
-  evidence; the CLI output harness now exists and the test rows are done.
+- **Current focus:** closing `partial` function rows against the live-browser
+  CLI harness; the `cmd_wait_stable` duration is next.
 - **Next up:**
-  1. Add a browser-backed CLI harness: launch one headless Chrome, write a
-     `state.json` with its debug URL into a temp `RODNEY_HOME`, and point the
-     existing `CLISpecHarness` at it. That unlocks process-level coverage for
-     the `cmd*` rows, which no spec can reach today.
-  2. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`):
+  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`):
      assert `DOM stable` on stdout and an elapsed time near one second through
      the browser-backed harness, and fix the `100.milliseconds` call.
-  3. Characterize `getActivePage` on an empty browser and reconcile the
+  2. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
-  4. Work through remaining partial function rows in feature-sized changes,
+  3. Work through remaining partial function rows in feature-sized changes,
      starting with the rows that carry a concrete divergence note
      (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
      `cmdStart`, `cmdStop`).
-  5. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 7 examples that run
-    the built CLI as a process (stdout, stderr, exit status). Suite total:
-    71 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 10 examples; 7 run
+    the CLI as a process, 3 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 74 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
     tests. All 78 function IDs have Crystal references: 17 are `ported`, 59
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
@@ -55,10 +51,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: add a CLI process output harness` (see
+- **Last port commit:** `port: add a browser-backed CLI harness` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
-  (71 examples), `make build` (CLI), and `make parity-verify` passed.
+  (74 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -150,10 +146,18 @@ Each item is scoped to a single commit. See the entries below for verification d
       rename, plus the two env knobs the port really reads, and a spec compares
       the full text so future command changes cannot drift silently. Ledger:
       `main` and `printUsage` → `ported`.
-- [ ] **Add a browser-backed CLI harness** — extend `CLISpecHarness` to launch a
-      headless Chrome, write its debug URL into `temp/cli_spec/home/state.json`,
-      and run commands against it. Every `cmd*` row that needs stdout, stderr,
-      or an exit status is blocked on this.
+- [x] **Add a browser-backed CLI harness** — `CLISpecHarness` now launches one
+      headless Chrome with the same flags as `AXSpecEnv`, serves a fixture page
+      from an in-process `HTTP::Server`, and writes a `state.json` with the
+      launcher's debug URL and PID into `temp/cli_spec/browser_home`. `run_cli_live`
+      points the CLI there, so a `cmd*` function can be asserted end to end.
+      - Coverage added: `open` navigates the fixture and prints its title,
+        `title` and `url` read the active page, and an empty state directory
+        yields Go's `no browser session` error with exit 2.
+      - Evidence only; every touched ledger row stays `partial` because the
+        `page.info` error paths still differ from Go's fatals.
+      - The harness kills its launcher and server in `after_all`; a run leaves
+        no Chrome behind (checked with `ps`).
 - [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
       passes `100.milliseconds` where Go waits `time.Second`; assert `DOM
       stable` and an elapsed time near one second through the browser-backed

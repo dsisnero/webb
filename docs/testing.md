@@ -26,12 +26,20 @@ Browser parity tests live in `spec/webb_spec.cr`. CLI process tests live in
   is `temp/cli_spec/workdir`) and captures stdout, stderr, and exit status
   together. Use it for anything upstream's `main` or a `cmd*` function prints;
   it never touches the developer's real session.
+- **Live-browser CLI specs** use `run_cli_live`, which points `RODNEY_HOME` at
+  `temp/cli_spec/browser_home` instead. On first use the harness launches one
+  headless Chrome (same flags as `AXSpecEnv`), serves a fixture page titled
+  `CLI Fixture` from an in-process `HTTP::Server`, and writes a `state.json`
+  holding the launcher's debug URL and PID. `after_all` kills the launcher and
+  the server, so no Chrome outlives the suite.
 
 ```crystal
 result = run_cli("bogus")
 result.status.should eq(2)
 result.stderr.should eq("unknown command: bogus\n")
 result.stdout.should contain("webb - Chrome automation")
+
+run_cli_live("open", CLISpecSupport.harness.fixture_url).stdout.should eq("CLI Fixture\n")
 ```
 
 ### Test Categories
@@ -52,7 +60,7 @@ result.stdout.should contain("webb - Chrome automation")
 | `.infer_download_filename` | ~25 | 2 | Filename extraction from URL and data URL |
 | `.download` (parity) | ~80 | 3 | Downloading link targets (fetch, data:, img src) |
 | `.file` (parity) | ~60 | 2 | File input setting (single, multiple) |
-| CLI process contract (`spec/cli_spec.cr`) | ~140 | 7 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses |
+| CLI process contract (`spec/cli_spec.cr`) | ~230 | 10 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses, plus live `open`/`title`/`url` and the no-session error |
 
 ### Test Pattern
 

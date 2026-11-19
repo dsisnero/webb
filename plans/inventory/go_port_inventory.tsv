@@ -29,7 +29,7 @@ main.go::function::cmdInput	function	partial	src/cli.cr::Webb::CLI.cmd_input	Cry
 main.go::function::cmdInternalProxy	function	partial	src/cli.cr::Webb::CLI.cmd_internal_proxy	Loopback proxy serves HTTP; HTTPS CONNECT returns 501; see shard_issues/rod.001.md
 main.go::function::cmdJS	function	partial	src/cli.cr::Webb::CLI.cmd_js	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdNewPage	function	partial	src/cli.cr::Webb::CLI.cmd_new_page	Crystal command implementation is present; compare CLI output and error paths with upstream
-main.go::function::cmdOpen	function	partial	src/cli.cr::Webb::CLI.cmd_open	Open path also depends on Crystal empty-page fallback; verify against Go behavior
+main.go::function::cmdOpen	function	partial	src/cli.cr::Webb::CLI.cmd_open	End-to-end coverage in spec/cli_spec.cr: navigates the fixture and prints its title, exit 0. Crystal's empty-page branch and getActivePage error handling still need review
 main.go::function::cmdPDF	function	partial	src/cli.cr::Webb::CLI.cmd_pdf	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdPage	function	partial	src/cli.cr::Webb::CLI.cmd_page	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdPages	function	partial	src/cli.cr::Webb::CLI.cmd_pages	Crystal command implementation is present; compare CLI output and error paths with upstream
@@ -43,8 +43,8 @@ main.go::function::cmdStatus	function	partial	src/cli.cr::Webb::CLI.cmd_status	C
 main.go::function::cmdStop	function	partial	src/cli.cr::Webb::CLI.cmd_stop	Owned browser and proxy TERM fallback verified; Go always prints Chrome stopped and Crystal reports which action it took
 main.go::function::cmdSubmit	function	partial	src/cli.cr::Webb::CLI.cmd_submit	JavaScript interpolates the selector; cover selectors with quotes and form errors
 main.go::function::cmdText	function	partial	src/cli.cr::Webb::CLI.cmd_text	Crystal command implementation is present; compare CLI output and error paths with upstream
-main.go::function::cmdTitle	function	partial	src/cli.cr::Webb::CLI.cmd_title	Crystal command implementation is present; compare CLI output and error paths with upstream
-main.go::function::cmdURL	function	partial	src/cli.cr::Webb::CLI.cmd_url	Crystal command implementation is present; compare CLI output and error paths with upstream
+main.go::function::cmdTitle	function	partial	src/cli.cr::Webb::CLI.cmd_title	Success path covered by spec/cli_spec.cr (prints the active page title, exit 0); Crystal calls page.info without Go's "failed to get page info" fatal, so the error path is open
+main.go::function::cmdURL	function	partial	src/cli.cr::Webb::CLI.cmd_url	Success path covered by spec/cli_spec.cr (prints the active page URL, exit 0); Crystal calls page.info without Go's "failed to get page info" fatal, so the error path is open
 main.go::function::cmdVisible	function	partial	src/cli.cr::Webb::CLI.cmd_visible	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWait	function	partial	src/cli.cr::Webb::CLI.cmd_wait	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWaitIdle	function	partial	src/cli.cr::Webb::CLI.cmd_wait_idle	Crystal command implementation is present; compare CLI output and error paths with upstream
@@ -66,7 +66,7 @@ main.go::function::getAXNode	function	ported	src/webb.cr::Webb.get_ax_node	Mappe
 main.go::function::getActivePage	function	partial	src/webb.cr::Webb.get_active_page	Creates about:blank for an empty browser; Go returns no pages open
 main.go::function::inferDownloadFilename	function	ported	src/webb.cr::Webb.infer_download_filename	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::init	function	partial	src/webb.cr::Webb::DEFAULT_TIMEOUT	Discovery collapses both Go init functions under one ID; Crystal configures ROD_TIMEOUT; piped-output SIGPIPE behavior needs verification
-main.go::function::loadState	function	partial	src/webb.cr::Webb.load_state	Read failures after the existence check use the corrupt-state diagnostic; Go treats read failures as no session
+main.go::function::loadState	function	partial	src/webb.cr::Webb.load_state	The no-session message is covered by spec/cli_spec.cr; read failures after the existence check still use the corrupt-state diagnostic, where Go treats them as no session
 main.go::function::main	function	ported	src/main.cr,src/cli.cr::Webb::CLI.run	Process contract covered by spec/cli_spec.cr: usage exit 2, help exit 0, --version exit 0, unknown command exit 2, scope-only usage exit 1
 main.go::function::mimeToExt	function	ported	src/webb.cr::Webb.mime_to_ext	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::nextAvailableFile	function	partial	src/webb.cr::Webb.next_available_file	Crystal helper is implemented; direct edge-case parity coverage remains pending
@@ -80,7 +80,7 @@ main.go::function::resolveStateDir	function	ported	src/webb.cr::Webb.resolve_sta
 main.go::function::saveState	function	partial	src/webb.cr::Webb.save_state	Crystal helper is implemented; direct edge-case parity coverage remains pending
 main.go::function::stateDir	function	ported	src/webb.cr::Webb.state_dir	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::statePath	function	ported	src/webb.cr::Webb.state_path	Source review confirms state directory plus state.json
-main.go::function::withPage	function	partial	src/webb.cr::Webb.with_page	Applies timeout; inherits the empty-browser behavior difference from get_active_page
+main.go::function::withPage	function	partial	src/webb.cr::Webb.with_page	Applies the default timeout; the no-session path is covered by spec/cli_spec.cr (stderr error, exit 2). Inherits the empty-browser difference from getActivePage
 main_test.go::test::TestAXFind_ByName	test	ported	spec/webb_spec.cr::query_ax_nodes by name	Ported from upstream live-browser test
 main_test.go::test::TestAXFind_ByNameAndRole	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role	Ported from upstream live-browser test
 main_test.go::test::TestAXFind_ByNameAndRoleExact	test	ported	spec/webb_spec.cr::query_ax_nodes by name and role exact	Ported from upstream live-browser test
