@@ -8,29 +8,27 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** Phase 2 ledger hygiene; the three partial test rows are
-  resolved and only function rows remain.
+- **Current focus:** closing `partial` function rows with process-level
+  evidence; the CLI output harness now exists and the test rows are done.
 - **Next up:**
-  1. Add a CLI output harness (run the built `bin/webb`, capture stdout,
-     stderr, and exit status) so command rows can be signed off. Most of the 61
-     `partial` function rows say "compare CLI output and error paths"; there are
-     no CLI specs today.
-  2. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
-     cover its `DOM stable` output; the audit found Crystal passes 100 ms.
-  3. Characterize `getActivePage` on an empty browser and reconcile the
+  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`) and
+     cover its `DOM stable` output with the new CLI harness.
+  2. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
-  4. Work through remaining partial function rows in feature-sized changes,
+  3. Work through remaining partial function rows in feature-sized changes,
      starting with the rows that carry a concrete divergence note
      (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
      `cmdStart`, `cmdStop`).
-  5. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 7 examples that run
+    the built CLI as a process (stdout, stderr, exit status). Suite total:
+    71 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 15 are `ported`, 61
+    tests. All 78 function IDs have Crystal references: 17 are `ported`, 59
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -52,10 +50,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: audit the three partial upstream test rows` (see
+- **Last port commit:** `port: add a CLI process output harness` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
-  (64 examples), `make build` (CLI), and `make parity-verify` passed.
+  (71 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -133,10 +131,23 @@ Each item is scoped to a single commit. See the entries below for verification d
         post-condition beyond not raising; both temp files are now removed.
       - Discovery: `plans/inventory/go_test_parity.tsv` already recorded all
         three as `ported`; only the curated ledger still said `partial`.
+- [x] **Add a CLI process output harness** — `spec/cli_spec.cr` builds the CLI
+      into `temp/cli_spec/webb`, runs it with a scrubbed environment
+      (`HOME`/`RODNEY_HOME` under `temp/`), and asserts stdout, stderr, and exit
+      status together. The first coverage found three real bugs:
+      - an unknown command printed `error: unknown command: ...` on stderr and
+        no usage, where Go prints the bare line on stderr plus usage on stdout
+        with exit 2;
+      - the usage advertised `./.webb/` and `~/.webb/` while the code and docs
+        use `.rodney`;
+      - the `Use "webb start --local"` hint was missing.
+      The usage is now byte-equal to `vendor/rodney/help.txt` after the `webb`
+      rename, plus the two env knobs the port really reads, and a spec compares
+      the full text so future command changes cannot drift silently. Ledger:
+      `main` and `printUsage` → `ported`.
 - [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
       passes `100.milliseconds` where Go waits `time.Second`; fix the duration
-      and cover the `DOM stable` CLI output in one change. Needs the CLI output
-      harness above (or lands together with it).
+      and cover the `DOM stable` CLI output with the harness added above.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
@@ -163,5 +174,9 @@ Reference for what is already ported; do not re-open without a divergence:
 - HTTPS `CONNECT` proxy: Crystal's `HTTP::Server` cannot hijack the socket, so
   proxy tunneling answers `501 Not Implemented` instead of tunneling
   (`shard_issues/rod.001.md`).
+- CLI usage text is `webb`-branded and adds `ROD_CHROME_BIN` and `ROD_TIMEOUT`
+  to upstream's `help.txt`; both are env knobs the port really reads. Everything
+  else in the output is upstream text verbatim, and `spec/cli_spec.cr` compares
+  the whole block.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case.

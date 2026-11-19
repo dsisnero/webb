@@ -118,7 +118,9 @@ module Webb
       when "_proxy"
         cmd_internal_proxy(cmd_args) # hidden: runs the auth proxy helper
       else
-        Webb.fatal("unknown command: #{cmd}")
+        STDERR.puts "unknown command: #{cmd}"
+        print_usage
+        exit 2
       end
     end
 
@@ -187,13 +189,14 @@ module Webb
       puts "  webb ax-node <selector> [--json]        Show accessibility info for element"
       puts ""
       puts "Options:"
-      puts "  --local                         Use directory-scoped session (./.webb/)"
-      puts "  --global                        Use global session (~/.webb/)"
+      puts "  --local                         Use directory-scoped session (./.rodney/)"
+      puts "  --global                        Use global session (~/.rodney/)"
       puts "  --version                       Print version and exit"
       puts "  --help, -h, help                Show this help message"
       puts ""
       puts "By default, commands auto-detect: if ./.rodney/state.json exists in the"
       puts "current directory, the local session is used; otherwise the global session."
+      puts "Use \"webb start --local\" to create a directory-scoped session."
       puts ""
       puts "Environment:"
       puts "  RODNEY_HOME                     Override data directory (default: ~/.rodney)"

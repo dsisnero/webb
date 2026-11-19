@@ -11,7 +11,8 @@ Tests require Chrome/Chromium installed. Set `ROD_CHROME_BIN` to override the bi
 
 ## Spec Structure
 
-All tests live in `spec/webb_spec.cr` (~853 lines). No separate per-module spec files.
+Browser parity tests live in `spec/webb_spec.cr`. CLI process tests live in
+`spec/cli_spec.cr`; the two files share `spec/spec_helper.cr`.
 
 ### Test Infrastructure
 
@@ -19,6 +20,19 @@ All tests live in `spec/webb_spec.cr` (~853 lines). No separate per-module spec 
   test fixture with routes: `/`, `/form`, `/upload`, `/download`, `/testfile.txt`, `/empty`
 - Chrome is launched once via `before_all` and killed via `after_all`
 - A global `WebbSpecSupport` module holds the singleton env
+- **`CLISpecHarness`** (in `spec/cli_spec.cr`): builds `src/main.cr` into
+  `temp/cli_spec/webb` once, then runs that binary with a scrubbed environment
+  (`HOME` and `RODNEY_HOME` point at `temp/cli_spec/home`, the working directory
+  is `temp/cli_spec/workdir`) and captures stdout, stderr, and exit status
+  together. Use it for anything upstream's `main` or a `cmd*` function prints;
+  it never touches the developer's real session.
+
+```crystal
+result = run_cli("bogus")
+result.status.should eq(2)
+result.stderr.should eq("unknown command: bogus\n")
+result.stdout.should contain("webb - Chrome automation")
+```
 
 ### Test Categories
 
@@ -38,6 +52,7 @@ All tests live in `spec/webb_spec.cr` (~853 lines). No separate per-module spec 
 | `.infer_download_filename` | ~25 | 2 | Filename extraction from URL and data URL |
 | `.download` (parity) | ~80 | 3 | Downloading link targets (fetch, data:, img src) |
 | `.file` (parity) | ~60 | 2 | File input setting (single, multiple) |
+| CLI process contract (`spec/cli_spec.cr`) | ~140 | 7 | Usage, help, version, unknown command, scope-only, help text parity, exit statuses |
 
 ### Test Pattern
 
