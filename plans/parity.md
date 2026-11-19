@@ -58,7 +58,7 @@ is one feature: one branch, one commit, one ledger update.
     rod's launcher would otherwise download a ~130 MB snapshot. The managed path
     now works on this volume too (rod `5e6a630` ignores `._*` when stripping the
     archive's top-level folder).
-  - `shard.yml` tracks rod `branch: main` (locked at `f3439cb`) because the
+  - `shard.yml` tracks rod `branch: main` (locked at `46e6c7f`) because the
     fixes this repo needs are not tagged yet. Go back to tag tracking when a
     release contains them.
   - `_proxy` is a raw `TCPServer`, not an `HTTP::Server`, because Go hijacks
@@ -256,7 +256,12 @@ Each item is scoped to a single commit. See the entries below for verification d
         `Pipe#run_loop`, and `Observable#subscribe`'s cleanup use
         `done.receive?`, so a publish that races a shutdown no longer raises out
         of `Observable#publish` and stops `Browser#init_events` for the rest of
-        the session. The pin moved to `f3439cb`; no webb change was needed.
+        the session. No webb change was needed.
+      - Also adopted, no webb change needed: rod `46e6c7f` gives `Manager#logger`
+        go-rod's `utils.Logger` shape (defaulting to quiet) and emits the four
+        manager events Go logs. webb never uses `Manager`; `webb start` still
+        prints exactly Go's two lines and nothing on stderr (re-checked by hand
+        after the bump).
 - [x] **Match Go's page semantics on an empty browser** — Crystal used to
       fabricate `about:blank` where Go fails; the divergence reached every
       command through `withPage` and `open`.

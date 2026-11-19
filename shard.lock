@@ -22,7 +22,7 @@ shards:
 
   rod:
     git: https://github.com/dsisnero/rod.git
-    version: 0.7.0+git.commit.f3439cbbca788ebdcc5271aa537e87164cdf21f4
+    version: 0.7.0+git.commit.46e6c7fc344531fe395dd964fd13c64084b5753c
 
   similar:
     git: https://github.com/dsisnero/similar.cr.git
