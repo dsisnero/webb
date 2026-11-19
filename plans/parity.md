@@ -8,15 +8,24 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** the lifecycle rows; `cmdStop` now matches Go and
-  `cmdStart` is the last row with a concrete divergence note.
+- **Current focus:** `cmdStart`, the only function row left with a concrete
+  divergence note. Its diff list, test plan, and one open question are in
+  **Phase 2 → Next feature: `cmdStart`**.
+- **Needs a decision first:** upstream's `rodney start --show` is broken (it
+  exits 2 with `unknown flag: --show` although `help.txt` advertises it). Port
+  that bug for strict parity, or keep Crystal's working `--show` and record a
+  documented divergence with a spec?
 - **Next up:**
-  1. `cmdStart` — Go pins single-process and runs a detached `_proxy` helper
-     when an authenticated proxy is detected; Crystal launches through rod and
-     skips the helper.
+  1. Decide the `--show` question, then land `cmdStart` as one commit.
   2. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
-     (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
-  3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+     (`shard_issues/rod.002.md`); `cmdWaitStable` already has a timing spec to
+     re-check afterwards.
+  3. Slice the remaining `partial` rows into features. List them with
+     `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
+     only need output/error coverage, which the CLI harness makes cheap. Start
+     with rows whose note names a specific divergence.
+  4. Re-base the ledger when the pin moves off `v0.4.0`.
+  5. Split this file once it passes one screen (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -32,6 +41,11 @@ is one feature: one branch, one commit, one ledger update.
     functions, and 1 type). Implementation statuses are in the curated
     ledger. The generated source snapshot keeps its discovery baseline
     statuses; `scopeMode` still needs a curated type mapping.
+  - CLI harness: `spec/cli_spec.cr` builds `src/main.cr` into
+    `temp/cli_spec/webb` once. `run_cli` uses an empty `RODNEY_HOME`;
+    `run_cli_live` points at `browser_home/state.json`; `state_home` and
+    `owned_browser` set up `stop` scenarios. Chrome runs with
+    `--no-startup-window`, so a fresh browser has **zero pages**.
 - **Scoping notes / gotchas:**
   - Discovery runs through the verified Chiasmus **tree-sitter** toolchain.
     Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate.
@@ -47,6 +61,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
+  - Suite runtime tracks host load (`uptime`): ~30 s idle, minutes at load
+    > 20. Chrome launch retries three times because it intermittently loses
+    the debug-URL race under load. If a run looks slow, check the load and
+    `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
 - **Last port commit:** `port: make stop match Go's lifecycle behavior` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
@@ -250,6 +268,40 @@ Each item is scoped to a single commit. See the entries below for verification d
         `state_home` and `owned_browser`, and reuses one `new_launcher` helper.
       - Ledger: `cmdStop` → `ported`. `cmdStart` is now the only row left with a
         concrete divergence note.
+- [ ] **Next feature: `cmdStart`** — start here after a reset. Compare
+      `vendor/rodney/main.go:321-425` with `src/cli.cr::cmd_start`.
+      1. **Launcher flags:** Go sets `--single-process` ("required for
+         screenshots in gVisor/container environments"); Crystal omits it. Add
+         it, then re-run the live screenshot spec.
+      2. **Unknown flag:** Go fatals with `usage: rodney start [--insecure]`;
+         Crystal says `[--insecure] [--show]`.
+      3. **Decision needed — `--show`:** upstream's validation loop rejects
+         every flag except `--insecure`/`-k`, so `rodney start --show` exits 2
+         with `unknown flag: --show` even though `help.txt` advertises it (the
+         `--show` scan at `main.go:345` is unreachable). Choose: port the bug
+         (strict parity, AGENTS.md rule 1) or keep the working feature and
+         record an intentional divergence with a spec. Crystal supports
+         `--show` today.
+      4. **Already-running check:** Go closes the browser and removes state
+         only when it actually connected; a stale state file is left in place
+         and nothing is printed. Crystal always removes the file and prints
+         `Warning: stale state file removed` on stderr.
+      5. **Save failure:** Go fatals `failed to save state: %v`; Crystal lets
+         the exception escape (exit 1).
+      6. **Extra output:** Crystal prints `Data directory: ...` after Go's two
+         lines (`Chrome started (PID %d)`, `Debug URL: %s`).
+      7. **Proxy helper:** Go spawns itself detached (`setSysProcAttr` →
+         setsid) and calls `cmd.Process.Release()`; Crystal uses `Process.new`
+         without detaching (macOS has no `setsid` binary). Verify the helper
+         outlives the parent; `stop` already TERMs it.
+      - **Test plan:** `start` in a temp `RODNEY_HOME` prints the PID and URL
+        and writes `state.json`; a second `start` over a live state closes the
+        first browser; `stop` then kills the started browser. For the proxy
+        branch, add an env parameter to `CLISpecHarness#run` so a spec can pass
+        `HTTPS_PROXY` with credentials, then assert `proxy_pid`/`proxy_port`
+        land in `state.json` and the helper process exists until `stop`.
+      - **Ledger:** `cmdStart` → `ported`, or keep `partial` only if the
+        `--show` decision leaves a documented divergence.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

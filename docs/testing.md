@@ -33,7 +33,10 @@ Browser parity tests live in `spec/webb_spec.cr`. CLI process tests live in
   holding the launcher's debug URL and PID. `reset_pages` closes every page
   through one long-lived control connection so a spec can start from zero pages;
   it never calls `Browser#close`, which shuts Chrome down. `after_all` kills the
-  launcher and the server, so no Chrome outlives the suite.
+  launcher and the server, so no Chrome outlives the suite. `state_home` writes
+  a `state.json` for any debug URL/PID (used by `stop` scenarios) and
+  `owned_browser` launches a tracked throwaway Chrome whose PID can be checked
+  after `stop`.
 
 ```crystal
 result = run_cli("bogus")
