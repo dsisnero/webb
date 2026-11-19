@@ -1,12 +1,20 @@
 # rod.001: HTTP CONNECT tunneling not supported in Crystal stdlib
 
-**Shard:** crystal-stdlib (HTTP::Server)
+**Owner:** webb's `_proxy` command (`src/cli.cr` `proxy_connect`) + crystal-stdlib
 **Priority:** Medium
 **Type:** feature
+
+**Not actionable in `dsisnero/rod`:** the rod shard has no `rodney` port (zero
+`rodney` rows in its ledger, no proxy server under its `src/`). CONNECT belongs
+to this repo's consumer CLI plus Crystal's stdlib, so do not re-investigate it
+against the shard.
 
 ## Description
 
 Crystal's `HTTP::Server::Response` does not have an `upgrade_to_socket` or equivalent method for handling HTTP CONNECT tunneling. The Go rodney implementation uses `http.Hijacker.Hijack()` to upgrade CONNECT requests to raw TCP tunnels for authenticated proxy support.
+
+Verified 2026-11-19 against Crystal 1.22.3: `src/http/` in the stdlib has no
+`hijack` symbol at all, so this is still open.
 
 ## Impact
 

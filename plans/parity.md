@@ -8,29 +8,28 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** the `lib/rod` gap behind `cmdWaitStable`. `Page#wait_stable`
-  waits a fixed duration where go-rod also runs `WaitRequestIdle`
-  (`shard_issues/rod.002.md`). `cmdStart` is done and is now the last function
-  row that needed work.
+- **Current focus:** slicing the remaining `partial` ledger rows into
+  features. The command-level port is complete: `cmdStart` and `cmdWaitStable`
+  were the last two rows with concrete divergence notes, and the `lib/rod` gaps
+  behind them (`wait_stable`, the managed download on exFAT) are fixed upstream.
 - **Next up:**
-  1. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
-     (`shard_issues/rod.002.md`), then re-check the `cmdWaitStable` timing spec
-     and sign that row off.
-  2. Slice the remaining `partial` rows into features. List them with
+  1. Slice the remaining `partial` rows into features. List them with
      `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
      only need output/error coverage, which the CLI harness makes cheap. Start
      with rows whose note names a specific divergence.
-  3. Re-base the ledger when the pin moves off `v0.4.0`.
-  4. Split this file once it passes one screen (Phase 2).
+  2. Re-base the ledger when the pin moves off `v0.4.0`.
+  3. Split this file once it passes one screen (Phase 2).
+  4. Re-check `rod.001` (CONNECT tunneling) only if Crystal ships a socket
+     upgrade; it is a webb + stdlib problem, not a shard one.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 38 examples (17
-    process-contract, 4 `start` session, 17 live-browser). Suite total: 102
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 39 examples (17
+    process-contract, 4 `start` session, 18 live-browser). Suite total: 103
     examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 26 are `ported`, 49
+    tests. All 78 function IDs have Crystal references: 27 are `ported`, 48
     `partial`, and 3 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -55,24 +54,25 @@ is one feature: one branch, one commit, one ledger update.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
-  - The CLI harness always passes `ROD_CHROME_BIN`. Without it, rod's launcher
-    downloads a managed build that cannot be found on this exFAT volume, because
-    macOS's `._*` sidecars defeat the downloader's `strip_first_dir` step
-    (`shard_issues/rod.003.md`).
-  - `shard.yml` tracks rod `branch: main` (locked at `1f7636a`) because the
-    launcher output-contract fix is not tagged yet. Go back to tag tracking when
-    a release contains it.
+  - The CLI harness always passes `ROD_CHROME_BIN` so the suite stays offline;
+    rod's launcher would otherwise download a ~130 MB snapshot. The managed path
+    now works on this volume too (rod `5e6a630` ignores `._*` when stripping the
+    archive's top-level folder).
+  - `shard.yml` tracks rod `branch: main` (locked at `5e6a630`) because the
+    fixes this repo needs are not tagged yet. Go back to tag tracking when a
+    release contains them.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
-    (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
+    (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler). This one is webb +
+    Crystal stdlib, not the rod shard; do not look for it upstream.
   - Suite runtime tracks host load (`uptime`): ~30 s idle, minutes at load
     > 20. Chrome launch retries three times because it intermittently loses
     the debug-URL race under load. If a run looks slow, check the load and
     `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: make start match Go's lifecycle behavior` (see
+- **Last port commit:** `port: wait for network idle in waitstable` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (102 examples), `make build` (CLI), and `make parity-verify` passed.
+  (103 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -182,10 +182,39 @@ Each item is scoped to a single commit. See the entries below for verification d
       - Green: the call is now `wait_stable(1.second)`; the spec asserts
         `DOM stable`, exit 0, empty stderr, and an elapsed time of at least
         900 ms (10% slack for process startup).
-      - The row stays `partial`: `lib/rod`'s `wait_stable` still waits a fixed
-        duration where go-rod waits for `WaitRequestIdle`, so a page with
-        in-flight requests finishes early. Recorded as
-        `shard_issues/rod.002.md` with a reproduction and the one-line fix.
+      - Follow-up (closed below): `lib/rod`'s `wait_stable` waited a fixed
+        duration where go-rod races `WaitRequestIdle`, so the row stayed
+        `partial` until that shard gap closed.
+- [x] **Close the `lib/rod` gaps behind `waitstable` and `start`** — both were
+      fixed in `dsisnero/rod` on `main` and adopted here by moving the pin.
+      - `c459108` *wait_stable waits on the request queue like go-rod*:
+        `wait_stable`'s middle fiber calls `wait_request_idle(d).call`
+        (`page.go:821` races `WaitLoad`, `WaitRequestIdle(d,nil,nil,nil)()`,
+        `WaitDOMStable(d,0)`); the port had substituted `wait_duration(d)` while
+        `wait_request_idle` sat unused.
+      - `5e6a630` *strip the managed download's top-level dir on exFAT*: this
+        volume makes `unzip` write `._chrome-mac` next to the archive root, so
+        the strict single-entry guard skipped the strip and `bin_path` dangled
+        after a successful download. `strip_first_dir` now ignores `._*` and
+        `.DS_Store` when counting and moving entries. Documented upstream as an
+        exFAT-only shim (inert on APFS/HFS+/Linux).
+      - Red → green here: with the pin on `1f7636a`, `webb waitstable` against a
+        page polling a 2 s route returned in **1.23 s**; with `c459108` it waits
+        **≥ 3.5 s** (new `cli_spec.cr` example). Running `start` with no
+        `ROD_CHROME_BIN` reproduced the download failure end to end
+        (`chromium-<rev>/Chromium.app/...: No such file or directory`, 359 MB
+        left in the temp home) before `5e6a630`.
+      - Spec detail worth keeping: go-rod only sees requests that **start after**
+        the wait subscribes, and it still ends once `d` idle elapses. The fixture
+        therefore polls (`setInterval`) instead of firing one late request.
+      - Two corrections recorded so they are not re-investigated: rod.003 §1 was
+        wrong — go-rod's `NewBrowser` sets `Logger: log.New(os.Stdout, ...)`
+        (`browser.go:107`) and hands it to `fetchup` (`browser.go:140`), so
+        download progress on stdout is upstream behavior and the port keeps it;
+        and rod.001 is a webb + Crystal-stdlib problem, not a shard one.
+      - Ledger: `cmdWaitStable` → `ported`. `shard_issues/rod.002.md` and
+        `rod.003.md` are deleted (closed); `rod.001.md` now says outright that
+        nothing in the rod repo can fix it.
 - [x] **Match Go's page semantics on an empty browser** — Crystal used to
       fabricate `about:blank` where Go fails; the divergence reached every
       command through `withPage` and `open`.
@@ -290,8 +319,10 @@ Each item is scoped to a single commit. See the entries below for verification d
         on stdout, which go-rod never prints (its logger is `io.Discard`).
         Fixed upstream in `dsisnero/rod` `1f7636a`, which removes the `::Log`
         property and makes `logger(io : IO)` the only sink API with a discard
-        default, so `cmd_start` needs no logger workaround. The downloader still
-        logs at INFO on the managed path (`shard_issues/rod.003.md`).
+        default, so `cmd_start` needs no logger workaround. Download progress
+        still prints on stdout, which is correct: go-rod's `NewBrowser` installs
+        a stdout logger (`browser.go:107`) and hands it to `fetchup`
+        (`browser.go:140`), so quieting it would be the divergence.
       - **Proxy helper:** still spawned with `Process.new` (no `setsid`), but its
         stdio now goes to `/dev/null` the way Go's nil stdio does. That is what
         lets the helper outlive the parent without holding the caller's pipes
@@ -349,11 +380,11 @@ Reference for what is already ported; do not re-open without a divergence:
   `spec/cli_spec.cr` → "accepts --show, which upstream advertises but rejects".
 - HTTPS `CONNECT` proxy: Crystal's `HTTP::Server` cannot hijack the socket, so
   proxy tunneling answers `501 Not Implemented` instead of tunneling
-  (`shard_issues/rod.001.md`).
+  (`shard_issues/rod.001.md`). This is webb + Crystal stdlib; the rod shard has
+  no `rodney` port, so it is not a shard issue.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
-  divergence is documented in `shard_issues/` with a reproducible case. Open
-  shard gaps: `Page#wait_stable` skips go-rod's `WaitRequestIdle`
-  (`shard_issues/rod.002.md`), and the managed-browser download path logs at
-  INFO and cannot strip the archive root on this exFAT volume
-  (`shard_issues/rod.003.md`; its launcher-log half is fixed upstream in
-  `1f7636a`).
+  divergence is documented in `shard_issues/` with a reproducible case. No
+  open shard gaps: `Page#wait_stable` now runs `WaitRequestIdle` (rod
+  `c459108`) and the managed download strips its archive root on exFAT (rod
+  `5e6a630`, an intentional exFAT-only shim recorded in the shard's own
+  `plans/parity.md`).

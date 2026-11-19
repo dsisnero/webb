@@ -12,6 +12,15 @@ private class CLISpecHarness
   CHROME_BIN    = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
   FIXTURE_TITLE = "CLI Fixture"
 
+  # Slow-request fixture used by the `waitstable` examples: a page that polls a
+  # slow route a few times after it loads, so a request is always in flight
+  # inside `waitstable`'s idle window.
+  SLOW_PATH          = "/slow"
+  SLOW_PAGE_PATH     = "/slow-page"
+  SLOW_RESPONSE      = 2.seconds
+  SLOW_REQUEST_DELAY = 400.milliseconds
+  SLOW_POLLS         = 5
+
   getter binary : String
 
   @repo : String
@@ -45,7 +54,7 @@ private class CLISpecHarness
     process_env = {"HOME" => home, "RODNEY_HOME" => home}
     # `start` launches through rod's launcher, which downloads a managed browser
     # when no bin is given. Pin the same local Chrome the harness uses so the
-    # suite stays offline (see shard_issues/rod.003.md).
+    # suite stays offline instead of fetching a ~130 MB snapshot.
     chrome_bin = ENV["ROD_CHROME_BIN"]? || (CHROME_BIN if File::Info.executable?(CHROME_BIN))
     process_env["ROD_CHROME_BIN"] = chrome_bin if chrome_bin
     env.try &.each { |key, value| process_env[key] = value }
@@ -69,6 +78,13 @@ private class CLISpecHarness
   def fixture_url : String
     start_browser
     @fixture_url || raise "CLI spec fixture server did not start"
+  end
+
+  # slow_fixture_url is the fixture page that issues a slow request shortly
+  # after load; used to prove `waitstable` waits for network idle.
+  def slow_fixture_url : String
+    start_browser
+    "#{@fixture_url || raise "CLI spec fixture server did not start"}#{SLOW_PAGE_PATH.lchop}"
   end
 
   # browser_home is the state directory holding the live browser's state.json.
@@ -206,22 +222,52 @@ private class CLISpecHarness
     @control = control
 
     server = HTTP::Server.new do |context|
-      context.response.content_type = "text/html"
-      context.response.print([
-        "<!DOCTYPE html>",
-        "<html lang=\"en\">",
-        "<head><title>#{FIXTURE_TITLE}</title></head>",
-        "<body>",
-        "<h1>Fixture</h1>",
-        "<select id=\"topic\" aria-label=\"Topic\">",
-        "<option value=\"general\">General</option>",
-        "<option value=\"support\">Support</option>",
-        "<option value='say \"hi\"'>Quoted</option>",
-        "</select>",
-        "<form id=\"search-form\" action=\"/submitted\"><input name=\"q\" value=\"hi\"></form>",
-        "</body>",
-        "</html>",
-      ].join('\n'))
+      case context.request.path
+      when SLOW_PATH
+        # A response slow enough that `waitstable` has to keep waiting for the
+        # request, like go-rod's WaitRequestIdle contract.
+        sleep SLOW_RESPONSE
+        context.response.content_type = "text/plain"
+        context.response.print("slow")
+      when SLOW_PAGE_PATH
+        context.response.content_type = "text/html"
+        context.response.print([
+          "<!DOCTYPE html>",
+          "<html lang=\"en\">",
+          "<head><title>#{FIXTURE_TITLE}</title></head>",
+          "<body>",
+          "<h1>Slow fixture</h1>",
+          # Poll the slow route a few times: the first request must land inside
+          # `waitstable`'s idle window whatever the CLI's startup latency, and
+          # go-rod only sees requests that start after the wait does.
+          "<script>",
+          "var n = 0;",
+          "var t = setInterval(function () {",
+          "  if (n++ >= #{SLOW_POLLS}) { clearInterval(t); return; }",
+          "  fetch('#{SLOW_PATH}');",
+          "}, #{SLOW_REQUEST_DELAY.total_milliseconds.to_i});",
+          "</script>",
+          "</body>",
+          "</html>",
+        ].join('\n'))
+      else
+        context.response.content_type = "text/html"
+        context.response.print([
+          "<!DOCTYPE html>",
+          "<html lang=\"en\">",
+          "<head><title>#{FIXTURE_TITLE}</title></head>",
+          "<body>",
+          "<h1>Fixture</h1>",
+          "<select id=\"topic\" aria-label=\"Topic\">",
+          "<option value=\"general\">General</option>",
+          "<option value=\"support\">Support</option>",
+          "<option value='say \"hi\"'>Quoted</option>",
+          "</select>",
+          "<form id=\"search-form\" action=\"/submitted\"><input name=\"q\" value=\"hi\"></form>",
+          "</body>",
+          "</html>",
+        ].join('\n'))
+      end
     end
     addr = server.bind_tcp("127.0.0.1", 0)
     @fixture_url = "http://127.0.0.1:#{addr.port}/"
@@ -741,5 +787,24 @@ describe "CLI against a live browser" do
     # Go: MustWaitStable() = WaitStable(time.Second), so the command cannot
     # return in 100ms. Allow 10% slack for process startup noise.
     elapsed.should be >= 900.milliseconds
+  end
+
+  # go-rod's WaitStable races WaitLoad, WaitRequestIdle(d, nil, nil, nil)() and
+  # WaitDOMStable(d, 0). The fixture polls a 2s route from 0.4s to 2.0s, so the
+  # request branch cannot finish before the last response lands plus one idle
+  # second (~5s); a fixed-duration branch returns at ~1s. go-rod only sees
+  # requests that start after the wait subscribes, hence the poll.
+  it "waits for in-flight requests, like go-rod's WaitRequestIdle" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.slow_fixture_url).status.should eq(0)
+
+    started = Time.instant
+    result = run_cli_live("waitstable")
+    elapsed = Time.instant - started
+
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("DOM stable\n")
+    elapsed.should be >= 3.5.seconds
   end
 end
