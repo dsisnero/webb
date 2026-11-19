@@ -17,9 +17,9 @@ main.go::function::cmdClearCache	function	partial	src/cli.cr::Webb::CLI.cmd_clea
 main.go::function::cmdClick	function	partial	src/cli.cr::Webb::CLI.cmd_click	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdClosePage	function	partial	src/cli.cr::Webb::CLI.cmd_close_page	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdConnect	function	ported	src/cli.cr::Webb::CLI.cmd_connect	Mirrors Go: net.SplitHostPort-style validation (bracketed IPv6 accepted, extra colons and non-numeric ports rejected), /json/version fetch, connect check, and save errors all fatal with Go's messages. Covered by spec/cli_spec.cr including a live connect
-main.go::function::cmdCount	function	partial	src/cli.cr::Webb::CLI.cmd_count	Crystal command implementation is present; compare CLI output and error paths with upstream
+main.go::function::cmdCount	function	ported	src/cli.cr::Webb::CLI.cmd_count	Matches Go: prints the match count (0 for a missing selector, exit 0) and fatals `query failed: <cause>` for a broken selector. Covered by spec/cli_spec.cr
 main.go::function::cmdDownload	function	partial	src/cli.cr::Webb::CLI.cmd_download	Browser specs cover retrieval and helpers; CLI stdout and saved file behavior need coverage
-main.go::function::cmdExists	function	partial	src/cli.cr::Webb::CLI.cmd_exists	Crystal command implementation is present; compare CLI output and error paths with upstream
+main.go::function::cmdExists	function	ported	src/cli.cr::Webb::CLI.cmd_exists	Matches Go: `true`+exit 0 / `false`+exit 1 for found and missing selectors (no wait, like go-rod's Has with NotFoundSleeper), and a broken selector fatals `query failed: <cause>` (exit 2). Covered by spec/cli_spec.cr
 main.go::function::cmdFile	function	partial	src/cli.cr::Webb::CLI.cmd_file	Browser specs exercise rod uploads; CLI stdin and invalid path handling need coverage
 main.go::function::cmdFocus	function	partial	src/cli.cr::Webb::CLI.cmd_focus	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdForward	function	partial	src/cli.cr::Webb::CLI.cmd_forward	Crystal command implementation is present; compare CLI output and error paths with upstream
@@ -45,7 +45,7 @@ main.go::function::cmdSubmit	function	ported	src/cli.cr::Webb::CLI.cmd_submit	Ma
 main.go::function::cmdText	function	partial	src/cli.cr::Webb::CLI.cmd_text	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdTitle	function	partial	src/cli.cr::Webb::CLI.cmd_title	Success path covered by spec/cli_spec.cr (prints the active page title, exit 0); Crystal calls page.info without Go's "failed to get page info" fatal, so the error path is open
 main.go::function::cmdURL	function	partial	src/cli.cr::Webb::CLI.cmd_url	Success path covered by spec/cli_spec.cr (prints the active page URL, exit 0); Crystal calls page.info without Go's "failed to get page info" fatal, so the error path is open
-main.go::function::cmdVisible	function	partial	src/cli.cr::Webb::CLI.cmd_visible	Crystal command implementation is present; compare CLI output and error paths with upstream
+main.go::function::cmdVisible	function	ported	src/cli.cr::Webb::CLI.cmd_visible	Matches Go: uses page.element like Go's Element, then prints `true`+exit 0 or `false`+exit 1; every lookup or visibility error becomes `false`+exit 1 rather than a fatal (main.go:808-830). Covered by spec/cli_spec.cr with a visible, a hidden, a missing, and a broken selector
 main.go::function::cmdWait	function	partial	src/cli.cr::Webb::CLI.cmd_wait	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWaitIdle	function	partial	src/cli.cr::Webb::CLI.cmd_wait_idle	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWaitLoad	function	partial	src/cli.cr::Webb::CLI.cmd_wait_load	Crystal command implementation is present; compare CLI output and error paths with upstream

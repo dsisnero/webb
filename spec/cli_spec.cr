@@ -311,6 +311,7 @@ private class CLISpecHarness
           "<head><title>#{FIXTURE_TITLE}</title></head>",
           "<body>",
           "<h1>Fixture</h1>",
+          "<div id=\"hidden\" style=\"display:none\">Hidden</div>",
           "<select id=\"topic\" aria-label=\"Topic\">",
           "<option value=\"general\">General</option>",
           "<option value=\"support\">Support</option>",
@@ -561,6 +562,15 @@ describe "CLI process contract" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should eq("error: usage: webb attr <selector> <attribute>\n")
+  end
+
+  it "requires a selector for the element-check commands" do
+    %w[exists count visible].each do |command|
+      result = run_cli(command)
+      result.status.should eq(2)
+      result.stdout.should be_empty
+      result.stderr.should eq("error: usage: webb #{command} <selector>\n")
+    end
   end
 
   # Documented divergence: upstream's help.txt advertises `start --show`, but
@@ -1117,6 +1127,83 @@ describe "CLI against a live browser" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should eq("error: attribute \"data-nope\" not found\n")
+  end
+
+  # Go's element checks: exists/count fatal on a query error with `query failed:
+  # %v` (main.go:780-806), while visible prints `false` and exits 1 for any
+  # lookup error (main.go:808-830).
+  it "reports element existence with the exit status Go uses" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    present = run_cli_live("exists", "#topic")
+    present.stderr.should be_empty
+    present.status.should eq(0)
+    present.stdout.should eq("true\n")
+
+    absent = run_cli_live("exists", "#nothing-here")
+    absent.stderr.should be_empty
+    absent.status.should eq(1)
+    absent.stdout.should eq("false\n")
+  end
+
+  it "counts matching elements" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    present = run_cli_live("count", "option")
+    present.stderr.should be_empty
+    present.status.should eq(0)
+    present.stdout.should eq("3\n")
+
+    absent = run_cli_live("count", "#nothing-here")
+    absent.stderr.should be_empty
+    absent.status.should eq(0)
+    absent.stdout.should eq("0\n")
+  end
+
+  it "reports visibility with the exit status Go uses" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    visible = run_cli_live("visible", "#topic")
+    visible.stderr.should be_empty
+    visible.status.should eq(0)
+    visible.stdout.should eq("true\n")
+
+    hidden = run_cli_live("visible", "#hidden")
+    hidden.stderr.should be_empty
+    hidden.status.should eq(1)
+    hidden.stdout.should eq("false\n")
+
+    # go-rod's Element reports the page deadline for a selector that never
+    # matches, and Go turns that error into `false` plus exit 1.
+    absent = harness.run(
+      ["visible", "#nothing-here"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    absent.stderr.should be_empty
+    absent.status.should eq(1)
+    absent.stdout.should eq("false\n")
+  end
+
+  it "fails with query failed when exists or count gets a broken selector" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    %w[exists count].each do |command|
+      result = run_cli_live(command, "<<<")
+      result.status.should eq(2)
+      result.stdout.should be_empty
+      result.stderr.should start_with("error: query failed: ")
+    end
+  end
+
+  it "reports false for visible with a broken selector" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("visible", "<<<")
+    result.stderr.should be_empty
+    result.status.should eq(1)
+    result.stdout.should eq("false\n")
   end
 
   # Go prints the session, then the page count and current page (main.go:516-526).

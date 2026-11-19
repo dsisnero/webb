@@ -17,11 +17,9 @@ is one feature: one branch, one commit, one ledger update.
   1. Slice the remaining `partial` rows into features. List them with
      `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
      only need output/error coverage, which the CLI harness makes cheap. Start
-     with rows whose note names a specific divergence — next are the selector
-     query commands (`cmdExists`/`cmdCount`/`cmdVisible` all skip Go's
-     `query failed: ...` fatal for a broken selector), then `cmdTitle`
-     (`page.info` has no Go `failed to get page info` fatal) and the AX commands
-     (`cmdAXTree`/`cmdAXFind`/`cmdAXNode`).
+     with rows whose note names a specific divergence — next is `cmdTitle`
+     (`page.info` has no Go `failed to get page info` fatal), then the AX
+     commands (`cmdAXTree`/`cmdAXFind`/`cmdAXNode`) and `cmdAssert`.
   2. Re-base the ledger when the pin moves off `v0.4.0`.
   3. Split this file once it passes one screen (Phase 2).
   4. Optional: add a Chrome-through-the-proxy example. The `_proxy` contract is
@@ -30,11 +28,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 50 examples (20
-    process-contract, 3 `_proxy`, 4 `start` session, 23 live-browser). Suite
-    total: 114 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 56 examples (21
+    process-contract, 3 `_proxy`, 4 `start` session, 28 live-browser). Suite
+    total: 120 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 32 are `ported`, 44
+    tests. All 78 function IDs have Crystal references: 35 are `ported`, 41
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -74,10 +72,10 @@ is one feature: one branch, one commit, one ledger update.
     > 20. Chrome launch retries three times because it intermittently loses
     the debug-URL race under load. If a run looks slow, check the load and
     `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: give attr Go's element and attribute errors` (see
+- **Last port commit:** `port: give the element checks Go's error contract` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (114 examples), `make build` (CLI), and `make parity-verify` passed.
+  (120 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -434,6 +432,22 @@ Each item is scoped to a single commit. See the entries below for verification d
         lookup is fast), missing attribute (`attribute "data-nope" not found`),
         and the usage fatal.
       - Ledger: `cmdAttr` → `ported`.
+- [x] **Give the element checks Go's error contract** — `cmd_exists` and
+      `cmd_count` let a broken selector escape as an unhandled CDP error (exit
+      1) instead of Go's `query failed: %v` fatal (exit 2), and `cmd_visible`
+      returned the raw exception instead of Go's `false` + exit 1.
+      - Red: `exists <<<` / `count <<<` exited 1; `visible <<<` exited 1 with
+        `Unhandled exception: {-32000 DOM Error while querying }` on stderr.
+      - Green: both queries wrap the lookup and fatal with Go's prefix;
+        `visible` now uses `page.element` like Go's `Element` (so a missing
+        selector waits for the page timeout, as upstream does) and turns every
+        lookup or visibility error into `false` + exit 1.
+      - Coverage: existence (`true`/0, `false`/1), counts (3 matches, 0 for a
+        missing selector), visibility (visible, `#hidden`, and a missing
+        selector under `ROD_TIMEOUT=0.5`), both `query failed` fatals, `visible`
+        with a broken selector, and the three usage fatals. The fixture gained a
+        `#hidden` element (`display:none`).
+      - Ledger: `cmdExists`, `cmdCount`, and `cmdVisible` → `ported`.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

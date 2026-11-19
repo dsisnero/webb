@@ -1049,8 +1049,15 @@ module Webb
         Webb.fatal("usage: webb exists <selector>")
       end
       _, _, page = Webb.with_page
-      # Use elements() to avoid waiting for non-existent elements
-      els = page.elements(args[0])
+      # Use elements() to avoid waiting for non-existent elements; go-rod's Has
+      # installs NotFoundSleeper for the same reason. A selector that matches
+      # nothing is not an error, but a broken one is: Go fatals with
+      # `query failed: %v` (main.go:787-790).
+      els = begin
+        page.elements(args[0])
+      rescue ex
+        Webb.fatal("query failed: #{ex.message}")
+      end
       if !els.empty?
         puts "true"
         exit(0)
@@ -1065,7 +1072,13 @@ module Webb
         Webb.fatal("usage: webb count <selector>")
       end
       _, _, page = Webb.with_page
-      els = page.elements(args[0])
+      # Same error contract as exists: Go fatals with `query failed: %v`
+      # (main.go:799-802).
+      els = begin
+        page.elements(args[0])
+      rescue ex
+        Webb.fatal("query failed: #{ex.message}")
+      end
       puts els.size
     end
 
@@ -1074,15 +1087,15 @@ module Webb
         Webb.fatal("usage: webb visible <selector>")
       end
       _, _, page = Webb.with_page
-      # Use elements() to avoid waiting for non-existent elements
-      els = page.elements(args[0])
-      if !els.empty? && els[0].visible?
-        puts "true"
-        exit(0)
-      else
-        puts "false"
-        exit(1)
+      # Go's cmdVisible turns every lookup or visibility error into `false` plus
+      # exit 1 instead of failing (main.go:808-830), so nothing here is fatal.
+      visible = begin
+        page.element(args[0]).visible?
+      rescue
+        false
       end
+      puts visible ? "true" : "false"
+      exit(visible ? 0 : 1)
     end
 
     private def self.cmd_assert(args : Array(String))
