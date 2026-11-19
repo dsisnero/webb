@@ -8,13 +8,12 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** working through the remaining `partial` rows now that page
-  and connect semantics match Go; `cmdSelect`/`cmdSubmit` head the list.
+- **Current focus:** working through the remaining `partial` rows; the JS
+  quoting cluster is done and `cmdScreenshot`/`cmdSleep` are next.
 - **Next up:**
   1. Remaining partial function rows in feature-sized changes:
-     `cmdSelect` and `cmdSubmit` (both interpolate selector/value into a JS
-     string instead of passing arguments), then `cmdScreenshot`, `cmdSleep`,
-     `cmdStart`, `cmdStop`.
+     `cmdScreenshot` (invalid dimensions raise a Crystal conversion error),
+     `cmdSleep` (invalid seconds do the same), then `cmdStart`, `cmdStop`.
   2. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
      (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
   3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
@@ -22,11 +21,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 19 examples; 11 run
-    the CLI as a process, 8 drive it against a live headless Chrome through a
-    temp `state.json`. Suite total: 83 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 24 examples; 11 run
+    the CLI as a process, 13 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 88 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 21 are `ported`, 55
+    tests. All 78 function IDs have Crystal references: 23 are `ported`, 53
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -48,10 +47,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: match Go's connect validation and error paths`
-  (see `git log -1 --oneline`).
+- **Last port commit:** `port: quote JS literals in select and submit` (see
+  `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (83 examples), `make build` (CLI), and `make parity-verify` passed.
+  (88 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -199,6 +198,24 @@ Each item is scoped to a single commit. See the entries below for verification d
         ported to `String` primitives rather than a new convention.
       - Coverage: four process-level examples plus a live `connect` that stores
         the debug URL and then prints the fixture title. Ledger: `cmdConnect` →
+        `ported`.
+- [x] **Quote JS literals in `select` and `submit`** — both interpolated raw
+      arguments into a JS string, so a selector like `form[id="search-form"]`
+      or a value containing a quote produced invalid JS. The ledger note was
+      also wrong: Go does not pass arguments, it interpolates `%q`-quoted
+      literals.
+      - Red: four live examples failed — quoted value, quoted selector, missing
+        selector (`select`), and missing form (`submit`, which also exited 1
+        instead of 2).
+      - Green: both commands interpolate `to_json` (the Crystal equivalent of
+        Go's `%q`), `select` fatals with `select failed: ...` on eval errors,
+        `submit` fatals with `form not found: ...` on a missing element, and
+        `Selected:` now prints the returned string rather than its JSON form
+        (`JSON::Any#to_s` keeps the quotes; it uses `as_s`).
+      - No new convention: an eval failure after the element check stays an
+        unhandled exception, exactly how this port treats every Go `Must*` call.
+      - Fixture gained a `<select id="topic">` with a quoted option value and a
+        `<form id="search-form">`. Ledger: `cmdSelect` and `cmdSubmit` →
         `ported`.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.

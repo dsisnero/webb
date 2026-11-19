@@ -663,17 +663,23 @@ module Webb
         Webb.fatal("usage: webb select <selector> <value>")
       end
       _, _, page = Webb.with_page
+      # Go builds this with %q quoting; to_json is the Crystal equivalent of a
+      # safely quoted JS string literal.
       js = <<-JS
         () => {
-          const el = document.querySelector("#{args[0]}");
+          const el = document.querySelector(#{args[0].to_json});
           if (!el) throw new Error('element not found');
-          el.value = "#{args[1]}";
+          el.value = #{args[1].to_json};
           el.dispatchEvent(new Event('change', {bubbles: true}));
           return el.value;
         }
       JS
-      result = page.eval(js)
-      puts "Selected: #{result.value.try(&.to_s) || args[1]}"
+      begin
+        result = page.eval(js)
+      rescue ex
+        Webb.fatal("select failed: #{ex.message}")
+      end
+      puts "Selected: #{result.value.try(&.as_s) || ""}"
     end
 
     private def self.cmd_submit(args : Array(String))
@@ -681,8 +687,12 @@ module Webb
         Webb.fatal("usage: webb submit <selector>")
       end
       _, _, page = Webb.with_page
-      page.element(args[0]) # verify element exists
-      page.eval("() => document.querySelector(\"#{args[0]}\").submit()")
+      begin
+        page.element(args[0]) # verify element exists
+      rescue ex
+        Webb.fatal("form not found: #{ex.message}")
+      end
+      page.eval("() => document.querySelector(#{args[0].to_json}).submit()")
       puts "Submitted"
     end
 

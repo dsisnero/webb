@@ -130,7 +130,15 @@ private class CLISpecHarness
         "<!DOCTYPE html>",
         "<html lang=\"en\">",
         "<head><title>#{FIXTURE_TITLE}</title></head>",
-        "<body><h1>Fixture</h1></body>",
+        "<body>",
+        "<h1>Fixture</h1>",
+        "<select id=\"topic\" aria-label=\"Topic\">",
+        "<option value=\"general\">General</option>",
+        "<option value=\"support\">Support</option>",
+        "<option value='say \"hi\"'>Quoted</option>",
+        "</select>",
+        "<form id=\"search-form\" action=\"/submitted\"><input name=\"q\" value=\"hi\"></form>",
+        "</body>",
         "</html>",
       ].join('\n'))
     end
@@ -327,6 +335,48 @@ describe "CLI against a live browser" do
     result.stdout.should contain("Debug URL: ws://")
 
     run_cli_live("title").stdout.should eq("CLI Fixture\n")
+  end
+
+  it "selects an option and prints its raw value" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("select", "#topic", "support")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Selected: support\n")
+  end
+
+  it "selects an option whose value contains double quotes" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("select", "#topic", %(say "hi"))
+    result.status.should eq(0)
+    result.stdout.should eq(%(Selected: say "hi"\n))
+  end
+
+  it "fails with select failed when the selector matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("select", "#missing", "support")
+    result.status.should eq(2)
+    result.stderr.should start_with("error: select failed: ")
+  end
+
+  it "submits a form selected with quoted attribute syntax" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("submit", %(form[id="search-form"]))
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Submitted\n")
+  end
+
+  it "fails with form not found when the submit selector matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("submit", "#missing")
+    result.status.should eq(2)
+    result.stderr.should start_with("error: form not found: ")
   end
 
   it "reports no pages open when the browser has none" do
