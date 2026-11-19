@@ -272,7 +272,7 @@ module Webb
       fatal("usage: webb assert <js-expression> [expected] [--message msg]")
     end
 
-    _, browser, page = with_page
+    _, _, page = with_page
     begin
       result = page.eval("() => { return (#{expr}); }")
       actual = format_js_result(result)
@@ -298,9 +298,10 @@ module Webb
       end
     rescue ex
       fatal("JS error: #{ex.message}")
-    ensure
-      browser.close rescue nil
     end
+    # Go's withPage documents "Caller should NOT close the browser (we just
+    # disconnect)" and cmdAssert never closes, so this stayed a pure disconnect
+    # (main.go:1434-1500). Do not add a browser.close here.
   end
 
   # decode_data_url decodes a data: URL (base64 or URL-encoded).

@@ -573,6 +573,17 @@ describe "CLI process contract" do
     end
   end
 
+  it "requires an expression for assert" do
+    result = run_cli("assert")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb assert <js-expression> [expected] [--message msg]\n")
+
+    empty = run_cli("assert", "")
+    empty.status.should eq(2)
+    empty.stderr.should eq("error: usage: webb assert <js-expression> [expected] [--message msg]\n")
+  end
+
   # Documented divergence: upstream's help.txt advertises `start --show`, but
   # cmdStart's validation loop accepts only --insecure/-k, so `rodney start
   # --show` exits 2 with "unknown flag: --show". Crystal keeps the advertised
@@ -1204,6 +1215,59 @@ describe "CLI against a live browser" do
     result.stderr.should be_empty
     result.status.should eq(1)
     result.stdout.should eq("false\n")
+  end
+
+  # Go's withPage documents "Caller should NOT close the browser" and cmdAssert
+  # has no close at all (main.go:1434-1450), so a session must survive an assert.
+  it "leaves the browser running after an assert" do
+    harness = CLISpecSupport.harness
+    debug_url, pid = harness.owned_browser
+    home = harness.state_home("assert_home", debug_url, pid)
+
+    harness.run(["open", harness.fixture_url], home).status.should eq(0)
+    result = harness.run(["assert", "1 + 1", "2"], home)
+    result.stderr.should be_empty
+    result.status.should eq(0)
+    result.stdout.should eq("pass\n")
+
+    follow = harness.run(["title"], home)
+    follow.status.should eq(0)
+    follow.stderr.should be_empty
+    follow.stdout.should eq("CLI Fixture\n")
+  end
+
+  # formatAssertFail quoting and exit codes (main.go:1416-1432, 1434-1500).
+  it "asserts JS values with Go's output and exit status" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    truthy = run_cli_live("assert", "1 + 1")
+    truthy.stdout.should eq("pass\n")
+    truthy.status.should eq(0)
+
+    equal = run_cli_live("assert", "1 + 1", "2")
+    equal.stdout.should eq("pass\n")
+    equal.status.should eq(0)
+
+    unequal = run_cli_live("assert", "1 + 1", "3")
+    unequal.stderr.should be_empty
+    unequal.stdout.should eq("fail: got \"2\", expected \"3\"\n")
+    unequal.status.should eq(1)
+
+    messaged = run_cli_live("assert", "1 + 1", "3", "--message", "math")
+    messaged.stdout.should eq("fail: math (got \"2\", expected \"3\")\n")
+    messaged.status.should eq(1)
+
+    zero = run_cli_live("assert", "0")
+    zero.stdout.should eq("fail: got 0\n")
+    zero.status.should eq(1)
+
+    falsey = run_cli_live("assert", "false", "-m", "never true")
+    falsey.stdout.should eq("fail: never true (got false)\n")
+    falsey.status.should eq(1)
+
+    null_value = run_cli_live("assert", "null")
+    null_value.stdout.should eq("fail: got null\n")
+    null_value.status.should eq(1)
   end
 
   # Go prints the session, then the page count and current page (main.go:516-526).
