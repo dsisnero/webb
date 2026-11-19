@@ -396,27 +396,49 @@ module Webb
   end
 
   def self.query_ax_nodes(page : Rod::Page, name : String, role : String) : Array(Cdp::Accessibility::Node)
-    doc = Cdp::DOM::GetDocument.new(0_i64, nil).call(page)
+    doc = begin
+      Cdp::DOM::GetDocument.new(0_i64, nil).call(page)
+    rescue ex
+      raise "failed to get document: #{ex.message}"
+    end
+
     accessible_name = name.empty? ? nil : name
     ax_role = role.empty? ? nil : role
-    result = Cdp::Accessibility::QueryAXTree.new(nil, doc.root.backend_node_id, nil, accessible_name, ax_role).call(page)
+    result = begin
+      Cdp::Accessibility::QueryAXTree.new(nil, doc.root.backend_node_id, nil, accessible_name, ax_role).call(page)
+    rescue ex
+      raise "accessibility query failed: #{ex.message}"
+    end
     result.nodes
-  rescue ex
-    raise "accessibility query failed: #{ex.message}"
   end
 
+  # get_ax_node mirrors Go's getAXNode (main.go:1622-1652): every step is
+  # wrapped with its own prefix so the CLI fatal prints the same cause.
   def self.get_ax_node(page : Rod::Page, selector : String) : Cdp::Accessibility::Node
-    el = page.element(selector)
+    el = begin
+      page.element(selector)
+    rescue ex
+      raise "element not found: #{ex.message}"
+    end
+
     object_id = el.object.object_id
-    raise "element not found: missing object id" unless object_id
+    raise "failed to describe DOM node: missing object id" unless object_id
 
-    node = Cdp::DOM::DescribeNode.new(nil, nil, object_id, nil, nil).call(page)
-    result = Cdp::Accessibility::GetPartialAXTree.new(nil, node.node.backend_node_id, nil, false).call(page)
+    node = begin
+      Cdp::DOM::DescribeNode.new(nil, nil, object_id, nil, nil).call(page)
+    rescue ex
+      raise "failed to describe DOM node: #{ex.message}"
+    end
 
-    result.nodes.find { |ax_node| !ax_node.ignored? } || result.nodes.first? || raise "no accessibility node found for selector #{selector.inspect}"
-  rescue ex
-    raise "element not found: #{ex.message}" if ex.message.to_s.includes?("cannot find element")
-    raise ex
+    result = begin
+      Cdp::Accessibility::GetPartialAXTree.new(nil, node.node.backend_node_id, nil, false).call(page)
+    rescue ex
+      raise "failed to get accessibility info: #{ex.message}"
+    end
+
+    result.nodes.find { |ax_node| !ax_node.ignored? } ||
+      result.nodes.first? ||
+      raise "no accessibility node found for selector #{selector.inspect}"
   end
 
   def self.format_ax_node_list(nodes : Array(Cdp::Accessibility::Node)) : String

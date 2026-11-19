@@ -17,10 +17,11 @@ is one feature: one branch, one commit, one ledger update.
   1. Slice the remaining `partial` rows into features. List them with
      `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
      only need output/error coverage, which the CLI harness makes cheap. Start
-     with rows whose note names a specific divergence — next are the AX commands
-     (`cmdAXTree`/`cmdAXFind`/`cmdAXNode`), then `cmdTitle` (`page.info` has no
-     Go `failed to get page info` fatal; it needs a seam before it can be
-     tested) and the remaining output-only rows.
+     with rows whose note names a specific divergence — next is `cmdTitle`
+     (`page.info` has no Go `failed to get page info` fatal; it needs a seam
+     before it can be tested), then the remaining output-only rows
+     (`cmdText`, `cmdHTML`, `cmdClick`, `cmdInput`, the tab commands, `cmdPDF`,
+     `cmdDownload`, `cmdFile`).
   2. Re-base the ledger when the pin moves off `v0.4.0`.
   3. Split this file once it passes one screen (Phase 2).
   4. Optional: add a Chrome-through-the-proxy example. The `_proxy` contract is
@@ -29,11 +30,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 59 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 30 live-browser). Suite
-    total: 123 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 66 examples. `spec/cli_spec.cr`: 62 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 33 live-browser). Suite
+    total: 128 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 36 are `ported`, 40
+    tests. All 78 function IDs have Crystal references: 40 are `ported`, 36
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -73,10 +74,10 @@ is one feature: one branch, one commit, one ledger update.
     > 20. Chrome launch retries three times because it intermittently loses
     the debug-URL race under load. If a run looks slow, check the load and
     `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: audit and cover assert` (see
+- **Last port commit:** `port: give the AX commands Go's flags and errors` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (123 examples), `make build` (CLI), and `make parity-verify` passed.
+  (128 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -467,6 +468,32 @@ Each item is scoped to a single commit. See the entries below for verification d
         truthy failures with their exit 1), and the usage fatal for no
         expression and for an empty one.
       - Ledger: `cmdAssert` → `ported`.
+- [x] **Give the AX commands Go's flags and errors** — the three commands'
+      usage lines named the concatenated commands (`webb axtree`, `axfind`,
+      `axnode`) where Go says `ax-tree`/`ax-find`/`ax-node`, `--depth abc`
+      answered `invalid depth value` instead of Go's `invalid depth: <cause>`,
+      `ax-node` let a lookup failure escape as an unhandled exception (exit 1)
+      instead of Go's `fatal("%v", err)` (exit 2), and the tree/lookup failures
+      had no Go fatal at all.
+      - Red: `ax-tree --depth abc` → `invalid depth value`; `ax-find --bogus` and
+        `ax-node` (no selector) printed `axfind`/`axnode` in the usage line.
+      - Green: usage lines now use the hyphenated names, the depth parse wraps
+        its own error, `ax-tree` fatals with `failed to get accessibility tree:
+        <cause>`, `ax-find` with `query failed: <cause>`, and `ax-node` fatals
+        with `getAXNode`'s message. `Webb.get_ax_node` now carries Go's per-step
+        prefixes (`element not found`, `failed to describe DOM node`, `failed to
+        get accessibility info`, `no accessibility node found for selector %q`)
+        instead of guessing from the message text, and `query_ax_nodes` splits
+        `failed to get document` from `accessibility query failed`.
+      - Kept divergence: `webb axtree`/`axfind`/`axnode` still work as aliases
+        (Go rejects them as unknown commands). They are not advertised; only
+        the usage text changed.
+      - Coverage: `cli_spec.cr` exercises the tree (plain and `--json`), find by
+        name/role/JSON/no-match/unknown flag, and ax-node detail/JSON/usage/
+        missing element (under `ROD_TIMEOUT=0.5`); `webb_spec.cr` gains a table
+        for `axValueStr` (nil, string, number, boolean, object).
+      - Ledger: `cmdAXTree`, `cmdAXFind`, `cmdAXNode`, and `axValueStr` →
+        `ported`.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 

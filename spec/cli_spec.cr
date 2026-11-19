@@ -1270,6 +1270,94 @@ describe "CLI against a live browser" do
     null_value.status.should eq(1)
   end
 
+  # Go's ax-tree usage and error text (main.go:1500-1540).
+  it "dumps the accessibility tree and rejects bad flags" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    tree = run_cli_live("ax-tree")
+    tree.stderr.should be_empty
+    tree.status.should eq(0)
+    tree.stdout.should contain("[RootWebArea]")
+    tree.stdout.should contain(%([combobox] "Topic"))
+
+    json = run_cli_live("ax-tree", "--json")
+    json.status.should eq(0)
+    json.stderr.should be_empty
+    JSON.parse(json.stdout).as_a.should_not be_empty
+
+    bad_depth = run_cli_live("ax-tree", "--depth", "abc")
+    bad_depth.status.should eq(2)
+    bad_depth.stdout.should be_empty
+    bad_depth.stderr.should start_with("error: invalid depth: ")
+
+    flag = run_cli_live("ax-tree", "--bogus")
+    flag.status.should eq(2)
+    flag.stdout.should be_empty
+    flag.stderr.should eq("error: unknown flag: --bogus\nusage: webb ax-tree [--depth N] [--json]\n")
+  end
+
+  # Go's ax-find: `No matching nodes` on stderr with exit 1 (main.go:1541-1580).
+  it "finds accessible nodes and reports an empty result on stderr" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    found = run_cli_live("ax-find", "--name", "Topic")
+    found.stderr.should be_empty
+    found.status.should eq(0)
+    found.stdout.should start_with(%([combobox] "Topic"))
+    found.stdout.should contain("backendNodeId=")
+
+    by_role = run_cli_live("ax-find", "--role", "combobox")
+    by_role.status.should eq(0)
+    by_role.stdout.should contain("Topic")
+
+    json = run_cli_live("ax-find", "--name", "Topic", "--json")
+    json.status.should eq(0)
+    JSON.parse(json.stdout).as_a.should_not be_empty
+
+    none = run_cli_live("ax-find", "--name", "no-such-accessible-name")
+    none.status.should eq(1)
+    none.stdout.should be_empty
+    none.stderr.should eq("No matching nodes\n")
+
+    flag = run_cli_live("ax-find", "--bogus")
+    flag.status.should eq(2)
+    flag.stderr.should eq(
+      "error: unknown flag: --bogus\nusage: webb ax-find [--name N] [--role R] [--json]\n"
+    )
+  end
+
+  # Go's ax-node: usage fatal, `element not found: ...` from getAXNode
+  # (main.go:1581-1620).
+  it "prints accessibility detail for a selector and fails like Go" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    detail = run_cli_live("ax-node", "#topic")
+    detail.stderr.should be_empty
+    detail.status.should eq(0)
+    detail.stdout.should start_with("role: combobox\n")
+    detail.stdout.should contain("name: Topic")
+
+    json = run_cli_live("ax-node", "#topic", "--json")
+    json.status.should eq(0)
+    JSON.parse(json.stdout).as_h.keys.should contain("nodeId")
+
+    usage = run_cli_live("ax-node")
+    usage.status.should eq(2)
+    usage.stdout.should be_empty
+    usage.stderr.should eq("error: usage: webb ax-node <selector> [--json]\n")
+
+    absent = harness.run(
+      ["ax-node", "#nothing-here"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    absent.status.should eq(2)
+    absent.stdout.should be_empty
+    absent.stderr.should start_with("error: element not found: ")
+  end
+
   # Go prints the session, then the page count and current page (main.go:516-526).
   it "prints the session, page count, and current page" do
     harness = CLISpecSupport.harness

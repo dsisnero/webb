@@ -358,6 +358,21 @@ describe Webb do
     end
   end
 
+  describe ".ax_value_str" do
+    # Go's axValueStr (main.go:1680-1695): nil is empty, JSON strings are
+    # unquoted, everything else passes through as raw JSON.
+    it "returns an empty string for a missing value" do
+      Webb.ax_value_str(nil).should eq("")
+    end
+
+    it "unquotes strings and passes other JSON through" do
+      Webb.ax_value_str(Cdp::Accessibility::Value.from_json(%({"type":"computedString","value":"Topic"}))).should eq("Topic")
+      Webb.ax_value_str(Cdp::Accessibility::Value.from_json(%({"type":"number","value":5}))).should eq("5")
+      Webb.ax_value_str(Cdp::Accessibility::Value.from_json(%({"type":"boolean","value":true}))).should eq("true")
+      Webb.ax_value_str(Cdp::Accessibility::Value.from_json(%({"type":"idref","value":{"a":1}}))).should eq(%({"a":1}))
+    end
+  end
+
   describe ".format_ax_tree" do
     it "matches TestAXTree_ReturnsNodes" do
       page = navigate_to("/")

@@ -1114,25 +1114,32 @@ module Webb
           if i >= args.size
             Webb.fatal("missing value for --depth")
           end
-          depth = args[i].to_i64
+          depth = begin
+            args[i].to_i64
+          rescue ex
+            # Go: `fatal("invalid depth: %v", err)` around strconv.Atoi.
+            Webb.fatal("invalid depth: #{ex.message}")
+          end
         when "--json"
           json_output = true
         else
-          Webb.fatal("unknown flag: #{args[i]}\nusage: webb axtree [--depth N] [--json]")
+          Webb.fatal("unknown flag: #{args[i]}\nusage: webb ax-tree [--depth N] [--json]")
         end
         i += 1
       end
 
       _, _, page = Webb.with_page
-      result = Cdp::Accessibility::GetFullAXTree.new(depth, nil).call(page)
+      result = begin
+        Cdp::Accessibility::GetFullAXTree.new(depth, nil).call(page)
+      rescue ex
+        Webb.fatal("failed to get accessibility tree: #{ex.message}")
+      end
 
       if json_output
         puts Webb.format_ax_tree_json(result.nodes)
       else
         print Webb.format_ax_tree(result.nodes)
       end
-    rescue ArgumentError
-      Webb.fatal("invalid depth value")
     end
 
     private def self.cmd_ax_find(args : Array(String))
@@ -1158,13 +1165,17 @@ module Webb
         when "--json"
           json_output = true
         else
-          Webb.fatal("unknown flag: #{args[i]}\nusage: webb axfind [--name N] [--role R] [--json]")
+          Webb.fatal("unknown flag: #{args[i]}\nusage: webb ax-find [--name N] [--role R] [--json]")
         end
         i += 1
       end
 
       _, _, page = Webb.with_page
-      nodes = Webb.query_ax_nodes(page, name, role)
+      nodes = begin
+        Webb.query_ax_nodes(page, name, role)
+      rescue ex
+        Webb.fatal("query failed: #{ex.message}")
+      end
 
       if nodes.empty?
         STDERR.puts "No matching nodes"
@@ -1192,12 +1203,17 @@ module Webb
       end
 
       if positional.size < 1
-        Webb.fatal("usage: webb axnode <selector> [--json]")
+        Webb.fatal("usage: webb ax-node <selector> [--json]")
       end
       selector = positional[0]
 
       _, _, page = Webb.with_page
-      node = Webb.get_ax_node(page, selector)
+      node = begin
+        Webb.get_ax_node(page, selector)
+      rescue ex
+        # Go: `fatal("%v", err)` - getAXNode already prefixes the cause.
+        Webb.fatal(ex.message.to_s)
+      end
 
       if json_output
         puts Webb.format_ax_node_detail_json(node)
