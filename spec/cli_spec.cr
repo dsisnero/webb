@@ -67,6 +67,11 @@ private class CLISpecHarness
     @browser_home
   end
 
+  # workdir is the CLI's working directory; relative output files land here.
+  def workdir : String
+    @workdir
+  end
+
   # debug_port is the HTTP debugging port of the live browser.
   def debug_port : Int32
     start_browser
@@ -297,6 +302,35 @@ describe "CLI process contract" do
     result.status.should eq(2)
     result.stderr.should start_with("error: could not reach browser at 127.0.0.1:1: ")
   end
+
+  it "rejects a non-numeric sleep argument" do
+    result = run_cli("sleep", "abc")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: invalid seconds: ")
+  end
+
+  it "treats a negative sleep as no delay" do
+    result = run_cli("sleep", "-1")
+    result.status.should eq(0)
+    result.stdout.should be_empty
+    result.stderr.should be_empty
+  end
+
+  it "names the actual flag when a screenshot value is missing" do
+    run_cli("screenshot", "-w").stderr.should eq("error: missing value for -w\n")
+    run_cli("screenshot", "-h").stderr.should eq("error: missing value for -h\n")
+  end
+
+  it "rejects non-numeric screenshot dimensions" do
+    width = run_cli("screenshot", "-w", "abc", "out.png")
+    width.status.should eq(2)
+    width.stderr.should start_with("error: invalid width: ")
+
+    height = run_cli("screenshot", "-h", "xyz", "out.png")
+    height.status.should eq(2)
+    height.stderr.should start_with("error: invalid height: ")
+  end
 end
 
 describe "CLI against a live browser" do
@@ -377,6 +411,23 @@ describe "CLI against a live browser" do
     result = run_cli_live("submit", "#missing")
     result.status.should eq(2)
     result.stderr.should start_with("error: form not found: ")
+  end
+
+  it "saves a screenshot and prints its filename" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "cli-spec-shot.png")
+    File.delete?(path)
+    begin
+      result = run_cli_live("screenshot", "cli-spec-shot.png")
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      result.stdout.should eq("cli-spec-shot.png\n")
+      File.exists?(path).should be_true
+      File.size(path).should be > 0
+    ensure
+      File.delete?(path)
+    end
   end
 
   it "reports no pages open when the browser has none" do

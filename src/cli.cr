@@ -822,7 +822,11 @@ module Webb
         Webb.fatal("usage: webb sleep <seconds>")
       end
 
-      seconds = args[0].to_f
+      begin
+        seconds = args[0].to_f
+      rescue ex
+        Webb.fatal("invalid seconds: #{ex.message}")
+      end
       sleep seconds.seconds
     end
 
@@ -836,17 +840,19 @@ module Webb
       while i < args.size
         case args[i]
         when "-w", "--width"
+          flag = args[i]
           i += 1
           if i >= args.size
-            Webb.fatal("missing value for --width")
+            Webb.fatal("missing value for #{flag}")
           end
-          width = args[i].to_i
+          width = parse_dimension("width", args[i])
         when "-h", "--height"
+          flag = args[i]
           i += 1
           if i >= args.size
-            Webb.fatal("missing value for --height")
+            Webb.fatal("missing value for #{flag}")
           end
-          height = args[i].to_i
+          height = parse_dimension("height", args[i])
           full_page = false
         else
           positional << args[i]
@@ -859,26 +865,45 @@ module Webb
       _, _, page = Webb.with_page
 
       viewport_height = height == 0 ? 720 : height
-      page.set_viewport(Cdp::Emulation::SetDeviceMetricsOverride.new(
-        width: width.to_i64,
-        height: viewport_height.to_i64,
-        device_scale_factor: 1.0,
-        mobile: false,
-        scale: nil,
-        screen_width: nil,
-        screen_height: nil,
-        position_x: nil,
-        position_y: nil,
-        dont_set_visible_size: nil,
-        screen_orientation: nil,
-        viewport: nil,
-        display_feature: nil,
-        device_posture: nil
-      ))
+      begin
+        page.set_viewport(Cdp::Emulation::SetDeviceMetricsOverride.new(
+          width: width.to_i64,
+          height: viewport_height.to_i64,
+          device_scale_factor: 1.0,
+          mobile: false,
+          scale: nil,
+          screen_width: nil,
+          screen_height: nil,
+          position_x: nil,
+          position_y: nil,
+          dont_set_visible_size: nil,
+          screen_orientation: nil,
+          viewport: nil,
+          display_feature: nil,
+          device_posture: nil
+        ))
+      rescue ex
+        Webb.fatal("failed to set viewport: #{ex.message}")
+      end
 
-      data = page.screenshot(full_page)
-      File.write(file, data)
+      begin
+        data = page.screenshot(full_page)
+      rescue ex
+        Webb.fatal("screenshot failed: #{ex.message}")
+      end
+      begin
+        File.write(file, data)
+      rescue ex
+        Webb.fatal("failed to write screenshot: #{ex.message}")
+      end
       puts file
+    end
+
+    # Parses a screenshot dimension, fataling with Go's `<label>: <error>` text.
+    private def self.parse_dimension(label : String, value : String) : Int64
+      value.to_i64
+    rescue ex
+      Webb.fatal("invalid #{label}: #{ex.message}")
     end
 
     private def self.cmd_screenshot_el(args : Array(String))

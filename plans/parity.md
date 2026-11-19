@@ -8,12 +8,12 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** working through the remaining `partial` rows; the JS
-  quoting cluster is done and `cmdScreenshot`/`cmdSleep` are next.
+- **Current focus:** finishing the lifecycle rows; `cmdStart` and `cmdStop` are
+  the last function rows with concrete divergence notes.
 - **Next up:**
-  1. Remaining partial function rows in feature-sized changes:
-     `cmdScreenshot` (invalid dimensions raise a Crystal conversion error),
-     `cmdSleep` (invalid seconds do the same), then `cmdStart`, `cmdStop`.
+  1. `cmdStart` (Go pins single-process and runs a detached proxy helper;
+     Crystal launches through rod) and `cmdStop` (Go always prints
+     `Chrome stopped`; Crystal reports which action it took).
   2. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
      (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
   3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
@@ -21,11 +21,11 @@ is one feature: one branch, one commit, one ledger update.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 24 examples; 11 run
-    the CLI as a process, 13 drive it against a live headless Chrome through a
-    temp `state.json`. Suite total: 88 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 29 examples; 15 run
+    the CLI as a process, 14 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 93 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 23 are `ported`, 53
+    tests. All 78 function IDs have Crystal references: 25 are `ported`, 51
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
     IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -47,10 +47,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: quote JS literals in select and submit` (see
+- **Last port commit:** `port: match Go's numeric argument diagnostics` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (88 examples), `make build` (CLI), and `make parity-verify` passed.
+  (93 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -217,6 +217,23 @@ Each item is scoped to a single commit. See the entries below for verification d
       - Fixture gained a `<select id="topic">` with a quoted option value and a
         `<form id="search-form">`. Ledger: `cmdSelect` and `cmdSubmit` →
         `ported`.
+- [x] **Match Go's numeric argument diagnostics (`screenshot`, `sleep`)** —
+      both rows carried concrete notes about Crystal conversion errors escaping
+      as raw exceptions.
+      - Red: `sleep abc` exited 1 instead of `error: invalid seconds: ...`;
+        `screenshot -w` printed a hardcoded `--width` where Go echoes the flag
+        actually used; `screenshot -w abc` / `-h xyz` exited 1 instead of
+        `error: invalid width/height: ...`.
+      - Green: `sleep` fatals with `invalid seconds: ...`, and `screenshot`
+        echoes the real flag in `missing value for <flag>` and fatals with
+        `invalid width/height: ...`. Dimensions parse as 64-bit ints, matching
+        Go's `int` on this platform.
+      - Same row, same class: `screenshot` also gained Go's `failed to set
+        viewport`, `screenshot failed`, and `failed to write screenshot`
+        diagnostics instead of unhandled exceptions.
+      - Verified Crystal's `String#to_i`/`to_f` are already strict, so the only
+        gap was diagnostics and exit codes; a negative sleep exits 0 in both.
+      - Ledger: `cmdScreenshot` and `cmdSleep` → `ported`.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
