@@ -216,30 +216,18 @@ module Webb
         when "--insecure", "-k"
           ignore_cert_errors = true
         when "--show"
-          # Handled below
+          # Intentional divergence: upstream's help.txt advertises this flag, but
+          # Go's cmdStart validation loop rejects it with "unknown flag: --show".
+          # Crystal keeps the advertised feature working. See plans/parity.md.
         else
           Webb.fatal("unknown flag: #{arg}\nusage: webb start [--insecure] [--show]")
         end
       end
 
-      # Check if already running
-      if File.exists?(Webb.state_path)
-        begin
-          existing = Webb.load_state
-          # Try connecting to see if it's actually running
-          begin
-            browser = Webb.connect_browser(existing)
-            browser.close
-          rescue
-            # Browser not responding
-          end
-          Webb.remove_state
-          STDERR.puts "Warning: stale state file removed"
-        rescue
-          # Corrupt state file
-          Webb.remove_state
-        end
-      end
+      # Check if already running. Go only cleans up when the saved browser
+      # actually answers a connection: a stale or corrupt state file is left in
+      # place, nothing is printed, and the launch below overwrites it.
+      close_running_session
 
       # Parse flags
       headless = !args.includes?("--show")
@@ -249,9 +237,19 @@ module Webb
 
       launcher = Rod::Util::Launcher::Launcher.new
 
+      # go-rod's launcher and downloader print nothing (their logger is
+      # io.Discard); the Crystal shard logs launch/download progress at INFO on
+      # stdout, which would break the two-line output this command shares with
+      # Go. Point both at a logger with no backend.
+      silent_logger = ::Log.new("rod.launcher", nil, :none)
+      launcher.logger = silent_logger
+      launcher.browser.logger = silent_logger
+
       # Set basic flags (using method chaining like Go API)
       launcher.no_sandbox
         .set("disable-gpu")
+        # Required for screenshots in gVisor/container environments
+        .set("single-process")
         .leakless(false) # Keep Chrome alive after CLI exits
         .user_data_dir(data_dir)
 
@@ -269,29 +267,7 @@ module Webb
       end
 
       # Detect authenticated proxy and launch helper if needed
-      proxy_pid : Int32? = nil
-      proxy_port : Int32? = nil
-      server, user, pass, proxy_needed = Webb.detect_proxy
-      if proxy_needed
-        auth_header = "Basic #{Base64.strict_encode("#{user}:#{pass}")}"
-
-        # Find a free port for the local proxy
-        listener = TCPServer.new("127.0.0.1", 0)
-        proxy_port = listener.local_address.port
-        listener.close
-
-        # Launch ourselves as the proxy helper in the background
-        exe = Process.executable_path || "webb"
-        process = Process.new(exe, ["_proxy", proxy_port.to_s, server, auth_header])
-        proxy_pid = process.pid.to_i32
-
-        # Wait for the proxy to be ready
-        sleep 500.milliseconds
-
-        launcher.set("proxy-server", "http://127.0.0.1:#{proxy_port}")
-        ignore_cert_errors = true # Proxy requires ignoring cert errors
-        puts "Auth proxy started (PID #{proxy_pid}, port #{proxy_port}) -> #{server}"
-      end
+      proxy_pid, proxy_port = start_auth_proxy(launcher)
 
       if ignore_cert_errors
         launcher.set("ignore-certificate-errors")
@@ -312,10 +288,72 @@ module Webb
         proxy_port: proxy_port
       )
 
-      Webb.save_state(state)
+      begin
+        Webb.save_state(state)
+      rescue ex
+        Webb.fatal("failed to save state: #{ex.message}")
+      end
       puts "Chrome started (PID #{pid})"
       puts "Debug URL: #{debug_url}"
-      puts "Data directory: #{data_dir}"
+    end
+
+    # close_running_session mirrors Go's cmdStart pre-launch check: it closes the
+    # saved browser and removes the state only when that browser actually answers.
+    # A stale or corrupt state file is left untouched and nothing is printed.
+    private def self.close_running_session : Nil
+      existing = Webb.load_state?
+      return if existing.nil?
+
+      browser = begin
+        Webb.connect_browser(existing)
+      rescue
+        nil
+      end
+      return if browser.nil?
+
+      browser.close
+      Webb.remove_state
+    end
+
+    # start_auth_proxy launches the detached `_proxy` helper when the environment
+    # carries an authenticated proxy, and returns its {pid, port}. Go also sets
+    # ignore-certificate-errors on this path, because the proxy needs it.
+    private def self.start_auth_proxy(launcher : Rod::Util::Launcher::Launcher) : {Int32?, Int32?}
+      server, user, pass, proxy_needed = Webb.detect_proxy
+      return {nil, nil} unless proxy_needed
+
+      auth_header = "Basic #{Base64.strict_encode("#{user}:#{pass}")}"
+
+      # Find a free port for the local proxy
+      listener = TCPServer.new("127.0.0.1", 0)
+      proxy_port = listener.local_address.port
+      listener.close
+
+      # Launch ourselves as the proxy helper in the background. Go leaves the
+      # child's stdio nil, which gives it /dev/null; redirect here too so the
+      # helper never holds the parent's pipes open and `stop` is what ends it.
+      exe = Process.executable_path || "webb"
+      null = File.open(File::NULL, "w")
+      begin
+        process = Process.new(
+          exe,
+          ["_proxy", proxy_port.to_s, server, auth_header],
+          input: Process::Redirect::Close,
+          output: null,
+          error: null
+        )
+      ensure
+        null.close
+      end
+      proxy_pid = process.pid.to_i32
+
+      # Wait for the proxy to be ready
+      sleep 500.milliseconds
+
+      launcher.set("proxy-server", "http://127.0.0.1:#{proxy_port}")
+      launcher.set("ignore-certificate-errors")
+      puts "Auth proxy started (PID #{proxy_pid}, port #{proxy_port}) -> #{server}"
+      {proxy_pid, proxy_port}
     end
 
     private def self.cmd_connect(args : Array(String))

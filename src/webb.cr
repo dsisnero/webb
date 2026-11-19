@@ -119,6 +119,15 @@ module Webb
     end
   end
 
+  # load_state? mirrors Go's loadState() error return: nil when the state file is
+  # missing or unreadable/corrupt, and the file is left in place for the caller
+  # to decide (cmd_start overwrites it on success, like Go does).
+  def self.load_state? : State?
+    State.from_json(File.read(state_path))
+  rescue
+    nil
+  end
+
   def self.save_state(state : State) : Nil
     dir = state_dir
     Dir.mkdir_p(dir)

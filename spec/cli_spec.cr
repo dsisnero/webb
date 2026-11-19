@@ -39,14 +39,23 @@ private class CLISpecHarness
   end
 
   # Runs the CLI with a scrubbed environment so the spec never reads or writes
-  # the developer's real session. `home` becomes `RODNEY_HOME`.
-  def run(args : Array(String), home : String = @home) : Result
+  # the developer's real session. `home` becomes `RODNEY_HOME`; `env` adds
+  # process-level variables such as `HTTPS_PROXY` for the proxy-helper branch.
+  def run(args : Array(String), home : String = @home, env : Hash(String, String)? = nil) : Result
+    process_env = {"HOME" => home, "RODNEY_HOME" => home}
+    # `start` launches through rod's launcher, which downloads a managed browser
+    # when no bin is given. Pin the same local Chrome the harness uses so the
+    # suite stays offline (see shard_issues/rod.003.md).
+    chrome_bin = ENV["ROD_CHROME_BIN"]? || (CHROME_BIN if File::Info.executable?(CHROME_BIN))
+    process_env["ROD_CHROME_BIN"] = chrome_bin if chrome_bin
+    env.try &.each { |key, value| process_env[key] = value }
+
     stdout = IO::Memory.new
     stderr = IO::Memory.new
     status = Process.run(
       @binary,
       args,
-      env: {"HOME" => home, "RODNEY_HOME" => home},
+      env: process_env,
       clear_env: true,
       chdir: @workdir,
       output: stdout,
@@ -99,6 +108,50 @@ private class CLISpecHarness
     )
     File.write(File.join(dir, "state.json"), state.to_pretty_json)
     dir
+  end
+
+  # session_home is an empty RODNEY_HOME for a `start` scenario: the CLI writes
+  # its own state.json there instead of reusing the shared browser's.
+  def session_home(name : String) : String
+    dir = File.join(File.dirname(@browser_home), name)
+    Dir.mkdir_p(dir)
+    File.delete?(File.join(dir, "state.json"))
+    dir
+  end
+
+  # read_state parses the state.json a `start` wrote into `home`.
+  def read_state(home : String) : Webb::State
+    Webb::State.from_json(File.read(File.join(home, "state.json")))
+  end
+
+  # wait_until_gone waits for a PID to exit, like the `stop` assertions do.
+  def wait_until_gone(pid : Int32, timeout : Time::Span = 10.seconds) : Bool
+    deadline = Time.instant + timeout
+    while Process.exists?(pid) && Time.instant < deadline
+      sleep 100.milliseconds
+    end
+    !Process.exists?(pid)
+  end
+
+  # discard_session tears down anything a failing `start` spec left behind.
+  def discard_session(home : String) : Nil
+    return unless File.exists?(File.join(home, "state.json"))
+
+    run(["stop"], home) rescue nil
+    state = begin
+      read_state(home)
+    rescue
+      nil
+    end
+    return if state.nil?
+
+    begin
+      Process.signal(Signal::TERM, state.chrome_pid) if state.chrome_pid > 0
+      proxy_pid = state.proxy_pid
+      Process.signal(Signal::TERM, proxy_pid) if proxy_pid
+    rescue
+      # Already gone.
+    end
   end
 
   # owned_browser launches a throwaway Chrome that the spec "owns" (its PID is
@@ -255,6 +308,15 @@ private def run_cli_live(*args : String) : CLISpecHarness::Result
   harness.run(args.to_a, harness.browser_home)
 end
 
+# parse_start extracts the PID and debug URL from `start`'s two output lines.
+# The proxy branch prints its line before them, so the match is not anchored.
+private def parse_start(result : CLISpecHarness::Result) : Tuple(Int32, String)
+  match = result.stdout.match(/Chrome started \(PID (\d+)\)\nDebug URL: (ws:\/\/\S+)\n\z/)
+  raise "unexpected start output: #{result.stdout.inspect}" if match.nil?
+
+  {match[1].to_i, match[2]}
+end
+
 describe "CLI process contract" do
   usage_header = "webb - Chrome automation from the command line"
 
@@ -376,6 +438,126 @@ describe "CLI process contract" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should eq("error: no browser session (run 'webb start' first)\n")
+  end
+
+  # Documented divergence: upstream's help.txt advertises `start --show`, but
+  # cmdStart's validation loop accepts only --insecure/-k, so `rodney start
+  # --show` exits 2 with "unknown flag: --show". Crystal keeps the advertised
+  # feature working. A trailing unknown flag proves --show passed validation
+  # without launching a visible browser.
+  it "accepts --show, which upstream advertises but rejects" do
+    result = run_cli("start", "--show", "--bogus")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: unknown flag: --bogus\nusage: webb start [--insecure] [--show]\n")
+    run_cli("help").stdout.should contain("webb start [--show] [--insecure | -k]")
+  end
+end
+
+describe "CLI start" do
+  after_all do
+    CLISpecSupport.close
+  end
+
+  # Go's cmdStart prints exactly two lines after a successful launch.
+  it "starts Chrome, records state, and stops it again" do
+    harness = CLISpecSupport.harness
+    home = harness.session_home("start_home")
+    begin
+      result = harness.run(["start"], home)
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      pid, debug_url = parse_start(result)
+      result.stdout.should eq("Chrome started (PID #{pid})\nDebug URL: #{debug_url}\n")
+
+      state = harness.read_state(home)
+      state.chrome_pid.should eq(pid)
+      state.debug_url.should eq(debug_url)
+      state.active_page.should eq(0)
+      state.data_dir.should eq(File.join(home, "chrome-data"))
+      state.proxy_pid.should be_nil
+      state.proxy_port.should be_nil
+      Process.exists?(pid).should be_true
+
+      stop = harness.run(["stop"], home)
+      stop.status.should eq(0)
+      stop.stderr.should be_empty
+      stop.stdout.should eq("Chrome stopped\n")
+      File.exists?(File.join(home, "state.json")).should be_false
+      harness.wait_until_gone(pid).should be_true
+    ensure
+      harness.discard_session(home)
+    end
+  end
+
+  it "closes the live session before starting another one" do
+    harness = CLISpecSupport.harness
+    home = harness.session_home("restart_home")
+    begin
+      first_pid, _debug_url = parse_start(harness.run(["start"], home))
+
+      second = harness.run(["start"], home)
+      second.status.should eq(0)
+      second.stderr.should be_empty
+      second_pid, _second_url = parse_start(second)
+      second_pid.should_not eq(first_pid)
+
+      # Go's cmdStart closes the saved browser and removes its state before it
+      # launches the replacement.
+      harness.wait_until_gone(first_pid).should be_true
+      Process.exists?(second_pid).should be_true
+      harness.read_state(home).chrome_pid.should eq(second_pid)
+    ensure
+      harness.discard_session(home)
+    end
+  end
+
+  # Go leaves a stale state file alone: it only cleans up when the saved browser
+  # answers. A failing launch proves the file was not removed beforehand.
+  it "leaves a stale state file in place when the launch fails" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("start_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+    before = File.read(File.join(home, "state.json"))
+
+    result = harness.run(["start"], home, env: {"ROD_CHROME_BIN" => "/nonexistent/chrome"})
+    result.status.should_not eq(0)
+    result.stderr.should_not contain("stale")
+    File.read(File.join(home, "state.json")).should eq(before)
+  end
+
+  # The helper is spawned with its own stdio so it does not hold the CLI's pipes
+  # open, which is what lets it outlive the parent; `stop` is what ends it, as
+  # with Go's released, detached helper process.
+  it "starts the auth proxy helper and stops it with the session" do
+    harness = CLISpecSupport.harness
+    home = harness.session_home("proxy_home")
+    begin
+      result = harness.run(
+        ["start"],
+        home,
+        env: {"HTTPS_PROXY" => "http://user:secret@127.0.0.1:1"},
+      )
+      result.status.should eq(0)
+      result.stderr.should be_empty
+
+      match = result.stdout.match(/Auth proxy started \(PID (\d+), port (\d+)\) -> 127\.0\.0\.1:1\n/)
+      raise "no auth proxy line: #{result.stdout.inspect}" if match.nil?
+      proxy_pid = match[1].to_i
+      proxy_port = match[2].to_i
+      parse_start(result)
+
+      state = harness.read_state(home)
+      state.proxy_pid.should eq(proxy_pid)
+      state.proxy_port.should eq(proxy_port)
+      Process.exists?(proxy_pid).should be_true
+
+      stop = harness.run(["stop"], home)
+      stop.status.should eq(0)
+      stop.stdout.should eq("Chrome stopped\n")
+      harness.wait_until_gone(proxy_pid).should be_true
+    ensure
+      harness.discard_session(home)
+    end
   end
 end
 
