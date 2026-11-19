@@ -8,26 +8,25 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** closing `partial` function rows against the live-browser
-  CLI harness; the `cmd_wait_stable` duration is next.
+- **Current focus:** reconciling browser/page semantics (getActivePage, then
+  the remaining partial rows); the CLI timing contract is settled.
 - **Next up:**
-  1. Align `cmd_wait_stable` with Go's `MustWaitStable()` (`WaitStable(1s)`):
-     assert `DOM stable` on stdout and an elapsed time near one second through
-     the browser-backed harness, and fix the `100.milliseconds` call.
-  2. Characterize `getActivePage` on an empty browser and reconcile the
+  1. Characterize `getActivePage` on an empty browser and reconcile the
      behavior of `withPage` and `open` with the pinned Go implementation.
-  3. Work through remaining partial function rows in feature-sized changes,
+  2. Work through remaining partial function rows in feature-sized changes,
      starting with the rows that carry a concrete divergence note
      (`cmdConnect`, `cmdSelect`, `cmdSubmit`, `cmdScreenshot`, `cmdSleep`,
      `cmdStart`, `cmdStop`).
+  3. Fix `rod`'s `Page#wait_stable` to call `wait_request_idle` like go-rod
+     (`shard_issues/rod.002.md`), then re-check `cmdWaitStable`.
   4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 10 examples; 7 run
-    the CLI as a process, 3 drive it against a live headless Chrome through a
-    temp `state.json`. Suite total: 74 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 64 examples. `spec/cli_spec.cr`: 11 examples; 7 run
+    the CLI as a process, 4 drive it against a live headless Chrome through a
+    temp `state.json`. Suite total: 75 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
     tests. All 78 function IDs have Crystal references: 17 are `ported`, 59
     `partial`, and 2 `intentional_divergence`. The pin has no receiver method
@@ -51,10 +50,10 @@ is one feature: one branch, one commit, one ledger update.
   - Retained intentional divergence: HTTPS `CONNECT` proxying returns 501
     because Crystal's `HTTP::Server` cannot hijack the socket
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
-- **Last port commit:** `port: add a browser-backed CLI harness` (see
+- **Last port commit:** `port: align cmd_wait_stable with MustWaitStable` (see
   `git log -1 --oneline`).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
-  (74 examples), `make build` (CLI), and `make parity-verify` passed.
+  (75 examples), `make build` (CLI), and `make parity-verify` passed.
   `make inventory` passed with 82 curated source rows, 83 source manifest
   rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
@@ -158,10 +157,17 @@ Each item is scoped to a single commit. See the entries below for verification d
         `page.info` error paths still differ from Go's fatals.
       - The harness kills its launcher and server in `after_all`; a run leaves
         no Chrome behind (checked with `ps`).
-- [ ] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
-      passes `100.milliseconds` where Go waits `time.Second`; assert `DOM
-      stable` and an elapsed time near one second through the browser-backed
-      harness, then fix the call.
+- [x] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
+      passed `100.milliseconds` where Go waits `time.Second`.
+      - Red: a live spec timed `webb waitstable` at 166 ms against a 900 ms
+        floor derived from `MustWaitStable()` = `WaitStable(time.Second)`.
+      - Green: the call is now `wait_stable(1.second)`; the spec asserts
+        `DOM stable`, exit 0, empty stderr, and an elapsed time of at least
+        900 ms (10% slack for process startup).
+      - The row stays `partial`: `lib/rod`'s `wait_stable` still waits a fixed
+        duration where go-rod waits for `WaitRequestIdle`, so a page with
+        in-flight requests finishes early. Recorded as
+        `shard_issues/rod.002.md` with a reproduction and the one-line fix.
 - [ ] **Split the plan if it outgrows one screen** — move per-area detail into
       `plans/<area>.md`, link each file here, and mark it complete/in-progress.
 
@@ -193,4 +199,6 @@ Reference for what is already ported; do not re-open without a divergence:
   else in the output is upstream text verbatim, and `spec/cli_spec.cr` compares
   the whole block.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
-  divergence is documented in `shard_issues/` with a reproducible case.
+  divergence is documented in `shard_issues/` with a reproducible case. Open
+  shard gap: `Page#wait_stable` skips go-rod's `WaitRequestIdle`
+  (`shard_issues/rod.002.md`).

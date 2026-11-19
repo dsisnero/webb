@@ -49,7 +49,7 @@ main.go::function::cmdVisible	function	partial	src/cli.cr::Webb::CLI.cmd_visible
 main.go::function::cmdWait	function	partial	src/cli.cr::Webb::CLI.cmd_wait	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWaitIdle	function	partial	src/cli.cr::Webb::CLI.cmd_wait_idle	Crystal command implementation is present; compare CLI output and error paths with upstream
 main.go::function::cmdWaitLoad	function	partial	src/cli.cr::Webb::CLI.cmd_wait_load	Crystal command implementation is present; compare CLI output and error paths with upstream
-main.go::function::cmdWaitStable	function	partial	src/cli.cr::Webb::CLI.cmd_wait_stable	Crystal passes 100.milliseconds; Go calls MustWaitStable() = WaitStable(time.Second); align the duration and cover CLI output
+main.go::function::cmdWaitStable	function	partial	src/cli.cr::Webb::CLI.cmd_wait_stable	spec/cli_spec.cr asserts `DOM stable` plus a >=1s wait, matching MustWaitStable() = WaitStable(time.Second). rod's wait_stable still waits a fixed duration instead of request idle, so pages with in-flight requests differ (shard_issues/rod.002.md)
 main.go::function::connectBrowser	function	partial	src/webb.cr::Webb.connect_browser	Crystal helper is implemented; direct edge-case parity coverage remains pending
 main.go::function::decodeDataURL	function	ported	src/webb.cr::Webb.decode_data_url	Mapped to Crystal helper with matching upstream behavior covered in spec/webb_spec.cr
 main.go::function::detectProxy	function	partial	src/webb.cr::Webb.detect_proxy	Authenticated proxy detection is implemented; environment priority and malformed URI cases need coverage

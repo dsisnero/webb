@@ -744,7 +744,7 @@ module Webb
 
     private def self.cmd_wait_stable(args : Array(String))
       _, _, page = Webb.with_page
-      page.wait_stable(100.milliseconds)
+      page.wait_stable(1.second)
       puts "DOM stable"
     end
 

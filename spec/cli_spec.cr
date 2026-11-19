@@ -246,4 +246,19 @@ describe "CLI against a live browser" do
     run_cli_live("title").stdout.should eq("CLI Fixture\n")
     run_cli_live("url").stdout.should eq("#{CLISpecSupport.harness.fixture_url}\n")
   end
+
+  it "waits about a second for DOM stability, like MustWaitStable()" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    started = Time.instant
+    result = run_cli_live("waitstable")
+    elapsed = Time.instant - started
+
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("DOM stable\n")
+    # Go: MustWaitStable() = WaitStable(time.Second), so the command cannot
+    # return in 100ms. Allow 10% slack for process startup noise.
+    elapsed.should be >= 900.milliseconds
+  end
 end
