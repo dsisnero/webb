@@ -43,6 +43,8 @@ make format
 make lint
 make test
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
+"${PARITY_SKILL_DIR}/scripts/install_chiasmus_toolchain.sh" --version v0.3.4
+export CHIASMUS_VERSION=v0.3.4
 "${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go tree-sitter
 PORT_PARSER=tree-sitter make inventory
 ```

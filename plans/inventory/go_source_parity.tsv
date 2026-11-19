@@ -81,5 +81,6 @@ main.go::function::saveState	missing	-	baseline
 main.go::function::stateDir	missing	-	baseline
 main.go::function::statePath	missing	-	baseline
 main.go::function::withPage	missing	-	baseline
+main.go::type::scopeMode	missing	-	baseline
 proc_unix.go::function::setSysProcAttr	missing	-	baseline
 proc_windows.go::function::setSysProcAttr	missing	-	baseline

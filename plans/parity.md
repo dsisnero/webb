@@ -25,18 +25,18 @@ is one feature: one branch, one commit, one ledger update.
     scope constants) and 63 upstream tests. The ledger records 64 as `ported`
     and keeps `TestMain`, `TestFile_MultipleFiles`, and
     `TestFile_SetFileOnInput` marked `partial`.
-  - Source manifest: 82 declarations at `v0.4.0` (1 class, 3 constants, and 78
-    functions). `State` keeps its reviewed mapping. The 81 added rows are
-    marked `missing` in the source manifest pending mapping review.
+  - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
+    functions, and 1 type). `State` keeps its reviewed mapping. The other
+    rows, including `scopeMode`, are marked `missing` pending mapping review.
 - **Scoping notes / gotchas:**
   - Discovery runs through the verified Chiasmus **tree-sitter** toolchain.
     Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate.
     Treat a reported `regex` backend as a failed gate.
   - The source manifest and curated ledger declare their kind scopes with
     `# kinds=`. The curated scope is `class,const,test`. The source manifest
-    supplies IDs for supported declaration kinds. The Go `scopeMode` named
-    type is emitted as `definition.type`, which is outside this scope alongside
-    auxiliary facts such as `definition.function` and `reference.call`.
+    includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`. Auxiliary
+    facts such as `definition.type`, `definition.function`, and `reference.call`
+    stay outside the source manifest.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
@@ -46,8 +46,8 @@ is one feature: one branch, one commit, one ledger update.
 - **Last port commit:** `a729f6c` (`--insecure` over a self-signed HTTPS origin).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
   (64 examples), and `make parity-verify` passed. `make inventory` passed with
-  4 curated source rows, 82 source manifest rows, and 63 tests on
-  `chiasmus-tree-sitter`.
+  4 curated source rows, 83 source manifest rows, and 63 tests on
+  `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
 
 Keep this block accurate after every feature: the next session reads it first
 (see `AGENTS.md` → **How to resume**).
@@ -94,6 +94,10 @@ Each item is still one commit; none of them touch ported behavior.
       manifest against the pinned Go tree with the corrected skill, preserve
       the `State` mapping, and declare the curated ledger's existing kind
       scope explicitly.
+- [x] **Discover Go named types** — Chiasmus `v0.3.4` adds exactly one
+      source row for this pin, `main.go::type::scopeMode`. The curated ledger
+      keeps its current kind scope pending review of the `Webb::ScopeMode`
+      mapping.
 - [ ] **Expand the ledger to Go function/method declarations** — review the
       pinned source manifest against the Crystal code and specs. Record
       statuses and real `crystal_refs` with the reviewed mappings, add the

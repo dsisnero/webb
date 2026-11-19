@@ -62,13 +62,15 @@ discovery, run:
 
 ```bash
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
+"${PARITY_SKILL_DIR}/scripts/install_chiasmus_toolchain.sh" --version v0.3.4
+export CHIASMUS_VERSION=v0.3.4
 "${PARITY_SKILL_DIR}/scripts/verify_skill_install.sh" . go tree-sitter
 PORT_PARSER=tree-sitter make inventory
 ```
 
 `go_source_parity.tsv` records the pinned source declarations discovered under
-its `# kinds=` scope. The scope includes `function`, `method`, and `interface`
-for Go discovery backends that emit those labels.
+its `# kinds=` scope. The scope includes `function`, `method`, `interface`, and
+`type`. Chiasmus `v0.3.4` emits the `type` ID for `scopeMode`.
 The curated `go_port_inventory.tsv` declares `# kinds=class,const,test` and
 records Crystal port status for that scope. When reviewing function and method
 mappings, update statuses and `crystal_refs` with evidence from the Crystal
