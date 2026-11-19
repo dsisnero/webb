@@ -8,34 +8,36 @@ is one feature: one branch, one commit, one ledger update.
 
 ## Where we are
 
-- **Current focus:** reviewing Crystal mappings for the Go functions in the
-  refreshed source manifest (Phase 2).
+- **Current focus:** auditing the three partial upstream test rows (Phase 2).
 - **Next up:**
-  1. Verify mappings for Go functions and any receiver methods in scope, then
-     expand the curated ledger (Phase 2).
-  2. Audit the three `partial` test rows against the current 64 Crystal specs
+  1. Audit the three `partial` test rows against the current 64 Crystal specs
      and update statuses and references where the evidence supports it (Phase 2).
-  3. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
+  2. Characterize `getActivePage` on an empty browser and reconcile the
+     behavior of `withPage` and `open` with the pinned Go implementation.
+  3. Work through remaining partial function rows in feature-sized changes.
+  4. Re-base the ledger when the pin moves off `v0.4.0` (Phase 2).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
   - `spec/webb_spec.cr`: 64 examples, 0 pending, 0 failures.
-  - Curated ledger: 67 rows across 4 source declarations (`State` and 3
-    scope constants) and 63 upstream tests. The ledger records 64 as `ported`
-    and keeps `TestMain`, `TestFile_MultipleFiles`, and
-    `TestFile_SetFileOnInput` marked `partial`.
+  - Curated ledger: 145 rows across 82 source declarations and 63 upstream
+    tests. All 78 function IDs have Crystal references: 15 are `ported`, 61
+    `partial`, and 2 `intentional_divergence`. The pin has no receiver method
+    IDs. `TestMain`, `TestFile_MultipleFiles`, and `TestFile_SetFileOnInput`
+    remain `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
-    functions, and 1 type). `State` keeps its reviewed mapping. The other
-    rows, including `scopeMode`, are marked `missing` pending mapping review.
+    functions, and 1 type). Implementation statuses are in the curated
+    ledger. The generated source snapshot keeps its discovery baseline
+    statuses; `scopeMode` still needs a curated type mapping.
 - **Scoping notes / gotchas:**
   - Discovery runs through the verified Chiasmus **tree-sitter** toolchain.
     Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate.
     Treat a reported `regex` backend as a failed gate.
   - The source manifest and curated ledger declare their kind scopes with
-    `# kinds=`. The curated scope is `class,const,test`. The source manifest
-    includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`. Auxiliary
-    facts such as `definition.type`, `definition.function`, and `reference.call`
+    `# kinds=`. The curated scope is `class,const,function,method,test`.
+    The source manifest includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`.
+    Auxiliary facts such as `definition.type`, `definition.function`, and `reference.call`
     stay outside the source manifest.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
@@ -45,8 +47,9 @@ is one feature: one branch, one commit, one ledger update.
     (`shard_issues/rod.001.md`, `src/cli.cr` proxy handler).
 - **Last port commit:** `a729f6c` (`--insecure` over a self-signed HTTPS origin).
 - **Gates (2026-11-18):** `make format`, `make lint` (5 files), `make test`
-  (64 examples), and `make parity-verify` passed. `make inventory` passed with
-  4 curated source rows, 83 source manifest rows, and 63 tests on
+  (64 examples), `make build` (CLI), and `make parity-verify` passed.
+  `make inventory` passed with 82 curated source rows, 83 source manifest
+  rows, and 63 tests on
   `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
 
 Keep this block accurate after every feature: the next session reads it first
@@ -85,7 +88,7 @@ Do not batch items: a commit that closes two checkboxes is two features.
 
 ## Phase 2 — Ledger and tooling hygiene
 
-Each item is still one commit; none of them touch ported behavior.
+Each item is scoped to a single commit. See the entries below for verification details.
 
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
@@ -96,12 +99,18 @@ Each item is still one commit; none of them touch ported behavior.
       scope explicitly.
 - [x] **Discover Go named types** — Chiasmus `v0.3.4` adds exactly one
       source row for this pin, `main.go::type::scopeMode`. The curated ledger
-      keeps its current kind scope pending review of the `Webb::ScopeMode`
-      mapping.
-- [ ] **Expand the ledger to Go function/method declarations** — review the
-      pinned source manifest against the Crystal code and specs. Record
-      statuses and real `crystal_refs` with the reviewed mappings, add the
-      relevant kinds to the curated scope, and re-run `make inventory`.
+      keeps type coverage out of scope pending review of `Webb::ScopeMode`.
+- [x] **Expand the ledger to Go function/method declarations** — declaring
+      the wider scope first failed strict tree-sitter inventory with 78
+      missing functions. Mapping all 78 to Crystal symbols made the same
+      gate pass. The existing 67 curated rows were preserved. Partial rows
+      identify behavior differences or missing evidence. Both Go
+      `init` functions share a single discovery ID; timeout initialization
+      is mapped and SIGPIPE behavior is still open. The Windows Go process
+      helper is a no-op and has no separate Crystal counterpart. Building the
+      actual CLI also caught the invalid PID constructor in `stop`. The build
+      now targets `src/main.cr`, and the repaired `stop` sent TERM to two
+      disposable processes and removed its state file in a CLI smoke check.
 - [ ] **Audit the three partial test rows** — compare the current Crystal specs
       with `TestMain`, `TestFile_MultipleFiles`, and `TestFile_SetFileOnInput`.
       Update the ledger entries with reviewed statuses and Crystal references.
@@ -115,9 +124,8 @@ Reference for what is already ported; do not re-open without a divergence:
 - Test harness: Go `TestMain` (one headless Chrome + six fixture routes) is
   `AXSpecEnv` in `spec/webb_spec.cr`.
 - Discovery: the parity gate runs on the chiasmus tree-sitter toolchain; the
-  curated ledger uses tree-sitter IDs with explicit `class,const,test`
-  coverage. The refreshed source manifest records discovery provenance in
-  `.metadata.json`.
+  curated ledger uses tree-sitter IDs with an explicit kind scope. The source
+  manifest records discovery provenance in `.metadata.json`.
 - File uploads: `TestFile_SetFileOnInput` and `TestFile_MultipleFiles` are the
   `.file browser parity` examples.
 - AX tree/find/node, assert family, argument parsing, state-dir resolution,

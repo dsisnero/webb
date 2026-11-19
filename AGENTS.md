@@ -20,7 +20,7 @@ make update         # shards update
 make format         # crystal tool format --check
 make lint           # ameba --fix, then ameba
 make test           # crystal spec
-make build          # crystal build src/webb.cr -o bin/webb
+make build          # compile the CLI entry point to bin/webb
 make inventory      # tree-sitter parity gates against vendor/rodney
 make parity-verify  # verify the installed parity skill + discovery backend
 make clean          # remove temp/ contents and AppleDouble sidecars
@@ -71,11 +71,11 @@ PORT_PARSER=tree-sitter make inventory
 `go_source_parity.tsv` records the pinned source declarations discovered under
 its `# kinds=` scope. The scope includes `function`, `method`, `interface`, and
 `type`. Chiasmus `v0.3.4` emits the `type` ID for `scopeMode`.
-The curated `go_port_inventory.tsv` declares `# kinds=class,const,test` and
-records Crystal port status for that scope. When reviewing function and method
-mappings, update statuses and `crystal_refs` with evidence from the Crystal
-implementation and specs, then widen the curated scope as described in the
-plan.
+The curated `go_port_inventory.tsv` declares
+`# kinds=class,const,function,method,test` and records Crystal port status for
+that scope. When signing off a function or method, update its status and
+`crystal_refs` with evidence from the implementation and specs. The generated
+source manifest records discovery separately.
 
 Check `PARITY_DISCOVERY_BACKEND` in the gate output and `backend` in the
 committed `plans/inventory/*.metadata.json` files. A requested parser mode or an
@@ -118,7 +118,8 @@ must be committed as **one** atomic commit before starting the next feature:
 
 1. the API surface is implemented;
 2. upstream tests (or equivalent characterization specs) exist and pass;
-3. gates pass: `make format`, `make lint`, `make test`, and `make inventory`;
+3. gates pass: `make format`, `make lint`, `make test`, `make build`, and
+   `make inventory`;
 4. parity inventory rows for the feature are updated
    (`plans/inventory/go_port_inventory.tsv`) and `make inventory` passes — it
    checks every row against the pinned tree *and* that each `crystal_refs` file
@@ -143,7 +144,7 @@ until `git push` succeeds.
 1. **Record remaining work** — add unchecked items to `plans/parity.md` for
    anything that needs follow-up.
 2. **Run quality gates** — `make format`, `make lint`, `make test`,
-   `make inventory`. No formatting issues, no ameba failures, all specs green.
+   `make build`, `make inventory`. No formatting issues, no ameba failures, all specs green.
 3. **Update plan status** — tick finished items and refresh **Where we are**.
 4. **Push to remote** — mandatory:
 

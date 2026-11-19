@@ -378,7 +378,7 @@ module Webb
         # If we can't connect, try to kill the process if we own it
         if state.chrome_pid > 0
           begin
-            Process.new(state.chrome_pid).signal(Signal::TERM)
+            Process.signal(Signal::TERM, state.chrome_pid)
             puts "Sent TERM signal to browser process #{state.chrome_pid}"
           rescue
             puts "Could not terminate browser process #{state.chrome_pid}"
@@ -389,9 +389,9 @@ module Webb
       end
 
       # Remove proxy if running
-      if proxy_pid = state.proxy_pid
+      if (proxy_pid = state.proxy_pid) && proxy_pid > 0
         begin
-          Process.new(proxy_pid).signal(Signal::TERM)
+          Process.signal(Signal::TERM, proxy_pid)
           puts "Stopped proxy (PID #{proxy_pid})"
         rescue
           # Ignore if proxy already dead

@@ -31,7 +31,8 @@ test: sidecars
 	crystal spec
 
 build:
-	crystal build src/webb.cr -o bin/webb
+	@mkdir -p bin
+	crystal build src/main.cr -o bin/webb
 
 inventory: sidecars
 	PORT_PARSER=$(PARITY_PARSER) ./scripts/check_go_port_inventory.sh "$(CURDIR)" "" "$(PARITY_SOURCE_DIR)"

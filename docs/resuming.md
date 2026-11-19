@@ -42,6 +42,7 @@ atomically. If the tree is dirty, finish or stash before starting.
 make format
 make lint
 make test
+make build
 PARITY_SKILL_DIR="${HOME}/.agents/skills/crystal_forge/skills/cross-language-crystal-parity"
 "${PARITY_SKILL_DIR}/scripts/install_chiasmus_toolchain.sh" --version v0.3.4
 export CHIASMUS_VERSION=v0.3.4
@@ -49,7 +50,7 @@ export CHIASMUS_VERSION=v0.3.4
 PORT_PARSER=tree-sitter make inventory
 ```
 
-Lint and tests must pass before changing anything. Run the inventory gate and
+Check lint, specs, and the CLI build before changing anything. Run the inventory gate and
 compare any drift with the **Where we are** block; recorded upstream drift may
 be the next feature to fix. Confirm
 `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate's output and the
