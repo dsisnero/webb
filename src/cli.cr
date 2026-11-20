@@ -519,17 +519,20 @@ module Webb
         Webb.fatal(ex.message.to_s)
       end
 
-      begin
-        pages = browser.pages
-      rescue ex
-        Webb.fatal("failed to list pages: #{ex.message}")
+      # Go ignores Pages()' error (`pages, _ :=`, main.go:552): a listing
+      # failure looks like zero pages and a new one is created.
+      pages = begin
+        browser.pages
+      rescue
+        [] of Rod::Page
       end
 
       # If no pages exist, create one; otherwise navigate the active page.
       if pages.empty?
         page = browser.page(url)
         state.active_page = 0
-        Webb.save_state(state)
+        # Go ignores saveState's error here (`saveState(s)`, main.go:556).
+        Webb.save_state(state) rescue nil
       else
         page = Webb.get_active_page(browser, state)
         begin
@@ -540,8 +543,10 @@ module Webb
       end
 
       page.wait_load
-      info = page.info
-      puts info.title
+      # Go prints the title only when Info() succeeds (`info, _ :=`, main.go:563).
+      if info = Webb.page_info?(page)
+        puts info.title
+      end
     end
 
     private def self.cmd_back(args : Array(String))

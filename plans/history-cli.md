@@ -776,3 +776,21 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
       - Ledger: `setSysProcAttr` → `intentional_divergence`. That clears the
         last `partial` row: 75 `ported`, 0 `partial`, 3
         `intentional_divergence`.
+
+## Hygiene
+
+- [x] **Match `cmdOpen`'s ignored upstream errors** — Go discards both the
+      `browser.Pages()` and `page.Info()` errors in `cmdOpen`, and never checks
+      `saveState` (`pages, _ :=`, `info, _ :=`, `saveState(s)`,
+      `vendor/rodney/main.go:552-567`). Crystal fataled
+      `failed to list pages: <cause>`, raised on an Info failure, and let a save
+      failure escape.
+      - Green: a listing failure now falls through to "create a page", the save
+        error is discarded like upstream, and the title prints through
+        `Webb.page_info?` only when Info succeeds — the same shape as
+        `back`/`forward`.
+      - No CLI-reachable red exists for these branches (each needs a connected
+        browser whose listing, info, or state write fails), so this is a
+        code-matching hygiene change; the two reachable branches stay covered
+        by the existing `open` examples.
+      - Ledger: `cmdOpen`'s note records the ignored paths.

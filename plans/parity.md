@@ -12,15 +12,12 @@ described there.
 
 ## Where we are
 
-- **Current focus:** hygiene only — no `partial` ledger rows remain, so the next
-  work is `cmdOpen`'s ignored upstream errors, then the ledger re-base when
-  `vendor/rodney` moves off `v0.4.0`.
+- **Current focus:** no `partial` ledger rows remain and `cmdOpen`'s ignored
+  errors now match upstream, so the only queued work is the ledger re-base when
+  `vendor/rodney` moves off `v0.4.0` (plus the optional proxy example).
 - **Next up (in order):**
-  1. `cmdOpen`'s ignored errors — match upstream or record the divergence.
-  2. Ledger re-base on the next `vendor/rodney` pin.
-  3. Optional: a Chrome-through-the-proxy example against a real HTTPS origin.
-- **Optional:** a Chrome-through-the-proxy example against a real HTTPS
-  origin; today `_proxy` is proven at the socket level.
+  1. Ledger re-base on the next `vendor/rodney` pin.
+  2. Optional: a Chrome-through-the-proxy example against a real HTTPS origin.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -94,50 +91,29 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Queue: files, waits, screenshot element, helpers
+## Queue
 
-Ordered so one commit closes one row. Each item records the Go contract and
-whether its red is reachable from the CLI; "spec only" items already match Go
-and just need the characterization that lets the row go `ported`.
+No per-row work is queued: every ledger row is either `ported` or an
+intentional divergence. The next feature comes from the next `vendor/rodney`
+pin (re-base the ledger first, per the hygiene item) or from the optional proxy
+example; `plans/history-cli.md` records how each closed block got there.
 
-Resume with `make lint` + `make test` first (239 examples, 0 pending), then:
+Gates first, always:
 
 ```bash
-crystal spec spec/cli_spec.cr:<line>   # one example while iterating
-make test && make inventory            # full gates before the commit
+make format && make lint && make test && make build && make inventory
 ```
 
 Known flakes, not regressions: `waitstable`'s timing example
 (`waits about a second for DOM stability`), the `wait` late-element example
 (its 2s reveal can beat a heavily loaded `open`), and the `download`/`file`
 browser parity examples fail under host load and pass on a re-run or in
-isolation. Check `uptime` before believing a red.
-
-### Waits
-
-Both remaining wait rows are closed: `cmdWait` (lookup fatal + the `/late-page`
-proof) and `cmdWaitIdle` (`page.wait_idle(1.minute)`, Go's
-`WaitIdle(time.Minute)` rather than `WaitRequestIdle`). See
-`plans/history-cli.md` before changing either.
-
-### Helpers with no CLI surface
-
-One row is still `partial`: because nothing pins them, not because they are
-wrong. Unit specs close them without touching product code:
-
-- `proc_unix.go::setSysProcAttr` — Crystal parity is structural (no `Setsid`);
-  needs a note-level justification plus the existing process specs that prove
-  the helper survives `stop`.
+isolation. A live example can also lose Chrome's debug-URL race on the first
+run of `make test` and pass on the second. Check `uptime` before believing a
+red.
 
 ## Open ledger hygiene
 
-- [ ] **Audit `cmdOpen`'s ignored upstream errors** — Go discards both the
-      `browser.Pages()` and `page.Info()` errors in `cmdOpen`
-      (`pages, _ :=`, `info, _ :=`, `vendor/rodney/main.go:549-568`), so a
-      listing failure falls through to "create a page" and an info failure
-      prints nothing; Crystal fatals `failed to list pages: <cause>` and raises
-      on the info failure. Either match upstream or record the divergence and
-      adjust the row's note.
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
       one commit; never append across releases.
