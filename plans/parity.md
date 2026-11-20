@@ -12,12 +12,13 @@ described there.
 
 ## Where we are
 
-- **Current focus:** no `partial` ledger rows remain and `cmdOpen`'s ignored
-  errors now match upstream, so the only queued work is the ledger re-base when
-  `vendor/rodney` moves off `v0.4.0` (plus the optional proxy example).
+- **Current focus:** the port is feature-complete against the pin — every
+  curated row is `ported` or an intentional divergence, and `cmdOpen`'s ignored
+  errors now match upstream. Nothing is queued except pin-driven work.
 - **Next up (in order):**
-  1. Ledger re-base on the next `vendor/rodney` pin.
-  2. Optional: a Chrome-through-the-proxy example against a real HTTPS origin.
+  1. Ledger re-base when `vendor/rodney` moves off `v0.4.0`.
+  2. Optional: a Chrome-through-the-proxy example against a real HTTPS origin
+     (`_proxy` is proven at the socket level today).
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -74,9 +75,8 @@ described there.
   (`1ad7a6e`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
   (239 examples), `make build` (CLI), `make inventory` (82 curated /
-  83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
-  `make parity-verify`
-  passed earlier in the day.
+  83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4), and
+  `make parity-verify` (`PARITY_SKILL_VERIFIED=1`) all passed.
 
 ## How features are sliced
 
