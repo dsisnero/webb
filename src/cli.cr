@@ -619,8 +619,19 @@ module Webb
     private def self.cmd_html(args : Array(String))
       _, _, page = Webb.with_page
       if args.size > 0
-        el = page.element(args[0])
-        puts el.html
+        # Go wraps any Element() error: `fatal("element not found: %v", err)`
+        # (main.go:641-644), then checks el.HTML() on its own line.
+        el = begin
+          page.element(args[0])
+        rescue ex
+          Webb.fatal("element not found: #{ex.message}")
+        end
+        html = begin
+          el.html
+        rescue ex
+          Webb.fatal("failed to get HTML: #{ex.message}")
+        end
+        puts html
       else
         result = page.eval("() => document.documentElement.outerHTML")
         puts result.value.try(&.to_s) || ""

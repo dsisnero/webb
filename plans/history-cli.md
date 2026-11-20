@@ -426,3 +426,18 @@ spec, the ledger update, and this write-up.
       - Green: `begin`/`rescue ex`/`Webb.fatal("clear cache failed: …")`
         around the CDP call.
       - Ledger: `cmdClearCache` → `ported`.
+- [x] **Give `html` Go's error wrapping** — `cmd_html` looked up the element
+      and read its HTML bare, so a selector that matched nothing escaped as an
+      unhandled exception (exit 1) where Go prints
+      `error: element not found: <cause>` and exits 2, then checks
+      `el.HTML()` separately for `failed to get HTML: <cause>`
+      (`main.go:638-655`).
+      - Red was real this time: `html "#missing"` exited **1** (expected 2) —
+        the failing example is what drove the change.
+      - Green: two `begin`/`rescue ex`/`Webb.fatal` blocks, the same shape
+        `cmd_attr` uses for its element lookup. The no-selector branch stays on
+        `page.eval("() => document.documentElement.outerHTML")`.
+      - Coverage: document HTML (no selector), an element's outer HTML, and the
+        missing selector with `ROD_TIMEOUT=0.5` pinning
+        `error: element not found: context deadline exceeded` at exit 2.
+      - Ledger: `cmdHTML` → `ported`.

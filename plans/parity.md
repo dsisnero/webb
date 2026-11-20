@@ -12,17 +12,16 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 26 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 25 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
   `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
   family (`pages`, `page`, `newpage`, `closepage`), `back`, `forward`, `reload`,
-  and `clear-cache` all match Go, and `shard_issues/` is empty.
+  `clear-cache`, and `html` all match Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdHTML`** (details below) — `element not found:` /
-     `failed to get HTML:` fatals, one commit.
-  2. Then page content
-     (`cmdText`, `cmdJS`), interaction (`cmdClick`, `cmdInput`,
+  1. **`cmdText`** (details below) — `element not found:` /
+     `failed to get text:` fatals, one commit.
+  2. Then `cmdJS`, interaction (`cmdClick`, `cmdInput`,
      `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
      `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
      `cmdScreenshotEl`).
@@ -38,11 +37,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 87 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 58 live-browser). Suite
-    total: 159 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 90 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 61 live-browser). Suite
+    total: 162 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **50 `ported`, 26
+    tests. All 78 function IDs have Crystal references: **51 `ported`, 25
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -84,7 +83,7 @@ described there.
 - **Last port commit:** `port: give clear-cache Go's clear cache failed fatal`
   (`041df24`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (159 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (162 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -101,28 +100,26 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdHTML`
+## Next feature: `cmdText`
 
-Go (`vendor/rodney/main.go:638-655`) has two branches, and both check errors:
+Go (`vendor/rodney/main.go:657-673`) fatals `usage: rodney text <selector>`
+without an argument, then `page.Element(sel)` →
+`fatal("element not found: %v", err)`, then `el.Text()` →
+`fatal("failed to get text: %v", err)`.
 
-- with a selector: `page.Element(sel)` →
-  `fatal("element not found: %v", err)`, then `el.HTML()` →
-  `fatal("failed to get HTML: %v", err)`, then the HTML;
-- without one: `page.MustEval('() => document.documentElement.outerHTML')`.
+Crystal's `cmd_text` only guards the usage case: `page.element(args[0])` and
+`el.text` are bare, so a selector that matches nothing escapes as an unhandled
+exception (exit 1 + stack trace) instead of `error: element not found: <cause>`
+with exit 2.
 
-Crystal's `cmd_html` calls `page.element(args[0])` and `el.html` bare, so a
-selector that matches nothing escapes as an unhandled exception (exit 1 + stack
-trace) instead of `error: element not found: <cause>` with exit 2.
+Red proof: **reachable**, exactly like `html` — `webb text "#missing"` with
+`ROD_TIMEOUT=0.5` exits 1 today; the spec wants exit 2 and Go's
+`error: element not found: context deadline exceeded` line. The happy path
+(`text "#topic"` printing the fixture's option labels) is the companion
+characterization.
 
-Red proof: **reachable** — `webb html "#missing"` today prints an unhandled
-exception; Go prints `error: element not found: ...` via `fatal`. `cmd_attr`
-already has this seam (`src/cli.cr` wraps `page.element` the same way) and its
-spec pins the message (`error: element not found: context deadline exceeded`).
-Use `ROD_TIMEOUT=0.5` so the element query's retry gives up fast.
-
-Green shape: the `cmd_attr` element lookup block plus a `rescue` around
-`el.html` for `failed to get HTML: <cause>`, leaving the no-selector branch on
-`page.eval`.
+Green shape: the same two `begin`/`rescue`/`Webb.fatal` blocks the `cmdHTML`
+commit just added.
 
 ## Open ledger hygiene
 

@@ -1431,6 +1431,44 @@ describe "CLI against a live browser" do
     result.stdout.should_not contain("Current:")
   end
 
+  # Go's cmdHTML (main.go:638-655) prints the document's outer HTML when no
+  # selector is given, and for a selector it fatals `element not found: <cause>`
+  # or `failed to get HTML: <cause>` instead of letting an exception escape.
+  it "prints the document HTML without a selector" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("html")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should start_with("<html lang=\"en\">")
+    result.stdout.should contain("<h1>Fixture</h1>")
+  end
+
+  it "prints an element's outer HTML" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("html", "#topic")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should start_with("<select id=\"topic\" aria-label=\"Topic\">")
+  end
+
+  it "fails with element not found when html matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    # Same ROD_TIMEOUT shape as the attr example: Go's retry loop returns the
+    # page deadline once it expires.
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["html", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do
