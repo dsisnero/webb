@@ -497,5 +497,5 @@ spec, the ledger update, and this write-up.
         `this.select()`, so `insertText` appends at the caret. Verified the
         cause by running `document.querySelector(...).select()` through
         `webb js` first (then the value replaced correctly). Filed as
-        [`shard_issues/rod.001.md`](../shard_issues/rod.001.md); the value
+        [`shard_issues/rod.004.md`](../shard_issues/rod.004.md); the value
         assertion is `pending` on it and the row stays `partial`.

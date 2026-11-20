@@ -12,9 +12,9 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the open rod shard bug that blocks `input`/`clear`
-  ([`shard_issues/rod.001.md`](shard_issues/rod.001.md)), then the remaining 22
-  `partial` ledger rows. Every *documented* divergence is otherwise closed —
+- **Current focus:** the open rod shard bug that blocks `input`/`clear` (see
+  [`shard_issues/rod.004.md`](../shard_issues/rod.004.md)), then the remaining
+  22 `partial` ledger rows. Every *documented* divergence is otherwise closed —
   `start`, `stop`, `connect`, `status`, `attr`, `assert`, the element checks,
   the AX commands, `waitstable`, the `_proxy` helper, the page-info error
   contract (`title`, `url`), the whole tab family (`pages`, `page`, `newpage`,
@@ -105,7 +105,7 @@ Do not batch items: a commit that closes two checkboxes is two features.
 
 ## Next feature: rod `Element#select_all_text`
 
-Full write-up: [`shard_issues/rod.001.md`](shard_issues/rod.001.md).
+Full write-up: [`shard_issues/rod.004.md`](../shard_issues/rod.004.md).
 
 rod's method selects a document Range (`window.getSelection()` +
 `range.selectNodeContents(this)`), which no-ops on `<input>`/`<textarea>`; Go
@@ -191,7 +191,7 @@ Reference for what is already ported; do not re-open without a divergence:
   hyphenated command names. Unadvertised, and the usage text uses Go's names.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case. One gap
-  is open — [`shard_issues/rod.001.md`](shard_issues/rod.001.md):
+  is open — [`shard_issues/rod.004.md`](../shard_issues/rod.004.md):
   `Element#select_all_text` builds a document Range instead of Go's
   `this.select()`, so `input` appends and `clear` cannot empty a field. Earlier
   gaps are closed: `Page#wait_stable` runs `WaitRequestIdle` (rod `c459108`),

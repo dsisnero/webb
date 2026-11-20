@@ -23,8 +23,9 @@ the **source of truth** — Crystal is just the translation layer.
 
 Port the Go behavior as-is. Diverge only when one of these holds:
 
-1. Crystal cannot express it (e.g. `HTTP::Server` cannot hijack a socket, so
-   HTTPS `CONNECT` proxying returns 501 — `shard_issues/rod.001.md`);
+1. Crystal cannot express it (e.g. `HTTP::Server` cannot hand a connection back
+   after `CONNECT`, so `_proxy` runs on a raw `TCPServer` to tunnel the way Go's
+   `http.Hijacker` does; the observable behavior still matches);
 2. the Crystal stdlib does the same thing with the same observable result
    (e.g. `URI.parse` for URL handling);
 3. the Go algorithm needs primitives Crystal lacks, in which case translate

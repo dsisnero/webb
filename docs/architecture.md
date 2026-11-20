@@ -73,8 +73,10 @@ On `webb start`, `detect_proxy` (`src/webb.cr:564-593`) checks `HTTPS_PROXY` and
    `Proxy-Authorization` headers
 3. Chrome is launched with `--proxy-server` pointing to the local proxy
 
-HTTP proxy forwarding works; HTTPS CONNECT tunneling is not yet supported
-(`shard_issues/rod.001.md`, `src/cli.cr:1037` returns 501).
+HTTP proxy forwarding and HTTPS `CONNECT` tunneling both work. Go hijacks the
+connection with `http.Hijacker`; Crystal's `HTTP::Server` cannot hand a
+connection back, so `_proxy` serves a raw `TCPServer` itself and tunnels
+`CONNECT` there (`src/cli.cr`, `cmd_internal_proxy`).
 
 ## Accessibility Commands (`src/webb.cr:363-543`)
 

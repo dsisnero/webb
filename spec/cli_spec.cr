@@ -1574,7 +1574,7 @@ describe "CLI against a live browser" do
   # Go's MustSelectAllText().MustInput(text) replaces the field's value. rod's
   # Element#select_all_text builds a document Range instead of calling
   # this.select(), which no-ops on <input>/<textarea>, so the inserted text
-  # lands in front of the existing value. Blocked on shard_issues/rod.001.md.
+  # lands in front of the existing value. Blocked on shard_issues/rod.004.md.
   pending "replaces the field value like MustSelectAllText" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 
