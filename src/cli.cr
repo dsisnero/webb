@@ -568,7 +568,14 @@ module Webb
       hard = args.includes?("--hard")
       _, _, page = Webb.with_page
       if hard
-        Cdp::Page::Reload.new(true, nil, nil).call(page)
+        begin
+          Cdp::Page::Reload.new(true, nil, nil).call(page)
+        rescue ex
+          # Go checks only the --hard branch: `fatal("reload failed: %v", err)`
+          # (main.go:596-600). The plain branch is page.MustReload(), which
+          # panics, so it stays unguarded.
+          Webb.fatal("reload failed: #{ex.message}")
+        end
       else
         page.reload
       end

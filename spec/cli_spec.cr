@@ -1255,6 +1255,33 @@ describe "CLI against a live browser" do
     result.stdout.should eq("#{second}\n")
   end
 
+  # Go's cmdReload (main.go:591-606) reloads with page.MustReload(), or with the
+  # CDP Page.reload{IgnoreCache:true} call when --hard is set, waits for the
+  # load, then prints `Reloaded`.
+  it "reloads the current page" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("reload")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Reloaded\n")
+  end
+
+  it "reloads with --hard, which really navigates" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("js", "document.body.dataset.marker = 'stale'")
+      .stdout.should eq("stale\n")
+
+    result = run_cli_live("reload", "--hard")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Reloaded\n")
+
+    # The hard reload really navigated: the marker set before it is gone.
+    run_cli_live("js", "document.body.dataset.marker").stdout.should eq("undefined\n")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

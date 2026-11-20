@@ -400,3 +400,18 @@ spec, the ledger update, and this write-up.
       - Green: an `if info = Webb.page_info?(page)` guard around the `puts`,
         matching `cmd_back` line for line.
       - Ledger: `cmdForward` → `ported`.
+- [x] **Give `reload` Go's `reload failed:` fatal** — `cmd_reload` sent the
+      `--hard` branch's `Page.reload{ignoreCache:true}` bare, so a failed CDP
+      call escaped as an unhandled exception where Go prints
+      `error: reload failed: <cause>` and exits 2
+      (`main.go:596-600`). Only the hard branch is checked upstream; the plain
+      branch is `page.MustReload()`.
+      - No red was reachable (a live page's session is already proven before the
+        command runs, and upstream has no test for this branch at all), so the
+        characterization went in first: `reload` prints `Reloaded`, and
+        `reload --hard` prints `Reloaded` **and really navigates** — a
+        `data-marker` set before it is gone after. Green before and after.
+      - Green: `begin`/`rescue ex`/`Webb.fatal("reload failed: #{ex.message}")`
+        around the hard-branch call, leaving `page.reload` unguarded as Go
+        leaves `MustReload`.
+      - Ledger: `cmdReload` → `ported`.

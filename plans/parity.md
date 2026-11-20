@@ -12,16 +12,16 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 28 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 27 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
   `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
-  family (`pages`, `page`, `newpage`, `closepage`), `back`, and `forward` all
-  match Go, and `shard_issues/` is empty.
+  family (`pages`, `page`, `newpage`, `closepage`), `back`, `forward`, and
+  `reload` all match Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdReload`** (details below) — `reload failed: <cause>` on the
-     `--hard` branch, one commit.
-  2. **`cmdClearCache`** (`clear cache failed: <cause>`), then page content
+  1. **`cmdClearCache`** (details below) — `clear cache failed: <cause>`, one
+     commit.
+  2. Then page content
      (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`, `cmdInput`,
      `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
      `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
@@ -38,11 +38,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 84 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 55 live-browser). Suite
-    total: 156 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 86 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 57 live-browser). Suite
+    total: 158 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **48 `ported`, 28
+    tests. All 78 function IDs have Crystal references: **49 `ported`, 27
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -84,7 +84,7 @@ described there.
 - **Last port commit:** `port: give forward Go's conditional URL output`
   (`72983cf`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (156 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (158 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -101,25 +101,24 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdReload`
+## Next feature: `cmdClearCache`
 
-Go (`vendor/rodney/main.go:591-606`) reloads with `--hard` selecting
-`proto.PageReload{IgnoreCache: true}`, and only that branch checks the call:
-`fatal("reload failed: %v", err)`. The plain branch is `page.MustReload()`, then
-`MustWaitLoad` for both, then `Reloaded`.
+Go (`vendor/rodney/main.go:608-616`) sends
+`proto.NetworkClearBrowserCache{}.Call(page)`, checks the error with
+`fatal("clear cache failed: %v", err)`, then prints `Browser cache cleared`.
 
-Crystal's `cmd_reload` calls `Cdp::Page::Reload.new(true, nil, nil).call(page)`
-bare, so a failed hard reload escapes as an unhandled exception (exit 1 + stack
-trace) where Go prints `error: reload failed: <cause>` and exits 2.
+Crystal's `cmd_clear_cache` calls
+`Cdp::Network::ClearBrowserCache.new.call(page)` bare, so a failed request
+escapes as an unhandled exception (exit 1 + stack trace) where Go prints
+`error: clear cache failed: <cause>` and exits 2.
 
-Green shape: rescue around the hard-branch call and route it through
-`Webb.fatal("reload failed: #{ex.message}")`, the same shape `cmd_html` and the
-other fatal-on-error commands use.
+Green shape: the same `begin`/`rescue`/`Webb.fatal("clear cache failed: ...")`
+block `cmd_reload`'s `--hard` branch just got.
 
-Red proof: the failing CDP call is not CLI-reachable (the connection is already
-proven before the command runs), so write the characterization first
-(`reload` and `reload --hard` both print `Reloaded` and exit 0), then apply the
-rescue and re-run.
+Red proof: a failing `Network.clearBrowserCache` is not CLI-reachable, so write
+the characterization first (`clear-cache` prints `Browser cache cleared` and
+exits 0, and navigation still works afterwards), then apply the rescue and
+re-run. Upstream has no test for this command either.
 
 ## Open ledger hygiene
 
