@@ -23,11 +23,13 @@ make test           # crystal spec
 make build          # compile the CLI entry point to bin/webb
 make inventory      # tree-sitter parity gates against vendor/rodney
 make parity-verify  # verify the installed parity skill + discovery backend
+make docs-lint      # rumdl check README.md docs/ (skipped when rumdl is absent)
 make clean          # remove temp/ contents and AppleDouble sidecars
 ```
 
 ## Docs
 
+- [README](README.md) — usage, examples, checks, divergences
 - [Resuming work](docs/resuming.md)
 - [Architecture](docs/architecture.md)
 - [Development](docs/development.md)
@@ -118,8 +120,8 @@ must be committed as **one** atomic commit before starting the next feature:
 
 1. the API surface is implemented;
 2. upstream tests (or equivalent characterization specs) exist and pass;
-3. gates pass: `make format`, `make lint`, `make test`, `make build`, and
-   `make inventory`;
+3. gates pass: `make format`, `make lint`, `make test`, `make build`,
+   `make inventory`, and `make parity-verify`;
 4. parity inventory rows for the feature are updated
    (`plans/inventory/go_port_inventory.tsv`) and `make inventory` passes — it
    checks every row against the pinned tree *and* that each `crystal_refs` file
@@ -127,7 +129,10 @@ must be committed as **one** atomic commit before starting the next feature:
 5. `plans/parity.md` status is updated and the **Where we are** block refreshed
    (current focus + next up);
 6. any intentional divergence is documented (in `plans/parity.md` and/or the
-   commit message).
+   commit message);
+7. user-facing docs keep up: when output, flags, or behavior change, update the
+   examples in `README.md` and the affected `docs/*.md`, and keep them
+   verified against the built CLI (`rumdl check README.md docs/` is clean).
 
 ### Commit message
 

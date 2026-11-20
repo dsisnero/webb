@@ -773,8 +773,10 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
       - Residual difference recorded in `plans/parity.md`: Ctrl-C during
         `start` (a signal to the parent's process group) also reaches the
         helper, where Go's `Setsid` shields it.
-      - Ledger: `setSysProcAttr` → `intentional_divergence`. That clears the
-        last `partial` row: 75 `ported`, 0 `partial`, 3
+      - Ledger: `proc_unix.go::setSysProcAttr` → `intentional_divergence`, and
+        `proc_windows.go::setSysProcAttr` → `ported` (Go's Windows helper is a
+        no-op, which is exactly what the Crystal code does). That clears the
+        last `partial` row: 76 `ported`, 0 `partial`, 2
         `intentional_divergence`.
 
 ## Hygiene

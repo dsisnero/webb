@@ -6,7 +6,7 @@ PARITY_LANGUAGE ?= go
 # See AGENTS.md.
 PARITY_PARSER ?= tree-sitter
 
-.PHONY: install update sidecars format lint test build inventory parity-verify clean
+.PHONY: install update sidecars format lint test build inventory parity-verify docs-lint clean
 
 install:
 	shards install
@@ -41,6 +41,15 @@ inventory: sidecars
 
 parity-verify:
 	"$(PARITY_SKILL_DIR)/scripts/verify_skill_install.sh" . $(PARITY_LANGUAGE) $(PARITY_PARSER)
+
+# Markdown lint for the user-facing docs (.rumdl.toml). Optional locally: skip
+# when rumdl is not installed, so the core gates never depend on it.
+docs-lint: sidecars
+	@if command -v rumdl >/dev/null 2>&1; then \
+		rumdl check README.md docs/; \
+	else \
+		echo "rumdl not installed; skipping markdown lint"; \
+	fi
 
 clean: sidecars
 	rm -rf ./temp/*

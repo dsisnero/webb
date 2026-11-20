@@ -27,12 +27,16 @@ described there.
     process-contract, 3 `_proxy`, 4 `start` session, 110 live-browser). Suite
     total: 239 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **75 `ported`, 0
-    `partial`, 3 `intentional_divergence`**. The pin has no receiver method IDs.
+    tests. All 78 function IDs have Crystal references: **76 `ported`, 0
+    `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
     functions, 1 type). Implementation statuses live in the curated ledger;
     `scopeMode` still needs a curated type mapping.
+  - Docs: `README.md` and `docs/*.md` re-verified against the built CLI on
+    2026-11-20 (every example captured from a live session; README borrows the
+    upstream README's wording and adds the verified sample output). `rumdl
+    check README.md docs/` is clean.
   - CLI harness: `spec/cli_spec.cr` builds `src/main.cr` into
     `temp/cli_spec/webb` once. `run_cli` uses an empty `RODNEY_HOME`;
     `run_cli_live` points at `browser_home/state.json`; `state_home`,
