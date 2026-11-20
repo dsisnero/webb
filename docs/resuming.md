@@ -5,9 +5,11 @@ back to a known-good state.
 
 ## 1. Read where we are
 
-- `plans/parity.md` — start at the **Where we are** block. It names the current
-  focus, the ordered "Next up" list, per-area chunk status, and any scoping
-  notes or gotchas, plus the last commit and current gate results. Do not
+- `plans/parity.md` — start at the **Where we are** block. It names the
+  current focus, the ordered "Next up" list, per-area chunk status, and any
+  scoping notes or gotchas, plus the last commit and current gate results.
+  Then work the **Queue after …** block top to bottom: one row per commit,
+  with the Go contract and whether its red is reachable from the CLI. Do not
   re-derive state from git history. Completed work is split out under
   `plans/history-*.md` (one file per area, linked from parity.md); open those
   only when changing behavior they describe.
@@ -52,17 +54,22 @@ export CHIASMUS_VERSION=v0.3.4
 PORT_PARSER=tree-sitter make inventory
 ```
 
-Check lint, specs, and the CLI build before changing anything. Run the inventory gate and
-compare any drift with the **Where we are** block; recorded upstream drift may
-be the next feature to fix. Confirm
+Check lint, specs, and the CLI build before changing anything. Run the
+inventory gate and compare any drift with the **Where we are** block; recorded
+upstream drift may be the next feature to fix. Confirm
 `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate's output and the
 same `backend` in the committed manifest metadata. The policy is recorded in
 `AGENTS.md`.
 
+Two examples are load-sensitive and fail on a busy host, passing on a re-run or
+in isolation: `waitstable`'s DOM-stability timing example and the
+`download`/`file` browser-parity examples. Check `uptime` before treating one
+as a regression.
+
 ## 4. Pick the next feature
 
-Take the first unchecked item in the **Next up** list (or the next `[ ]` item in
-the current phase). For each feature:
+Take the first item in the **Next up** list, then work the **Queue after …**
+block in order. For each feature:
 
 1. Read the upstream source under `vendor/rodney` and the nearest upstream
    tests (`main.go`, `main_test.go`).

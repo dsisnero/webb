@@ -12,27 +12,22 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the remaining 18 `partial` ledger rows. Every *documented*
-  divergence is closed —
-  `start`, `stop`, `connect`, `status`, `attr`, `assert`, the element checks,
-  the AX commands, `waitstable`, the `_proxy` helper, the page-info error
-  contract (`title`, `url`), the whole tab family (`pages`, `page`, `newpage`,
-  `closepage`), `back`, `forward`, `reload`, `clear-cache`, `html`, `text`,
-  `js`, `click`, `input`, `clear`, `hover`, and `focus` all match Go, and
-  `shard_issues/` is empty.
-- **Next up:**
-  1. **`cmdPDF`** (details below) — `failed to write PDF:` on the write path,
-     one commit.
-  2. Then `cmdDownload` and `cmdFile`, and waits (`cmdWait`, `cmdWaitLoad`,
-     `cmdWaitIdle`, `cmdScreenshotEl`).
-  3. **Helper rows with no CLI surface** — `formatAXNodeList`,
-     `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
-     `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
-     `proc_unix.go::setSysProcAttr`. Most need unit specs in `webb_spec.cr`
-     (`axValueStr`, `page_info`, `page_info?`), not CLI examples.
-  4. **Re-base the ledger** when `vendor/rodney` moves off `v0.4.0`.
-  5. **Optional:** a Chrome-through-the-proxy example against a real HTTPS
-     origin; today `_proxy` is proven at the socket level.
+- **Current focus:** `cmdPDF` (section below), then the **Queue after
+  `cmdPDF`** block — 18 `partial` ledger rows split into 7 CLI commands and 11
+  helpers, each with its Go contract and reachability recorded so a fresh
+  session can start without re-deriving state.
+- **Next up (in order):**
+  1. **`cmdPDF`** — `failed to write PDF:` on the write path (details below).
+  2. Files: **`cmdDownload`**, **`cmdFile`** (the latter has a real message
+     divergence on its stat branch).
+  3. Waits: **`cmdWait`** (lookup red), then spec-only **`cmdWaitLoad`** and
+     **`cmdWaitIdle`**.
+  4. **`cmdScreenshotEl`**.
+  5. The 11 helper rows — unit specs, no product code.
+  6. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
+     re-base on the next `vendor/rodney` pin.
+- **Optional:** a Chrome-through-the-proxy example against a real HTTPS
+  origin; today `_proxy` is proven at the socket level.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -122,8 +117,92 @@ Green shape: `begin`/`rescue`/`Webb.fatal("failed to generate PDF: …")` around
 `page.pdf`, then the same around the copy-write pair for
 `failed to write PDF: <cause>`.
 
+## Queue after `cmdPDF`
+
+Ordered so one commit closes one row. Each item records the Go contract and
+whether its red is reachable from the CLI; "spec only" items already match Go
+and just need the characterization that lets the row go `ported`.
+
+Resume with `make lint` + `make test` first (183 examples, 0 pending), then:
+
+```bash
+crystal spec spec/cli_spec.cr:<line>   # one example while iterating
+make test && make inventory            # full gates before the commit
+```
+
+Known flakes, not regressions: `waitstable`'s timing example
+(`waits about a second for DOM stability`) and the `download`/`file` browser
+parity examples fail under host load and pass on a re-run or in isolation.
+Check `uptime` before believing a red.
+
+### Files
+
+- **`cmdDownload`** (`main.go:836-899`) — five fatals, three reachable:
+  `element not found: %v` (bare `page.element` today), `download failed: %v`
+  around the page-context fetch, and `failed to write file: %v` around the
+  write. `failed to decode data URL:` and `failed to decode response:` need a
+  malformed fixture and stay structural. The suite already has `Webb.download`
+  browser parity, so the CLI example should cover `-` (raw bytes to stdout) and
+  the inferred filename instead of repeating the fetch path.
+- **`cmdFile`** (`main.go:792-834`) — `element not found: %v`,
+  `failed to read stdin:` / `failed to create temp file:` / `failed to write
+  temp file:` on the `-` branch, `failed to set file: %v`, and a **message
+  divergence** on the stat branch: Go prints
+  `error: file not found: stat <path>: no such file or directory`, Crystal
+  prints `error: file not found: <path>`. That stat text is the reachable red,
+  and fixing it means carrying the OS error, not just the path.
+
+### Waits
+
+- **`cmdWait`** (`main.go:1047-1057`) — `element not found: %v` then
+  `MustWaitVisible()`. Lookup red is reachable; proving the *wait* needs a
+  fixture element that appears late (extend the fixture server, do not sleep in
+  the spec).
+- **`cmdWaitLoad`** (`main.go:1059-1063`) and **`cmdWaitIdle`**
+  (`main.go:1069-1073`) — spec only: upstream checks no errors here, so a
+  characterization printing `Page loaded` / `Network idle` at exit 0 is the
+  whole contract.
+
+### Screenshot element
+
+- **`cmdScreenshotEl`** (`main.go:1172-1192`) — `element not found: %v`,
+  `screenshot failed: %v`, `failed to write screenshot: %v`. The lookup and the
+  write are both reachable (`screenshot-el` into a missing directory); the
+  capture branch is structural.
+
+### Helpers with no CLI surface
+
+These 11 rows are `partial` because nothing pins them, not because they are
+wrong. Unit specs close them without touching product code:
+
+- `formatAXNodeList`, `formatAXNodeDetail` — covered indirectly by the AX
+  command specs; want direct edge cases (empty list, missing name/role, the
+  JSON variant).
+- `formatProperties` — no coverage at all; Go prints `name: value` lines from
+  `axnode`'s properties.
+- `detectProxy` — environment priority (`HTTPS_PROXY` before `HTTP_PROXY`),
+  malformed URLs, and the no-proxy case; `spec/cli_spec.cr` already has the
+  proxy server helpers.
+- `nextAvailableFile` — `base`, `base-2`, `base-3` in a temp dir
+  (`Webb.next_available_file`).
+- `connectBrowser` — `start`/`status`/`connect` specs cover the success and
+  connect-error paths; needs a direct stale-`debug_url` example.
+- `loadState`, `saveState`, `removeState` — `start`/`stop` cover them
+  indirectly; `load_state` wants the nil-on-garbage contract, `save_state` the
+  write-failure fatal, `remove_state` the ignores-removal-errors branch.
+- `init` — `Webb::DEFAULT_TIMEOUT` is the load-time equivalent of Go's
+  `init()`; the row wants one example per env case (unset, valid, garbage) plus
+  the SIGPIPE verification below.
+- `proc_unix.go::setSysProcAttr` — Crystal parity is structural (no `Setsid`);
+  needs a note-level justification plus the existing process specs that prove
+  the helper survives `stop`.
+
 ## Open ledger hygiene
 
+- [ ] **Verify SIGPIPE handling for `init`** — Go's second `init()`
+  (`main.go:455-457`) ignores `SIGPIPE`, so `webb js` piped into `head` exits 0
+  instead of dying on a closed stdout. Pin it with a spec (`webb js ... | head
+  -1` style) before flipping the row.
 - [ ] **Audit `cmdOpen`'s ignored upstream errors** — Go discards both the
       `browser.Pages()` and `page.Info()` errors in `cmdOpen`
       (`pages, _ :=`, `info, _ :=`, `vendor/rodney/main.go:549-568`), so a
