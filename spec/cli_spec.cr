@@ -1640,6 +1640,39 @@ describe "CLI against a live browser" do
     result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
+  # Go's cmdHover (main.go:1021-1032) fatals the usage line without a selector
+  # and `element not found: <cause>` for a failed lookup, then runs
+  # MustHover() (a panic on failure) and prints `Hovered`.
+  it "hovers an element" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("hover", "#topic")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Hovered\n")
+  end
+
+  it "fails with the usage line when hover has no selector" do
+    result = run_cli_live("hover")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb hover <selector>\n")
+  end
+
+  it "fails with element not found when hover matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["hover", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do

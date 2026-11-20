@@ -806,7 +806,13 @@ module Webb
         Webb.fatal("usage: webb hover <selector>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
+      # Go wraps any Element() error: `fatal("element not found: %v", err)`
+      # (main.go:1026-1029); MustHover() itself stays bare like upstream.
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
       el.hover
       puts "Hovered"
     end

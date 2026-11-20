@@ -511,4 +511,16 @@ spec, the ledger update, and this write-up.
         selector pinned to
         `error: element not found: context deadline exceeded`.
       - Ledger: `cmdClear` → `ported`.
+- [x] **Give `hover` Go's element-not-found fatal** — `cmd_hover` looked the
+      element up bare, so a selector that matched nothing escaped as an
+      unhandled exception (exit 1) where Go prints
+      `error: element not found: <cause>` and exits 2 (`main.go:1026-1029`).
+      - Red was real: `hover "#missing"` exited **1** (expected 2).
+      - Green: the `cmd_attr` element block; `el.hover` stays bare to mirror
+        `MustHover()`'s panic.
+      - Coverage: `hover "#topic"` prints `Hovered` through rod's
+        `wait_interactable` + mouse move, the usage line with no selector, and
+        the missing selector pinned to
+        `error: element not found: context deadline exceeded`.
+      - Ledger: `cmdHover` → `ported`.
 

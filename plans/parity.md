@@ -12,18 +12,18 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the remaining 20 `partial` ledger rows. Every *documented*
+- **Current focus:** the remaining 19 `partial` ledger rows. Every *documented*
   divergence is closed —
   `start`, `stop`, `connect`, `status`, `attr`, `assert`, the element checks,
   the AX commands, `waitstable`, the `_proxy` helper, the page-info error
   contract (`title`, `url`), the whole tab family (`pages`, `page`, `newpage`,
   `closepage`), `back`, `forward`, `reload`, `clear-cache`, `html`, `text`,
-  `js`, `click`, `input`, and `clear` all match Go, and `shard_issues/` is
-  empty again.
+  `js`, `click`, `input`, `clear`, and `hover` all match Go, and
+  `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdHover`** (details below) — `element not found:` / `hover failed:`,
-     one commit.
-  2. Then `cmdFocus`, files (`cmdPDF`, `cmdDownload`, `cmdFile`), and waits
+  1. **`cmdFocus`** (details below) — `element not found:` on the lookup, one
+     commit.
+  2. Then files (`cmdPDF`, `cmdDownload`, `cmdFile`), and waits
      (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`, `cmdScreenshotEl`).
   3. **Helper rows with no CLI surface** — `formatAXNodeList`,
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
@@ -37,11 +37,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 105 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 76 live-browser). Suite
-    total: 177 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 108 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 79 live-browser). Suite
+    total: 180 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **56 `ported`, 20
+    tests. All 78 function IDs have Crystal references: **57 `ported`, 19
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -83,7 +83,7 @@ described there.
 - **Last port commit:** `port: adopt rod's select_all_text fix for input and
   clear` (`ebbfaa0`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (177 examples), `make build` (CLI), `make inventory` (82 curated /
+  (180 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -101,23 +101,23 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdHover`
+## Next feature: `cmdFocus`
 
-Go (`vendor/rodney/main.go:1021-1032`) fatals `usage: rodney hover <selector>`
-without an argument and `element not found: %v` when `page.Element` fails, then
-runs `el.MustHover()` (a panic on failure, like the other `Must*` calls) and
-prints `Hovered`.
+Go (`vendor/rodney/main.go:1034-1045`) is `cmdHover`'s twin: usage fatal
+without a selector, `fatal("element not found: %v", err)` when
+`page.Element` fails, then `el.MustFocus()` (a panic on failure) and
+`Focused`.
 
-Crystal's `cmd_hover` looks the element up bare, so a selector that matches
+Crystal's `cmd_focus` looks the element up bare, so a selector that matches
 nothing escapes as an unhandled exception (exit 1) where Go prints
 `error: element not found: <cause>` and exits 2.
 
-Red proof: **reachable** — `webb hover "#missing"` with `ROD_TIMEOUT=0.5` exits
-1 today; the spec wants exit 2 with Go's message. Pair it with
-`hover "#topic"` printing `Hovered`, whose `MustHover` runs rod's
-`WaitVisible`/`WaitStable` path.
+Red proof: **reachable** — `webb focus "#missing"` with `ROD_TIMEOUT=0.5`
+exits 1 today; the spec wants exit 2 with Go's message. Pair it with
+`focus "#topic"` printing `Focused`, which exercises rod's `focus` +
+wait-enabled path.
 
-Green shape: the `cmd_attr` element block; `el.hover` stays bare.
+Green shape: the `cmd_attr` element block; `el.focus` stays bare.
 
 ## Open ledger hygiene
 
