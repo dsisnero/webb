@@ -76,8 +76,8 @@ described there.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
-- **Last port commit:** `port: pin the AX formatters and drop a zero
-  backendNodeId` (`3360a6a`).
+- **Last port commit:** `port: pin detectProxy and match Go's env walk and
+  host:port text` (`1a59586`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
   (224 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
