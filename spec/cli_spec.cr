@@ -1282,6 +1282,22 @@ describe "CLI against a live browser" do
     run_cli_live("js", "document.body.dataset.marker").stdout.should eq("undefined\n")
   end
 
+  # Go's cmdClearCache (main.go:612-618) sends Network.clearBrowserCache, fatals
+  # as `clear cache failed: <cause>` when the call fails, then prints
+  # `Browser cache cleared`.
+  it "clears the browser cache" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("clear-cache")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Browser cache cleared\n")
+
+    # Clearing the cache does not disturb the current page.
+    run_cli_live("title").stdout.should eq("#{CLISpecHarness::FIXTURE_TITLE}\n")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

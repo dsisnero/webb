@@ -585,7 +585,12 @@ module Webb
 
     private def self.cmd_clear_cache(args : Array(String))
       _, _, page = Webb.with_page
-      Cdp::Network::ClearBrowserCache.new.call(page)
+      begin
+        Cdp::Network::ClearBrowserCache.new.call(page)
+      rescue ex
+        # Go: `fatal("clear cache failed: %v", err)` (main.go:613-615).
+        Webb.fatal("clear cache failed: #{ex.message}")
+      end
       puts "Browser cache cleared"
     end
 

@@ -415,3 +415,14 @@ spec, the ledger update, and this write-up.
         around the hard-branch call, leaving `page.reload` unguarded as Go
         leaves `MustReload`.
       - Ledger: `cmdReload` → `ported`.
+- [x] **Give `clear-cache` Go's `clear cache failed:` fatal** —
+      `cmd_clear_cache` sent `Network.clearBrowserCache` bare, so a failed call
+      escaped as an unhandled exception where Go prints
+      `error: clear cache failed: <cause>` and exits 2 (`main.go:613-615`).
+      - No red was reachable (the session is proven before the command runs, and
+        upstream has no test for this command), so the characterization went in
+        first: `clear-cache` prints `Browser cache cleared`, and the page is
+        still usable afterwards (`title` still answers). Green before and after.
+      - Green: `begin`/`rescue ex`/`Webb.fatal("clear cache failed: …")`
+        around the CDP call.
+      - Ledger: `cmdClearCache` → `ported`.
