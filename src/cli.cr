@@ -1035,7 +1035,10 @@ module Webb
 
     private def self.cmd_wait_idle(args : Array(String))
       _, _, page = Webb.with_page
-      page.wait_request_idle(500.milliseconds).call
+      # Go's MustWaitIdle() is WaitIdle(time.Minute) (main.go:1069-1073): a
+      # window.requestIdleCallback promise, not a network-idle wait. A failure
+      # escapes as an exception like every Go Must*.
+      page.wait_idle(1.minute)
       puts "Network idle"
     end
 

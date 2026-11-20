@@ -631,3 +631,18 @@ spec, the ledger update, and this write-up.
         argument (`waitload ignored`) still exits 0 with the same line, matching
         Go's ignored `args`.
       - Ledger: `cmdWaitLoad` → `ported`.
+- [x] **Give `waitidle` Go's `MustWaitIdle` semantics** — the row was filed as
+      spec-only, but `cmd_wait_idle` called
+      `page.wait_request_idle(500.milliseconds).call`. Go's
+      `MustWaitIdle()` is `WaitIdle(time.Minute)` (`main.go:1069-1073`), a
+      `window.requestIdleCallback` promise, so the port waited for the network
+      instead of the browser's idle callback.
+      - Red was real and large: on `/slow-page` (requests in flight ~4s) the
+        command took **10.9s**, while the spec's `requestIdleCallback` contract
+        must return in under 2s.
+      - Green: `page.wait_idle(1.minute)`; a failure escapes as an exception
+        like every Go Must*.
+      - Coverage: `open /slow-page` then `waitidle` prints `Network idle` at
+        exit 0 in under 2s (a network wait cannot manage that), and
+        `waitidle ignored` still exits 0 with the same line.
+      - Ledger: `cmdWaitIdle` → `ported`.

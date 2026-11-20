@@ -2316,6 +2316,30 @@ describe "CLI against a live browser" do
     ignored.stdout.should eq("Page loaded\n")
   end
 
+  # Go's cmdWaitIdle (main.go:1069-1073) is MustWaitIdle() =
+  # WaitIdle(time.Minute): it awaits window.requestIdleCallback, not network
+  # idle. The slow fixture keeps requests in flight for ~4s after load, so a
+  # network wait blocks through all of it while requestIdleCallback returns as
+  # soon as the main thread is idle. Extra arguments are ignored like Go.
+  it "waits for requestIdleCallback, like MustWaitIdle()" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.slow_fixture_url).status.should eq(0)
+
+    started = Time.instant
+    result = run_cli_live("waitidle")
+    elapsed = Time.instant - started
+
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Network idle\n")
+    elapsed.should be < 2.seconds
+
+    ignored = run_cli_live("waitidle", "ignored")
+    ignored.status.should eq(0)
+    ignored.stderr.should be_empty
+    ignored.stdout.should eq("Network idle\n")
+  end
+
   it "waits about a second for DOM stability, like MustWaitStable()" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

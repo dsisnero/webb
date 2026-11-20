@@ -12,17 +12,15 @@ described there.
 
 ## Where we are
 
-- **Current focus:** **`cmdWaitIdle`** (Waits block below) — the ledger row
-  said spec-only, but the implementation waits on the wrong rod primitive, then
-  `cmdScreenshotEl` — 13 `partial` ledger rows split into 1 CLI command and the
-  11 helpers, each with its Go contract and reachability recorded so a fresh
-  session can start without re-deriving state.
+- **Current focus:** **`cmdScreenshotEl`** (Screenshot element block below),
+  then the 12 remaining `partial` rows: that command plus the 11 helpers, each
+  with its Go contract and reachability recorded so a fresh session can start
+  without re-deriving state.
 - **Next up (in order):**
-  1. **`cmdWaitIdle`** — `MustWaitIdle()` is `WaitIdle(time.Minute)`
-     (`requestIdleCallback`), not `WaitRequestIdle`.
-  2. **`cmdScreenshotEl`**.
-  3. The 11 helper rows — unit specs, no product code.
-  4. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
+  1. **`cmdScreenshotEl`** — lookup and write are reachable; capture is
+     structural.
+  2. The 11 helper rows — unit specs, no product code.
+  3. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
      re-base on the next `vendor/rodney` pin.
 - **Optional:** a Chrome-through-the-proxy example against a real HTTPS
   origin; today `_proxy` is proven at the socket level.
@@ -30,11 +28,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 74 examples. `spec/cli_spec.cr`: 130 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 101 live-browser). Suite
-    total: 204 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 74 examples. `spec/cli_spec.cr`: 131 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 102 live-browser). Suite
+    total: 205 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **63 `ported`, 13
+    tests. All 78 function IDs have Crystal references: **64 `ported`, 12
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -81,7 +79,7 @@ described there.
 - **Last port commit:** `port: give wait Go's element-not-found fatal and prove
   MustWaitVisible` (`39877cd`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (204 examples), `make build` (CLI), `make inventory` (82 curated /
+  (205 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -105,7 +103,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (204 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (205 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -118,16 +116,12 @@ Known flakes, not regressions: `waitstable`'s timing example
 browser parity examples fail under host load and pass on a re-run or in
 isolation. Check `uptime` before believing a red.
 
-### Wait idle
+### Waits
 
-- **`cmdWaitIdle`** (`main.go:1069-1073`) — Go calls `MustWaitIdle()`, which is
-  `WaitIdle(time.Minute)`: a `window.requestIdleCallback` promise, *not*
-  `WaitRequestIdle`. Crystal currently calls
-  `page.wait_request_idle(500.milliseconds).call`, so it waits for the network
-  instead of the browser's idle callback. Red proof: on `/slow-page` (requests
-  in flight for ~4s) the current command blocks for the whole network burst,
-  while Go's contract returns as soon as the main thread is idle. Fix:
-  `page.wait_idle(1.minute)`. Extra arguments are ignored like Go.
+Both remaining wait rows are closed: `cmdWait` (lookup fatal + the `/late-page`
+proof) and `cmdWaitIdle` (`page.wait_idle(1.minute)`, Go's
+`WaitIdle(time.Minute)` rather than `WaitRequestIdle`). See
+`plans/history-cli.md` before changing either.
 
 ### Screenshot element
 
