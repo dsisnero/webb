@@ -12,13 +12,13 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the last `partial` row, `setSysProcAttr` (**Helpers with
-  no CLI surface** below) — a note-level justification for the structural port.
+- **Current focus:** hygiene only — no `partial` ledger rows remain, so the next
+  work is `cmdOpen`'s ignored upstream errors, then the ledger re-base when
+  `vendor/rodney` moves off `v0.4.0`.
 - **Next up (in order):**
-  1. `setSysProcAttr` — document why Crystal needs no `Setsid`, backed by the
-     existing process specs.
-  2. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
-     `vendor/rodney` pin.
+  1. `cmdOpen`'s ignored errors — match upstream or record the divergence.
+  2. Ledger re-base on the next `vendor/rodney` pin.
+  3. Optional: a Chrome-through-the-proxy example against a real HTTPS origin.
 - **Optional:** a Chrome-through-the-proxy example against a real HTTPS
   origin; today `_proxy` is proven at the socket level.
 - **Status by area:**
@@ -29,8 +29,8 @@ described there.
     process-contract, 3 `_proxy`, 4 `start` session, 110 live-browser). Suite
     total: 239 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **75 `ported`, 1
-    `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
+    tests. All 78 function IDs have Crystal references: **75 `ported`, 0
+    `partial`, 3 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
     functions, 1 type). Implementation statuses live in the curated ledger;
@@ -188,6 +188,13 @@ Reference for what is already ported; do not re-open without a divergence:
   command like Go (whose ignored `fmt` errors keep the command's own status).
   Pinned by `spec/cli_spec.cr` → "finishes normally when stdout is closed, like
   Go's ignored SIGPIPE".
+- `proc_unix.go::setSysProcAttr` gives Go's detached `_proxy` helper its own
+  session (`SysProcAttr{Setsid: true}`). Crystal's `Process.new` has no setsid
+  option, and `start_auth_proxy` spawns the helper with closed stdin and
+  `/dev/null` output, so it already outlives `start`; the auth-proxy spec sees
+  its PID alive after the parent exits and gone after `stop`. Residual
+  difference: a signal to the parent's process group (Ctrl-C during `start`)
+  reaches the helper too, where Go's Setsid shields it.
 - `webb file` resolves the upload path with `File.expand_path` before handing it
   to Chrome, so a relative path works from any cwd; Go forwards `args[1]`
   verbatim and Chrome resolves it against its own process. Pinned by

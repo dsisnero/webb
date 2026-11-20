@@ -762,3 +762,17 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         30s default), and `ROD_TIMEOUT=0.5` returns inside a 10s budget with
         `element not found: context deadline exceeded`.
       - Ledger: `init` → `ported`.
+
+- [x] **Close `setSysProcAttr` as an intentional divergence** — Go's
+      `proc_unix.go` sets `SysProcAttr{Setsid: true}` on the detached `_proxy`
+      helper. Crystal's `Process.new` has no setsid option, but the helper needs
+      none: `start_auth_proxy` spawns it with closed stdin and `/dev/null`
+      output, so it holds no pipes and survives the parent. The existing
+      "starts the auth proxy helper and stops it with the session" spec proves
+      the PID is alive after `start` returns and gone after `stop`.
+      - Residual difference recorded in `plans/parity.md`: Ctrl-C during
+        `start` (a signal to the parent's process group) also reaches the
+        helper, where Go's `Setsid` shields it.
+      - Ledger: `setSysProcAttr` → `intentional_divergence`. That clears the
+        last `partial` row: 75 `ported`, 0 `partial`, 3
+        `intentional_divergence`.
