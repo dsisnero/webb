@@ -188,6 +188,34 @@ module Webb
     raise "failed to get page info: #{ex.message}"
   end
 
+  # page_info? mirrors Go's `info, _ := p.Info()` in cmdPages (main.go:1213):
+  # a page that cannot report its info prints (unknown) instead of aborting the
+  # listing. Command code that fatals on the failure uses page_info instead.
+  def self.page_info?(page : Rod::Page) : Cdp::Target::TargetInfo?
+    page.info
+  rescue
+    nil
+  end
+
+  # format_page_list renders `webb pages` like Go's cmdPages loop
+  # (main.go:1208-1219): `*` marks the active page and a page whose Info fails
+  # prints `(unknown)`.
+  def self.format_page_list(pages : Enumerable(Rod::Page), active_page : Int32) : String
+    io = IO::Memory.new
+    idx = 0
+    pages.each do |page|
+      io << (idx == active_page ? '*' : ' ') << " [" << idx << "] "
+      if info = page_info?(page)
+        io << info.title << " - " << info.url
+      else
+        io << "(unknown)"
+      end
+      io << '\n'
+      idx += 1
+    end
+    io.to_s
+  end
+
   # parse_assert_args separates flags (--message/-m) from positional args.
   # Returns (expression, expected, message). expected is nil for truthy mode.
   def self.parse_assert_args(args : Array(String)) : Tuple(String, String?, String)

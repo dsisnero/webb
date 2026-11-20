@@ -12,14 +12,14 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 34 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 33 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
-  `_proxy` helper, and the page-info error contract (`title`, `url`) all match
-  Go, and `shard_issues/` is empty.
+  `_proxy` helper, the page-info error contract (`title`, `url`), and `pages`
+  all match Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. **Tab commands**, cheapest first, each one commit: `cmdPages` (details
-     below), then `cmdPage`, `cmdNewPage`, `cmdClosePage`.
+  1. **`cmdPage`**, then `cmdNewPage` and `cmdClosePage` (details below) — the
+     rest of the tab family, one commit each.
   2. **Navigation** (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), then
      page content (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`,
      `cmdInput`, `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`,
@@ -29,7 +29,7 @@ described there.
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
      `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
      `proc_unix.go::setSysProcAttr`. Most need unit specs in `webb_spec.cr`
-     (`axValueStr`, `page_info`), not CLI examples.
+     (`axValueStr`, `page_info`, `page_info?`), not CLI examples.
   4. **Re-base the ledger** when `vendor/rodney` moves off `v0.4.0`.
   5. **Optional:** a Chrome-through-the-proxy example against a real HTTPS
      origin; today `_proxy` is proven at the socket level.
@@ -37,11 +37,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 68 examples. `spec/cli_spec.cr`: 62 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 33 live-browser). Suite
-    total: 130 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 67 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 38 live-browser). Suite
+    total: 139 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **42 `ported`, 34
+    tests. All 78 function IDs have Crystal references: **43 `ported`, 33
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -84,7 +84,7 @@ described there.
   (`f0ac160`), which follows `port: give title Go's page-info error contract`
   (`5a351aa`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (130 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (139 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -101,32 +101,38 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdPages`
+## Next feature: `cmdPage`
 
-Go (`vendor/rodney/main.go:1195-1220`) loads state, connects, then fatals with
-its own cause per step: `%v` for `loadState`/`connectBrowser` and
-`failed to list pages: <cause>` for `browser.Pages()`. It also ignores
-`p.Info()`'s error: a page that cannot report info prints
-`<marker> [<i>] (unknown)`, and the active page is marked with `*`.
+Go (`vendor/rodney/main.go:1222-1251`) parses the index with `strconv.Atoi`
+first and fatals `invalid index: <cause>`; Crystal's `cmd_page` uses
+`args[0].to_i`, which silently turns `abc` into index 0 — so
+`webb page abc` switches pages instead of failing, and the existing
+`rescue ArgumentError` branch is dead code. Everything else is collapsed by the
+same bare `rescue` pattern `cmdPages` had: Go fatals `%v` for
+`loadState`/`connectBrowser`, `failed to list pages: <cause>` for
+`browser.Pages()`, and `failed to save state: <cause>` for `saveState`; Crystal
+answers `failed to switch page` for all of them. Finally Go prints
+`Switched to [%d] %s - %s` only when `Info()` succeeds (`info, _ :=`) — the
+`Webb.page_info?` seam just landed covers that branch.
 
-Crystal's `cmd_pages` (`src/cli.cr`) wraps the whole body in one bare `rescue`
-and fatals `failed to list pages` with **no cause** — wrong message for a state
-or connect failure, and it also swallows an `info` failure that upstream would
-print as `(unknown)`.
+Green shape: parse with `String#to_i?` (or an explicit `Integer` parse) and fatal
+`invalid index: <cause>` the way Go's `Atoi` error reads, keep the bounds fatal
+(`page index %d out of range (0-%d)`), split the per-step fatals, and print
+through `page_info?`.
 
-Green shape: mirror the ported commands — `Webb.load_state`/`connect_browser`
-keep their existing fatals, `browser.pages` gets its own
-`failed to list pages: <cause>` rescue, and `page.info` failures print the
-`(unknown)` line (a `Webb.page_info?`-style helper returning nil is the cheap
-seam, and it must not disturb `Webb.page_info`'s CLI contract).
-
-Related, same family, separate commits: `cmdPage` parses with `args[0].to_i`
-instead of Go's `strconv.Atoi` (so `webb page abc` silently becomes index 0,
-and its `rescue ArgumentError` never fires), `cmdNewPage` swallows
-`browser.Pages`' error, and `cmdClosePage` has the same `to_i` gap.
+Red proofs: `webb page abc` (with a live two-page session) exits 0 today and
+switches to 0; a stale `debug_url` prints `error: failed to switch page` instead
+of the connect cause.
 
 ## Open ledger hygiene
 
+- [ ] **Audit `cmdOpen`'s ignored upstream errors** — Go discards both the
+      `browser.Pages()` and `page.Info()` errors in `cmdOpen`
+      (`pages, _ :=`, `info, _ :=`, `vendor/rodney/main.go:549-568`), so a
+      listing failure falls through to "create a page" and an info failure
+      prints nothing; Crystal fatals `failed to list pages: <cause>` and raises
+      on the info failure. Either match upstream or record the divergence and
+      adjust the row's note.
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
       one commit; never append across releases.

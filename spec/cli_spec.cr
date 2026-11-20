@@ -970,6 +970,70 @@ describe "CLI against a live browser" do
     run_cli_live("url").stdout.should eq("#{CLISpecSupport.harness.fixture_url}\n")
   end
 
+  # Go's cmdPages fatals per step (main.go:1195-1220): loadState and
+  # connectBrowser with %v, browser.Pages with `failed to list pages: %v`.
+  it "reports the missing session for pages" do
+    result = run_cli("pages")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: no browser session (run 'webb start' first)\n")
+  end
+
+  it "reports a corrupt state file for pages" do
+    home = CLISpecSupport.harness.raw_state_home("pages_corrupt_home", "{not json")
+    result = CLISpecSupport.harness.run(["pages"], home)
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: corrupt state file: ")
+  end
+
+  # Go's cmdPages fatals `%v` on a connect failure (main.go:1200-1203); the
+  # `failed to connect to browser (is it still running?)` wrapper belongs to
+  # connectBrowser's own row, so this asserts the fatal shape, not the text.
+  it "fails cleanly when the browser cannot be reached" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("pages_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+
+    result = harness.run(["pages"], home)
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should_not contain("Unhandled exception")
+  end
+
+  it "lists the active page with a marker, title, and URL" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("pages")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("* [0] CLI Fixture - #{harness.fixture_url}\n")
+  end
+
+  it "marks only the active page when several are open" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("newpage", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("pages")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+
+    # Chrome does not promise target order, so the marker is checked against
+    # the index `newpage` saved rather than against a fixed position.
+    lines = result.stdout.lines
+    lines.size.should eq(2)
+    active = harness.read_state(harness.browser_home).active_page
+    lines[active].should eq("* [#{active}] CLI Fixture - #{harness.fixture_url}")
+    lines.each_with_index do |line, idx|
+      next if idx == active
+      line.should eq("  [#{idx}] CLI Fixture - #{harness.fixture_url}")
+    end
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

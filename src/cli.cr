@@ -958,17 +958,19 @@ module Webb
 
     private def self.cmd_pages(args : Array(String))
       state = Webb.load_state
-      browser = Webb.connect_browser(state)
-      pages = browser.pages
-      page_idx = 0
-      pages.each do |cur_page|
-        marker = page_idx == state.active_page ? "*" : " "
-        info = cur_page.info
-        puts "#{marker} [#{page_idx}] #{info.title} - #{info.url}"
-        page_idx += 1
+      browser = begin
+        Webb.connect_browser(state)
+      rescue ex
+        # Go: `fatal("%v", err)` (main.go:1200-1203); the connect wrapper text
+        # belongs to connectBrowser's own port row.
+        Webb.fatal(ex.message.to_s)
       end
-    rescue
-      Webb.fatal("failed to list pages")
+      pages = begin
+        browser.pages
+      rescue ex
+        Webb.fatal("failed to list pages: #{ex.message}")
+      end
+      print Webb.format_page_list(pages, state.active_page)
     end
 
     private def self.cmd_page(args : Array(String))

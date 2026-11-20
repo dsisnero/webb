@@ -311,3 +311,20 @@ spec, the ledger update, and this write-up.
         URL of the active page") keeps the happy path; `.page_info` already
         covers the wrapped failure.
       - Ledger: `cmdURL` → `ported`.
+- [x] **Give `pages` Go's per-step errors and `(unknown)` fallback** —
+      `cmd_pages` wrapped its whole body in one bare `rescue`, so a state,
+      connect, or listing failure all became `failed to list pages` with no
+      cause, and a page whose `Info()` failed aborted the listing instead of
+      printing `(unknown)` as Go does (`main.go:1195-1220`).
+      - Red: `webb pages` against a stale state printed `error: failed to list
+        pages`; `.page_info?` and `.format_page_list` did not exist.
+      - Green: `Webb.page_info?` mirrors Go's ignored `Info()` error,
+        `Webb.format_page_list` renders the `*` marker, Go's marker-plus-space
+        inactive prefix, and the `(unknown)` fallback, and `cmd_pages` fatals per
+        step (`%v` for state/connect, `failed to list pages: <cause>` for the
+        listing).
+      - Coverage: missing, corrupt, and unreachable state; a one-page listing
+        with marker, title, and URL; the active marker moving to page 1 after
+        `newpage`; and unit examples for `.format_page_list`/`.page_info?` using
+        stub pages that return or raise their `TargetInfo`.
+      - Ledger: `cmdPages` → `ported`.

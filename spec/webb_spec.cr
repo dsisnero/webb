@@ -257,6 +257,23 @@ private class FailingInfoPage < Rod::Page
   end
 end
 
+# InfoStubPage returns a fixed TargetInfo, or raises like a page whose target
+# went away, so `pages` formatting can be checked without a browser.
+private class InfoStubPage < Rod::Page
+  def initialize(@stub_info : Cdp::Target::TargetInfo?, @failure : String = "")
+    super(Rod::Browser.new, Rod::TargetID.new("info-stub-target"))
+  end
+
+  def info : Cdp::Target::TargetInfo
+    raise @failure unless @failure.empty?
+    @stub_info || raise "no info"
+  end
+end
+
+private def stub_target_info(title : String, url : String) : Cdp::Target::TargetInfo
+  Cdp::Target::TargetInfo.new("stub-target", "page", title, url, true, false)
+end
+
 describe Webb do
   home_dir = ENV["HOME"]? || ""
 
@@ -387,6 +404,43 @@ describe Webb do
       expect_raises(Exception, "failed to get page info: target closed") do
         Webb.page_info(FailingInfoPage.new)
       end
+    end
+
+    # Go's cmdPages ignores Info()'s error (`info, _ := p.Info()`) and prints
+    # `(unknown)` for a page that cannot report it (main.go:1213-1218).
+    it "returns nil when a page cannot report info" do
+      Webb.page_info?(FailingInfoPage.new).should be_nil
+    end
+
+    it "returns the info when the page reports it" do
+      page = navigate_to("/")
+      begin
+        Webb.page_info?(page).try(&.title).should eq("Test Page")
+      ensure
+        page.close
+      end
+    end
+  end
+
+  # Go's cmdPages prints `%s [%d] %s - %s` per page and falls back to
+  # `%s [%d] (unknown)` when Info() fails (main.go:1208-1219).
+  describe ".format_page_list" do
+    it "marks the active page and prints title and URL" do
+      pages = [
+        InfoStubPage.new(stub_target_info("One", "http://one/")),
+        InfoStubPage.new(stub_target_info("Two", "http://two/")),
+      ]
+
+      Webb.format_page_list(pages, 1).should eq("  [0] One - http://one/\n* [1] Two - http://two/\n")
+    end
+
+    it "prints (unknown) for a page that cannot report info" do
+      pages = [
+        InfoStubPage.new(stub_target_info("One", "http://one/")),
+        InfoStubPage.new(nil, "target closed"),
+      ]
+
+      Webb.format_page_list(pages, 0).should eq("* [0] One - http://one/\n  [1] (unknown)\n")
     end
   end
 
