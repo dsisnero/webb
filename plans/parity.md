@@ -12,17 +12,15 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the 11 helper rows in the **Helpers with no CLI surface**
-  block — every remaining `partial` row is a helper, and each closes with unit
-  specs and no product-code change (except any divergence the specs expose).
+- **Current focus:** the 8 helper rows left in the **Helpers with no CLI
+  surface** block — each closes with unit specs and no product-code change
+  (except any divergence the specs expose).
 - **Next up (in order):**
-  1. `formatAXNodeList`, `formatAXNodeDetail`, `formatProperties` — direct AX
-     formatting edges.
-  2. `detectProxy`, `nextAvailableFile`, `connectBrowser` — environment,
+  1. `detectProxy`, `nextAvailableFile`, `connectBrowser` — environment,
      filename, and stale-`debug_url` paths.
-  3. `loadState`, `saveState`, `removeState`, `init`, `setSysProcAttr` — state
+  2. `loadState`, `saveState`, `removeState`, `init`, `setSysProcAttr` — state
      I/O, env, and the SIGPIPE proof.
-  4. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
+  3. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
      `vendor/rodney` pin.
 - **Optional:** a Chrome-through-the-proxy example against a real HTTPS
   origin; today `_proxy` is proven at the socket level.
@@ -30,11 +28,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 74 examples. `spec/cli_spec.cr`: 135 examples (22
+  - `spec/webb_spec.cr`: 81 examples. `spec/cli_spec.cr`: 135 examples (22
     process-contract, 3 `_proxy`, 4 `start` session, 106 live-browser). Suite
-    total: 209 examples, 0 pending, 0 failures.
+    total: 216 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **65 `ported`, 11
+    tests. All 78 function IDs have Crystal references: **68 `ported`, 8
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -81,7 +79,7 @@ described there.
 - **Last port commit:** `port: give screenshot-el Go's element/write fatals and
   PNG proof` (`5b59062`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (209 examples), `make build` (CLI), `make inventory` (82 curated /
+  (216 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -105,7 +103,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (209 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (216 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -127,14 +125,9 @@ proof) and `cmdWaitIdle` (`page.wait_idle(1.minute)`, Go's
 
 ### Helpers with no CLI surface
 
-These 11 rows are `partial` because nothing pins them, not because they are
+These 8 rows are `partial` because nothing pins them, not because they are
 wrong. Unit specs close them without touching product code:
 
-- `formatAXNodeList`, `formatAXNodeDetail` — covered indirectly by the AX
-  command specs; want direct edge cases (empty list, missing name/role, the
-  JSON variant).
-- `formatProperties` — no coverage at all; Go prints `name: value` lines from
-  `axnode`'s properties.
 - `detectProxy` — environment priority (`HTTPS_PROXY` before `HTTP_PROXY`),
   malformed URLs, and the no-proxy case; `spec/cli_spec.cr` already has the
   proxy server helpers.

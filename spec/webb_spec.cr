@@ -459,6 +459,102 @@ describe Webb do
     end
   end
 
+  # Go's formatProperties (main.go:1749-1775): boolean-ish names only when
+  # true, `level=<v>` always, and `name=value` only when the value is non-empty.
+  describe ".format_properties" do
+    it "returns an empty string without properties" do
+      Webb.format_properties(nil).should eq("")
+      Webb.format_properties([] of Cdp::Accessibility::Property).should eq("")
+    end
+
+    it "keeps true booleans, always shows level, and skips empty name=value pairs" do
+      props = [
+        Cdp::Accessibility::Property.from_json(%({"name":"focusable","value":{"type":"boolean","value":true}})),
+        Cdp::Accessibility::Property.from_json(%({"name":"disabled","value":{"type":"boolean","value":false}})),
+        Cdp::Accessibility::Property.from_json(%({"name":"level","value":{"type":"integer","value":2}})),
+        Cdp::Accessibility::Property.from_json(%({"name":"orientation","value":{"type":"token","value":"vertical"}})),
+        Cdp::Accessibility::Property.from_json(%({"name":"live","value":{"type":"token","value":""}})),
+        Cdp::Accessibility::Property.from_json(%({"name":"unknown-prop","value":{"type":"token","value":"x"}})),
+      ]
+      Webb.format_properties(props).should eq("focusable, level=2, orientation=vertical")
+    end
+  end
+
+  # Go's formatAXNodeList (main.go:1786-1806): one line per node with the role in
+  # brackets, the name %q-quoted when present, backendNodeId when non-zero, and
+  # the formatProperties summary in parentheses.
+  describe ".format_ax_node_list" do
+    it "formats one line per node with role, name, backendNodeId, and properties" do
+      nodes = [
+        Cdp::Accessibility::Node.from_json(%({
+          "nodeId": "1",
+          "ignored": false,
+          "role": {"type": "role", "value": "button"},
+          "name": {"type": "computedString", "value": "Submit"},
+          "backendDOMNodeId": 42,
+          "properties": [
+            {"name": "focusable", "value": {"type": "boolean", "value": true}}
+          ]
+        })),
+        Cdp::Accessibility::Node.from_json(%({
+          "nodeId": "2",
+          "ignored": false,
+          "role": {"type": "role", "value": "StaticText"}
+        })),
+      ]
+
+      Webb.format_ax_node_list(nodes).should eq(%([button] "Submit" backendNodeId=42 (focusable)\n[StaticText]\n))
+    end
+
+    it "omits backendNodeId when it is zero, like Go's != 0 check" do
+      node = Cdp::Accessibility::Node.from_json(%({
+        "nodeId": "1",
+        "ignored": false,
+        "role": {"type": "role", "value": "generic"},
+        "backendDOMNodeId": 0
+      }))
+
+      Webb.format_ax_node_list([node]).should eq("[generic]\n")
+    end
+
+    it "returns an empty string for no nodes" do
+      Webb.format_ax_node_list([] of Cdp::Accessibility::Node).should eq("")
+    end
+  end
+
+  # Go's formatAXNodeDetail (main.go:1808-1826): role always, then name,
+  # description, and value when non-empty, then every property as `name: value`.
+  describe ".format_ax_node_detail" do
+    it "prints role, optional fields, and every property" do
+      node = Cdp::Accessibility::Node.from_json(%({
+        "nodeId": "1",
+        "ignored": false,
+        "role": {"type": "role", "value": "button"},
+        "name": {"type": "computedString", "value": "Submit"},
+        "description": {"type": "computedString", "value": "A button"},
+        "value": {"type": "number", "value": 5},
+        "properties": [
+          {"name": "focusable", "value": {"type": "boolean", "value": true}},
+          {"name": "live", "value": {"type": "token", "value": ""}}
+        ]
+      }))
+
+      Webb.format_ax_node_detail(node).should eq(
+        "role: button\nname: Submit\ndescription: A button\nvalue: 5\nfocusable: true\nlive: \n"
+      )
+    end
+
+    it "omits empty name, description, and value" do
+      node = Cdp::Accessibility::Node.from_json(%({
+        "nodeId": "1",
+        "ignored": false,
+        "role": {"type": "role", "value": "generic"}
+      }))
+
+      Webb.format_ax_node_detail(node).should eq("role: generic\n")
+    end
+  end
+
   describe ".format_ax_tree" do
     it "matches TestAXTree_ReturnsNodes" do
       page = navigate_to("/")

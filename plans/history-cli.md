@@ -663,3 +663,23 @@ spec, the ledger update, and this write-up.
         and `no-such-dir/element.png` pinned to
         `open no-such-dir/element.png: no such file or directory`.
       - Ledger: `cmdScreenshotEl` → `ported`.
+
+## Helper rows (no CLI surface)
+
+Unit-spec work that closed `partial` ledger rows without adding a command.
+
+- [x] **Pin the AX formatters** — `formatAXNodeList`, `formatAXNodeDetail`, and
+      `formatProperties` were only exercised indirectly by the AX commands.
+      Direct examples exposed one real divergence: `format_ax_node_list`
+      printed ` backendNodeId=0` for an absent id, while Go tests
+      `node.BackendDOMNodeID != 0` (`main.go:1796-1798`).
+      - Red was real: a node with `backendDOMNodeId: 0` rendered
+        `[generic] backendNodeId=0` instead of `[generic]`.
+      - Green: skip zero alongside nil; the name only prints when non-empty,
+        and properties only when the summary is non-empty.
+      - Coverage in `spec/webb_spec.cr`: `.format_ax_node_list` (full line with
+        role/name/backendNodeId/properties, the zero id, an empty list),
+        `.format_ax_node_detail` (all fields, then role-only), and
+        `.format_properties` (nil/empty, true-only booleans, unconditional
+        `level=`, non-empty `name=value` pairs, unknown names dropped).
+      - Ledger: all three rows → `ported`.

@@ -486,7 +486,9 @@ module Webb
       line = "[#{role}]"
       line += " #{name.inspect}" unless name.empty?
       if backend_node_id = node.backend_dom_node_id
-        line += " backendNodeId=#{backend_node_id}"
+        # Go tests `!= 0`: an absent backendDOMNodeId arrives as the zero value
+        # and is omitted (main.go:1796-1798).
+        line += " backendNodeId=#{backend_node_id}" unless backend_node_id == 0
       end
       props = format_properties(node.properties)
       line += " (#{props})" unless props.empty?
