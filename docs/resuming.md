@@ -8,7 +8,9 @@ back to a known-good state.
 - `plans/parity.md` — start at the **Where we are** block. It names the current
   focus, the ordered "Next up" list, per-area chunk status, and any scoping
   notes or gotchas, plus the last commit and current gate results. Do not
-  re-derive state from git history.
+  re-derive state from git history. Completed work is split out under
+  `plans/history-*.md` (one file per area, linked from parity.md); open those
+  only when changing behavior they describe.
 - `plans/inventory/go_port_inventory.tsv` — the per-symbol ledger (status +
   `crystal_refs`), keyed to the baseline in its own leading `# baseline=`
   comment and re-based when the target release changes. Its `# kinds=` comment

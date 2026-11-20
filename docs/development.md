@@ -69,10 +69,12 @@ produce the same outputs for the same inputs. The only allowed differences are:
 | `src/main.cr` | Entry point |
 | `src/webb.cr` | Core module: state, asserts, accessibility, downloads |
 | `src/cli.cr` | CLI command implementations |
-| `spec/webb_spec.cr` | All specs (~853 lines, 50+ test cases) |
+| `spec/webb_spec.cr` | Module specs: state, assert, accessibility, TLS, uploads (66 examples) |
+| `spec/cli_spec.cr` | CLI specs: process contract, live browser, `_proxy`, `start` (62 examples) |
 | `spec/spec_helper.cr` | Test helper |
 | `vendor/rodney/` | Go source of truth (git submodule) |
-| `plans/parity.md` | Curated parity roadmap (**Where we are**) |
+| `plans/parity.md` | Curated roadmap: **Where we are**, next feature, open items |
+| `plans/history-*.md` | Completed work by area (CLI, ledger, shard pin) |
 | `plans/inventory/` | Parity tracking TSV files |
 | `scripts/` | Parity gate wrappers over the installed skill, inventory helpers |
 | `lib/` | Installed shard dependencies (gitignored) |

@@ -4,28 +4,36 @@
 Curated feature roadmap for the Crystal port of simonw/rodney. Per-symbol state
 lives in `plans/inventory/`; keep this file human-curated. Every checklist item
 is one feature: one branch, one commit, one ledger update.
+
+This file is the session entry point. Completed work lives in `plans/history-*.md`
+(see **History** at the bottom); it is only needed when changing behavior
+described there.
 -->
 
 ## Where we are
 
-- **Current focus:** slicing the remaining 45 `partial` ledger rows into
-  features. The command-level port is complete: `cmdStart`, `cmdWaitStable`, the
-  `_proxy` helper (CONNECT tunneling), and `cmdStatus` were the rows with
-  concrete divergence notes, and the `lib/rod` gaps behind them are fixed
-  upstream.
+- **Current focus:** slice the remaining 36 `partial` ledger rows. Every
+  *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
+  `attr`, `assert`, the element checks, the AX commands, `waitstable`, and the
+  `_proxy` helper all match Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. Slice the remaining `partial` rows into features. List them with
-     `awk -F'\t' '$3=="partial"' plans/inventory/go_port_inventory.tsv`; most
-     only need output/error coverage, which the CLI harness makes cheap. Start
-     with rows whose note names a specific divergence — next is `cmdTitle`
-     (`page.info` has no Go `failed to get page info` fatal; it needs a seam
-     before it can be tested), then the remaining output-only rows
-     (`cmdText`, `cmdHTML`, `cmdClick`, `cmdInput`, the tab commands, `cmdPDF`,
-     `cmdDownload`, `cmdFile`).
-  2. Re-base the ledger when the pin moves off `v0.4.0`.
-  3. Split this file once it passes one screen (Phase 2).
-  4. Optional: add a Chrome-through-the-proxy example. The `_proxy` contract is
-     covered at the socket level, not yet with a real HTTPS origin.
+  1. **`cmdTitle`** — the last row with a concrete divergence note, and the only
+     one that needs a test seam first. Details below.
+  2. **Output-only command rows**, cheapest first (each is one commit): the tab
+     commands (`cmdPages`, `cmdPage`, `cmdNewPage`, `cmdClosePage`), navigation
+     (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), page content
+     (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`, `cmdInput`,
+     `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
+     `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
+     `cmdScreenshotEl`).
+  3. **Helper rows with no CLI surface** — `formatAXNodeList`,
+     `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
+     `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
+     `proc_unix.go::setSysProcAttr`. Most need unit specs in `webb_spec.cr`
+     (`axValueStr` was closed this way), not CLI examples.
+  4. **Re-base the ledger** when `vendor/rodney` moves off `v0.4.0`.
+  5. **Optional:** a Chrome-through-the-proxy example against a real HTTPS
+     origin; today `_proxy` is proven at the socket level.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -34,56 +42,51 @@ is one feature: one branch, one commit, one ledger update.
     process-contract, 3 `_proxy`, 4 `start` session, 33 live-browser). Suite
     total: 128 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: 40 are `ported`, 36
-    `partial`, and 2 `intentional_divergence`. The pin has no receiver method
-    IDs. All 63 upstream test rows are `ported`; no test row is `partial`.
+    tests. All 78 function IDs have Crystal references: **40 `ported`, 36
+    `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
+    All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
-    functions, and 1 type). Implementation statuses are in the curated
-    ledger. The generated source snapshot keeps its discovery baseline
-    statuses; `scopeMode` still needs a curated type mapping.
+    functions, 1 type). Implementation statuses live in the curated ledger;
+    `scopeMode` still needs a curated type mapping.
   - CLI harness: `spec/cli_spec.cr` builds `src/main.cr` into
     `temp/cli_spec/webb` once. `run_cli` uses an empty `RODNEY_HOME`;
     `run_cli_live` points at `browser_home/state.json`; `state_home`,
-    `session_home`, and `owned_browser` set up `stop` and `start` scenarios.
-    Chrome runs with `--no-startup-window`, so a fresh browser has **zero
-    pages**.
+    `raw_state_home`, `session_home`, and `owned_browser` set up `stop`,
+    `start`, and status scenarios. Chrome runs with `--no-startup-window`, so a
+    fresh browser has **zero pages**.
 - **Scoping notes / gotchas:**
   - Discovery runs through the verified Chiasmus **tree-sitter** toolchain.
-    Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate.
-    Treat a reported `regex` backend as a failed gate.
+    Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate; treat
+    a reported `regex` backend as a failed gate.
   - The source manifest and curated ledger declare their kind scopes with
-    `# kinds=`. The curated scope is `class,const,function,method,test`.
-    The source manifest includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`.
-    Auxiliary facts such as `definition.type`, `definition.function`, and `reference.call`
-    stay outside the source manifest.
+    `# kinds=`. The curated scope is `class,const,function,method,test`. The
+    source manifest includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
-  - The CLI harness always passes `ROD_CHROME_BIN` so the suite stays offline;
-    rod's launcher would otherwise download a ~130 MB snapshot. The managed path
-    now works on this volume too (rod `5e6a630` ignores `._*` when stripping the
-    archive's top-level folder).
+  - The CLI harness always passes `ROD_CHROME_BIN` so the suite stays offline
+    instead of downloading a ~130 MB snapshot. Timeouts that need to expire in a
+    spec are shortened with `ROD_TIMEOUT` (e.g. `"0.5"`), the same variable
+    rodney reads; pass it through `CLISpecHarness#run(..., env: ...)`.
+  - `_proxy` is a raw `TCPServer`, not an `HTTP::Server`, because Go hijacks
+    CONNECT (`main.go:1930-1943`) and Crystal's server cannot hand a connection
+    back. Do not "simplify" it into `HTTP::Server`; that is what produced the
+    old 501.
   - `shard.yml` tracks rod `branch: main` (locked at `46e6c7f`) because the
     fixes this repo needs are not tagged yet. Go back to tag tracking when a
     release contains them.
-  - `_proxy` is a raw `TCPServer`, not an `HTTP::Server`, because Go hijacks
-    CONNECT (`main.go:1930-1943`) and Crystal's server cannot hand a connection
-    back. Do not "simplify" it into `HTTP::Server` again; that is what produced
-    the old 501.
-  - Suite runtime tracks host load (`uptime`): ~30 s idle, minutes at load
-    > 20. Chrome launch retries three times because it intermittently loses
-    the debug-URL race under load. If a run looks slow, check the load and
-    `crystal spec spec/cli_spec.cr --profile` before suspecting the harness.
-- **Last port commit:** `port: give the AX commands Go's flags and errors` (see
-  `git log -1 --oneline`).
+  - `webb axtree`/`axfind`/`axnode` still work as unadvertised aliases (Go
+    rejects them as unknown commands); the usage text uses Go's hyphenated
+    names.
+  - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
+    Chrome launch retries three times because it intermittently loses the
+    debug-URL race under load.
+- **Last port commit:** `port: give the AX commands Go's flags and errors`
+  (`c8e46ac`). This file was split afterwards; `git log -1 --oneline` shows the
+  docs commit, not the port.
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (128 examples), `make build` (CLI), and `make parity-verify` passed.
-  `make inventory` passed with 82 curated source rows, 83 source manifest
-  rows, and 63 tests on
-  `chiasmus-tree-sitter` with Chiasmus `v0.3.4`.
-
-Keep this block accurate after every feature: the next session reads it first
-(see `AGENTS.md` → **How to resume**).
+  (128 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  63 tests on `chiasmus-tree-sitter` v0.3.4), and `make parity-verify` passed.
 
 ## How features are sliced
 
@@ -98,404 +101,62 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Phase 1 — `--insecure` over self-signed HTTPS (done)
+## Next feature: `cmdTitle`
 
-- [x] **`--insecure` end-to-end over self-signed HTTPS**
-  - **Scope:** the CLI already parsed `--insecure`/`-k` and set
-    `ignore-certificate-errors`; this feature ported the missing upstream test.
-  - **Spec:** `--insecure with a self-signed certificate` — two examples
-    mirroring the Go subtests: without the flag navigation raises a
-    `Rod::NavigationError` mentioning `ERR_CERT_AUTHORITY_INVALID`; with the
-    flag the page loads with title `Secure Test`.
-  - **Fixture:** `InsecureTLSSpecEnv` binds `HTTP::Server` over TLS with a
-    self-signed cert generated once into `temp/tls/`, and
-    `launch_spec_browser(ignore_cert_errors:)` reuses the Go launcher flags.
-  - **Ledger:** `TestInsecureFlag_WithSelfSignedCert` → `ported`.
-  - **Red → green:** the first run failed with `undefined constant
-    InsecureTLSSpecEnv`; the fixture landed next and the suite went green
-    (64 examples, 0 failures). No product code changed — the ported behavior
-    was already correct, the coverage was not.
+`src/cli.cr::cmd_title` is three lines:
 
-## Phase 2 — Ledger and tooling hygiene
+```crystal
+_, _, page = Webb.with_page
+info = page.info
+puts info.title
+```
 
-Each item is scoped to a single commit. See the entries below for verification details.
+Go (`vendor/rodney/main.go:630-637`) fatals when `page.Info()` returns an error:
+
+```go
+info, err := page.Info()
+if err != nil {
+    fatal("failed to get page info: %v", err)
+}
+```
+
+Crystal's `page.info` raises instead of returning nil (`Target.getTargetInfo`),
+so a failure escapes as an unhandled exception: exit **1** with a stack trace
+where Go exits **2** with `error: failed to get page info: <cause>`.
+
+**Why it is not done yet:** there is no way to make `Target.getTargetInfo` fail
+from the CLI deterministically (a closed target disappears from `pages`, and
+racing a `Target.closeTarget` is not reliable). Suggested seam, which keeps the
+CLI shape identical:
+
+1. add `Webb.page_info(page) : Cdp::Target::TargetInfo` that rescues and raises
+   `"failed to get page info: <cause>"` (mirroring the `get_ax_node` prefixes
+   landed for the AX commands);
+2. `cmd_title` rescues it into `Webb.fatal(ex.message)`;
+3. unit spec in `spec/webb_spec.cr` with a `Rod::Page` subclass that overrides
+   `info` to raise — the same stub pattern `lib/rod/spec` uses — asserting the
+   wrapped message, plus a CLI example that the happy path still prints the
+   title.
+
+## Open ledger hygiene
 
 - [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
       off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
       one commit; never append across releases.
-- [x] **Refresh Go source declaration discovery** — regenerate the source
-      manifest against the pinned Go tree with the corrected skill, preserve
-      the `State` mapping, and declare the curated ledger's existing kind
-      scope explicitly.
-- [x] **Discover Go named types** — Chiasmus `v0.3.4` adds exactly one
-      source row for this pin, `main.go::type::scopeMode`. The curated ledger
-      keeps type coverage out of scope pending review of `Webb::ScopeMode`.
-- [x] **Expand the ledger to Go function/method declarations** — declaring
-      the wider scope first failed strict tree-sitter inventory with 78
-      missing functions. Mapping all 78 to Crystal symbols made the same
-      gate pass. The existing 67 curated rows were preserved. Partial rows
-      identify behavior differences or missing evidence. Both Go
-      `init` functions share a single discovery ID; timeout initialization
-      is mapped and SIGPIPE behavior is still open. The Windows Go process
-      helper is a no-op and has no separate Crystal counterpart. Building the
-      actual CLI also caught the invalid PID constructor in `stop`. The build
-      now targets `src/main.cr`, and the repaired `stop` sent TERM to two
-      disposable processes and removed its state file in a CLI smoke check.
-- [x] **Audit the three partial test rows** — every row had working Crystal
-      coverage; the ledger was stale, and one spec drifted from upstream.
-      - `TestMain` → `ported` (`spec/webb_spec.cr::AXSpecEnv`): same launcher
-        flags, `ROD_CHROME_BIN` override, and the six fixture routes, created in
-        `before_all` and closed in `after_all`. Divergences: Crystal also kills
-        the launcher and falls back to a local Chrome path.
-      - `TestFile_SetFileOnInput` → `ported`: assertions match Go. The spec now
-        waits `1.second` to mirror `MustWaitStable()` =
-        `WaitStable(time.Second)` (it drifted to 100 ms) and removes its temp
-        file in `ensure`, as Go does with `defer os.Remove`.
-      - `TestFile_MultipleFiles` → `ported`: same `set_files` call with no
-        post-condition beyond not raising; both temp files are now removed.
-      - Discovery: `plans/inventory/go_test_parity.tsv` already recorded all
-        three as `ported`; only the curated ledger still said `partial`.
-- [x] **Add a CLI process output harness** — `spec/cli_spec.cr` builds the CLI
-      into `temp/cli_spec/webb`, runs it with a scrubbed environment
-      (`HOME`/`RODNEY_HOME` under `temp/`), and asserts stdout, stderr, and exit
-      status together. The first coverage found three real bugs:
-      - an unknown command printed `error: unknown command: ...` on stderr and
-        no usage, where Go prints the bare line on stderr plus usage on stdout
-        with exit 2;
-      - the usage advertised `./.webb/` and `~/.webb/` while the code and docs
-        use `.rodney`;
-      - the `Use "webb start --local"` hint was missing.
-      The usage is now `vendor/rodney/help.txt` byte-for-byte with only the CLI
-      name changed, and a spec compares the full text so future command changes
-      cannot drift silently. Ledger: `main` and `printUsage` → `ported`.
-- [x] **Add a browser-backed CLI harness** — `CLISpecHarness` now launches one
-      headless Chrome with the same flags as `AXSpecEnv`, serves a fixture page
-      from an in-process `HTTP::Server`, and writes a `state.json` with the
-      launcher's debug URL and PID into `temp/cli_spec/browser_home`. `run_cli_live`
-      points the CLI there, so a `cmd*` function can be asserted end to end.
-      - Coverage added: `open` navigates the fixture and prints its title,
-        `title` and `url` read the active page, and an empty state directory
-        yields Go's `no browser session` error with exit 2.
-      - Evidence only; every touched ledger row stays `partial` because the
-        `page.info` error paths still differ from Go's fatals.
-      - The harness kills its launcher and server in `after_all`; a run leaves
-        no Chrome behind (checked with `ps`).
-- [x] **Align `cmd_wait_stable` with Go's `MustWaitStable()`** — `src/cli.cr`
-      passed `100.milliseconds` where Go waits `time.Second`.
-      - Red: a live spec timed `webb waitstable` at 166 ms against a 900 ms
-        floor derived from `MustWaitStable()` = `WaitStable(time.Second)`.
-      - Green: the call is now `wait_stable(1.second)`; the spec asserts
-        `DOM stable`, exit 0, empty stderr, and an elapsed time of at least
-        900 ms (10% slack for process startup).
-      - Follow-up (closed below): `lib/rod`'s `wait_stable` waited a fixed
-        duration where go-rod races `WaitRequestIdle`, so the row stayed
-        `partial` until that shard gap closed.
-- [x] **Close the `lib/rod` gaps behind `waitstable` and `start`** — both were
-      fixed in `dsisnero/rod` on `main` and adopted here by moving the pin.
-      - `c459108` *wait_stable waits on the request queue like go-rod*:
-        `wait_stable`'s middle fiber calls `wait_request_idle(d).call`
-        (`page.go:821` races `WaitLoad`, `WaitRequestIdle(d,nil,nil,nil)()`,
-        `WaitDOMStable(d,0)`); the port had substituted `wait_duration(d)` while
-        `wait_request_idle` sat unused.
-      - `5e6a630` *strip the managed download's top-level dir on exFAT*: this
-        volume makes `unzip` write `._chrome-mac` next to the archive root, so
-        the strict single-entry guard skipped the strip and `bin_path` dangled
-        after a successful download. `strip_first_dir` now ignores `._*` and
-        `.DS_Store` when counting and moving entries. Documented upstream as an
-        exFAT-only shim (inert on APFS/HFS+/Linux).
-      - Red → green here: with the pin on `1f7636a`, `webb waitstable` against a
-        page polling a 2 s route returned in **1.23 s**; with `c459108` it waits
-        **≥ 3.5 s** (new `cli_spec.cr` example). Running `start` with no
-        `ROD_CHROME_BIN` reproduced the download failure end to end
-        (`chromium-<rev>/Chromium.app/...: No such file or directory`, 359 MB
-        left in the temp home) before `5e6a630`.
-      - Spec detail worth keeping: go-rod only sees requests that **start after**
-        the wait subscribes, and it still ends once `d` idle elapses. The fixture
-        therefore polls (`setInterval`) instead of firing one late request.
-      - Correction recorded so it is not re-investigated: rod.003 §1 was wrong —
-        go-rod's `NewBrowser` sets `Logger: log.New(os.Stdout, ...)`
-        (`browser.go:107`) and hands it to `fetchup` (`browser.go:140`), so
-        download progress on stdout is upstream behavior and the port keeps it.
-      - Ledger: `cmdWaitStable` → `ported`. `shard_issues/rod.002.md` and
-        `rod.003.md` are deleted (closed).
-- [x] **Port the authenticated proxy (CONNECT tunneling)** — `_proxy` answered
-      `501 Not Implemented` for CONNECT because Crystal's `HTTP::Server` cannot
-      hijack a socket. That was our own handler's shape, not a port limit: the
-      rodney contract is `vendor/rodney/main.go:1870-1980`, and a proxy does not
-      need `HTTP::Server` at all.
-      - Green: `cmd_internal_proxy` now serves raw `TCPSocket`s on
-        `127.0.0.1:<port>` and parses each request with `HTTP::Request.from_io`
-        before dispatching, the way `net/http` does. `proxy_connect` dials the
-        operator's proxy with Go's 30 s timeout, sends
-        `CONNECT <authority>` with `Proxy-Authorization`, inspects bytes 9..12 of
-        the reply (a split reply is rejected exactly as in Go), answers
-        `HTTP/1.1 200 Connection Established`, then splices both ways.
-        `proxy_http` forwards the absolute-form request upstream and copies the
-        response back with hop-by-hop framing rewritten.
-      - Error paths keep Go's `http.Error` shape: `502` plus
-        `upstream dial failed` / `upstream write failed` / `upstream read failed`
-        / `upstream rejected CONNECT` / `upstream request failed` as
-        `text/plain` with `nosniff`, and a listen failure fatals with
-        `proxy listen failed: ...`.
-      - Coverage: `CLI auth proxy` runs the real helper process against a
-        `CONNECT`-capable upstream fixture — a tunnel round trip through an echo
-        server, an upstream `407` surfacing as Go's `502
-        upstream rejected CONNECT`, and a plain HTTP request forwarded with
-        credentials. Upstream rodney has no proxy tests at all, so this is
-        coverage the Go tree does not have.
-      - Socket ownership: the client socket is closed once by the connection
-        handler, never by the copy fiber. Closing it in both places crashed the
-        spec process (a double close on a recycled descriptor), which is why the
-        splice helper leaves the client to its owner.
-      - Found in `lib/rod` while proving it: `IdleCounter#wait`
-        (`src/rod/util/utils.cr`) used `ctx.done.receive` in its `select`, and a
-        cancelled context *closes* that channel, so the fiber `wait_request_idle`
-        spawns died with `Channel::ClosedError` and printed
-        `Unhandled exception in spawn` on the CLI's stderr (any `waitstable` or
-        `waitidle` run could hit it). Fix prepared with a red → green spec in
-        the shard: `ctx.done.receive?` in that branch plus a spec
-        (`spec/utils_sleeper_spec.cr`), landed as rod `7356dd8`.
-      - Ledger: `cmdInternalProxy`, `proxyConnect`, and `proxyHTTP` → `ported`.
-        `shard_issues/rod.001.md` is deleted (closed).
-      - Same bug class, adopted right after: rod `f3439cb` makes `Pipe#write`,
-        `Pipe#run_loop`, and `Observable#subscribe`'s cleanup use
-        `done.receive?`, so a publish that races a shutdown no longer raises out
-        of `Observable#publish` and stops `Browser#init_events` for the rest of
-        the session. No webb change was needed.
-      - Also adopted, no webb change needed: rod `46e6c7f` gives `Manager#logger`
-        go-rod's `utils.Logger` shape (defaulting to quiet) and emits the four
-        manager events Go logs. webb never uses `Manager`; `webb start` still
-        prints exactly Go's two lines and nothing on stderr (re-checked by hand
-        after the bump).
-- [x] **Match Go's page semantics on an empty browser** — Crystal used to
-      fabricate `about:blank` where Go fails; the divergence reached every
-      command through `withPage` and `open`.
-      - Red: `webb title` with zero pages exited 0 in the harness (a fresh
-        launcher passes `--no-startup-window`, so zero pages is the default
-        start state); Go prints `no pages open` and exits 2.
-      - Green: `getActivePage` now matches Go exactly (empty → fatal, listing
-        failure → `failed to list pages: ...`, index clamped to 0), `withPage`
-        fatals with rod's own message instead of a Crystal wrapper, and `open`
-        follows Go's own load/connect/list branch: create a page at the URL
-        when none are open (saving `active_page` 0), else navigate.
-      - Follow-on bug caught by the harness: `status` began exiting 2 on zero
-        pages because `fatal` cannot be rescued. Go prints `Pages: 0` and skips
-        the `Current:` line, so `status` now guards on `pages.empty?`; the spec
-        asserts exit 0 and no `Current:`.
-      - Ledger: `getActivePage`, `withPage`, and `cmdOpen` → `ported`;
-        `cmdStatus` note updated (still `partial`).
-      - Harness: `reset_pages` closes every page through one long-lived control
-        connection (never `Browser#close`, which shuts Chrome down), so a spec
-        can start from zero pages deterministically.
-- [x] **Match Go's `connect` validation and error paths** — the row carried a
-      concrete note: the Crystal regex rejected the bracketed IPv6 `host:port`
-      that Go accepts, and every failure path lost Go's diagnostic.
-      - Red: `connect [::1]:1` failed validation (Go reaches the fetch), and
-        `connect 127.0.0.1:1` exited 1 with an unhandled `Socket::ConnectError`
-        instead of Go's `error: could not reach browser at ...: <cause>`.
-      - Green: `valid_host_port?` mirrors `net.SplitHostPort` (bracketed IPv6,
-        numeric port, extra colons rejected, explicit trailing colon allowed);
-        the fetch, JSON parse, connect, and save steps each fatal with Go's
-        message, including the underlying cause.
-      - Crystal has no stdlib `SplitHostPort`; the helper is Go's own algorithm
-        ported to `String` primitives rather than a new convention.
-      - Coverage: four process-level examples plus a live `connect` that stores
-        the debug URL and then prints the fixture title. Ledger: `cmdConnect` →
-        `ported`.
-- [x] **Quote JS literals in `select` and `submit`** — both interpolated raw
-      arguments into a JS string, so a selector like `form[id="search-form"]`
-      or a value containing a quote produced invalid JS. The ledger note was
-      also wrong: Go does not pass arguments, it interpolates `%q`-quoted
-      literals.
-      - Red: four live examples failed — quoted value, quoted selector, missing
-        selector (`select`), and missing form (`submit`, which also exited 1
-        instead of 2).
-      - Green: both commands interpolate `to_json` (the Crystal equivalent of
-        Go's `%q`), `select` fatals with `select failed: ...` on eval errors,
-        `submit` fatals with `form not found: ...` on a missing element, and
-        `Selected:` now prints the returned string rather than its JSON form
-        (`JSON::Any#to_s` keeps the quotes; it uses `as_s`).
-      - No new convention: an eval failure after the element check stays an
-        unhandled exception, exactly how this port treats every Go `Must*` call.
-      - Fixture gained a `<select id="topic">` with a quoted option value and a
-        `<form id="search-form">`. Ledger: `cmdSelect` and `cmdSubmit` →
-        `ported`.
-- [x] **Match Go's numeric argument diagnostics (`screenshot`, `sleep`)** —
-      both rows carried concrete notes about Crystal conversion errors escaping
-      as raw exceptions.
-      - Red: `sleep abc` exited 1 instead of `error: invalid seconds: ...`;
-        `screenshot -w` printed a hardcoded `--width` where Go echoes the flag
-        actually used; `screenshot -w abc` / `-h xyz` exited 1 instead of
-        `error: invalid width/height: ...`.
-      - Green: `sleep` fatals with `invalid seconds: ...`, and `screenshot`
-        echoes the real flag in `missing value for <flag>` and fatals with
-        `invalid width/height: ...`. Dimensions parse as 64-bit ints, matching
-        Go's `int` on this platform.
-      - Same row, same class: `screenshot` also gained Go's `failed to set
-        viewport`, `screenshot failed`, and `failed to write screenshot`
-        diagnostics instead of unhandled exceptions.
-      - Verified Crystal's `String#to_i`/`to_f` are already strict, so the only
-        gap was diagnostics and exit codes; a negative sleep exits 0 in both.
-      - Ledger: `cmdScreenshot` and `cmdSleep` → `ported`.
-- [x] **Make `stop` match Go's lifecycle behavior** — Crystal printed
-      `Browser disconnected` for external sessions and `Browser not responding`
-      for stale ones, plus TERM/connect chatter Go never emits. Go always ends
-      with `Chrome stopped`.
-      - Red: an external session and a stale session both printed the wrong
-        line; the no-session message already matched because `load_state` fatals
-        before the old rescue could run.
-      - Green: `cmd_stop` follows Go — `load_state` fatal, connect and close the
-        browser only when `chrome_pid > 0`, TERM by PID when the connection
-        fails, TERM the proxy helper, remove state, print `Chrome stopped`.
-      - Coverage: a process example for the no-session path, plus live examples
-        for an external session (browser must survive), a stale session, and an
-        owned throwaway Chrome (the process must die). The harness gained
-        `state_home` and `owned_browser`, and reuses one `new_launcher` helper.
-      - Ledger: `cmdStop` → `ported`. `cmdStart` became the only row left with a
-        concrete divergence note, and it is the next entry.
-- [x] **Make `start` match Go's lifecycle behavior** — compared
-      `vendor/rodney/main.go:321-428` with `src/cli.cr::cmd_start`.
-      - **Launcher flags:** added `single-process` ("required for screenshots in
-        gVisor/container environments"); the live screenshot example still
-        passes.
-      - **Already-running check:** Go closes the saved browser and removes the
-        state only when it actually connected; a stale or corrupt state file is
-        left in place and nothing is printed. `cmd_start` now calls
-        `close_running_session`, which uses the new `Webb.load_state?` (Go's
-        error return) instead of the fatal `load_state`. The old
-        `Warning: stale state file removed` line is gone.
-      - **Save failure:** `save_state` raises now become Go's
-        `failed to save state: ...` fatal (exit 2, not 1).
-      - **Extra output:** dropped Crystal's third line, `Data directory: ...`.
-      - **Log noise:** rod's launcher used to log `Launching browser: ...` at INFO
-        on stdout, which go-rod never prints (its logger is `io.Discard`).
-        Fixed upstream in `dsisnero/rod` `1f7636a`, which removes the `::Log`
-        property and makes `logger(io : IO)` the only sink API with a discard
-        default, so `cmd_start` needs no logger workaround. Download progress
-        still prints on stdout, which is correct: go-rod's `NewBrowser` installs
-        a stdout logger (`browser.go:107`) and hands it to `fetchup`
-        (`browser.go:140`), so quieting it would be the divergence.
-      - **Proxy helper:** still spawned with `Process.new` (no `setsid`), but its
-        stdio now goes to `/dev/null` the way Go's nil stdio does. That is what
-        lets the helper outlive the parent without holding the caller's pipes
-        open; a spec proves the helper is alive after `start` exits and gone
-        after `stop`. Without the redirect, `Process.run` in the harness would
-        wait on the inherited pipe forever.
-      - **`--show` (decision):** upstream advertises `start --show` in
-        `help.txt` but `cmdStart`'s validation loop rejects it (`unknown flag:
-        --show`, exit 2), so the feature is unreachable in Go. Decision: keep
-        Crystal's working `--show` and record an intentional divergence. The
-        spec pins it without opening a window: `start --show --bogus` reports
-        `unknown flag: --bogus`, proving `--show` passed validation, and the
-        usage keeps advertising it. Consequently the unknown-flag usage line
-        stays `usage: webb start [--insecure] [--show]` rather than Go's
-        `[--insecure]`; that is part of the same divergence.
-      - **Coverage:** four new examples — start writes state and `stop` kills the
-        browser (asserts the exact two-line stdout), a second `start` closes the
-        live session and replaces it, a stale state file is preserved when the
-        launch fails, and the proxy branch records `proxy_pid`/`proxy_port` and
-        the helper dies with `stop`. The harness gained `session_home`,
-        `read_state`, `wait_until_gone`, `discard_session`, and an `env`
-        parameter on `run`.
-      - **Ledger:** `cmdStart` → `intentional_divergence` (every Go behavior
-        matches; the only difference is the documented `--show` superset, which
-        the plan's `partial`/`ported` choice does not describe). `loadState`,
-        `saveState`, `connectBrowser`, and `proc_unix.go::setSysProcAttr` notes
-        updated to say what is now covered and what still is not.
-- [x] **Give `status` Go's four output paths** — the row carried the note that
-      only the zero-page case was covered. `cmd_status` also disagreed with Go on
-      the error branches: it called the fatal `Webb.load_state`, so a missing or
-      corrupt state file exited 2 with `error: no browser session ...` where Go
-      prints `No active browser session` and exits 0 (`main.go:505-510`).
-      - Red: `status` with an empty `RODNEY_HOME` printed the fatal on stderr and
-        exited 2; a `{not json` state file printed
-        `error: corrupt state file: ...` and exited 2.
-      - Green: `load_state?` (Go's error return) supplies the session, both error
-        cases print the stdout line and exit 0, and a page-listing failure now
-        degrades to `Pages: 0` like Go's ignored `pages, _ := browser.Pages()`.
-      - Coverage: four examples — no session, corrupt state, unreachable session
-        (`Browser not responding (PID 4242, state may be stale)`), and a live
-        session asserting the exact five lines, read back from the state file so
-        `connect`'s `chrome_pid: 0` rewrite cannot mask a mismatch.
-      - Ledger: `cmdStatus` → `ported`; `loadState` note now records that both
-        `cmd_start` and `cmd_status` use `load_state?`.
-- [x] **Give `attr` Go's element and attribute errors** — `cmd_attr` called
-      `page.element` unguarded, so a selector that matches nothing escaped as an
-      unhandled `Rod::ElementNotFoundError` (exit 1) where Go wraps any
-      `Element()` error as `fatal("element not found: %v", err)` (exit 2,
-      `main.go:712-717`).
-      - Red: `attr #missing id` exited 1 with a stack trace.
-      - Green: the lookup is wrapped and fatals with Go's prefix. The wrapped
-        cause is go-rod's *page deadline* (`context deadline exceeded`), not the
-        not-found text — Go's retry loop returns the context error once
-        `page.Timeout` expires, so the spec pins that message.
-      - Coverage: four examples — value output (`aria-label` → `Topic`), missing
-        element (with `ROD_TIMEOUT=0.5`, the same variable rodney reads, so the
-        lookup is fast), missing attribute (`attribute "data-nope" not found`),
-        and the usage fatal.
-      - Ledger: `cmdAttr` → `ported`.
-- [x] **Give the element checks Go's error contract** — `cmd_exists` and
-      `cmd_count` let a broken selector escape as an unhandled CDP error (exit
-      1) instead of Go's `query failed: %v` fatal (exit 2), and `cmd_visible`
-      returned the raw exception instead of Go's `false` + exit 1.
-      - Red: `exists <<<` / `count <<<` exited 1; `visible <<<` exited 1 with
-        `Unhandled exception: {-32000 DOM Error while querying }` on stderr.
-      - Green: both queries wrap the lookup and fatal with Go's prefix;
-        `visible` now uses `page.element` like Go's `Element` (so a missing
-        selector waits for the page timeout, as upstream does) and turns every
-        lookup or visibility error into `false` + exit 1.
-      - Coverage: existence (`true`/0, `false`/1), counts (3 matches, 0 for a
-        missing selector), visibility (visible, `#hidden`, and a missing
-        selector under `ROD_TIMEOUT=0.5`), both `query failed` fatals, `visible`
-        with a broken selector, and the three usage fatals. The fixture gained a
-        `#hidden` element (`display:none`).
-      - Ledger: `cmdExists`, `cmdCount`, and `cmdVisible` → `ported`.
-- [x] **Audit and cover `assert`** — the row asked for CLI exit status and
-      output together, and the source carried a `browser.close` in
-      `Webb.cmd_assert`'s `ensure` that Go's `cmdAssert` does not have
-      (`withPage` documents "Caller should NOT close the browser").
-      - Expected red, got green: the close never ran, because Crystal's `exit`
-        does not unwind the stack, so every path in `cmd_assert` leaves through
-        `exit(0)`/`exit(1)`/`fatal` before the ensure. Verified `Browser#close`
-        does kill Chrome (`alive_after=false` in a throwaway-browser probe), so
-        the line stayed a latent hazard rather than a live bug.
-      - Green: the dead close (and the now-unused `browser` binding) is gone, so
-        a later refactor from `exit` to `return` cannot start shutting down the
-        user's Chrome; a comment records Go's contract.
-      - Coverage: the session survives an assert (throwaway browser, then
-        `title` still works), the full output matrix (`pass`; equality failure
-        with `%q` quoting; `--message`/`-m` wrapping; `0`, `false`, and `null`
-        truthy failures with their exit 1), and the usage fatal for no
-        expression and for an empty one.
-      - Ledger: `cmdAssert` → `ported`.
-- [x] **Give the AX commands Go's flags and errors** — the three commands'
-      usage lines named the concatenated commands (`webb axtree`, `axfind`,
-      `axnode`) where Go says `ax-tree`/`ax-find`/`ax-node`, `--depth abc`
-      answered `invalid depth value` instead of Go's `invalid depth: <cause>`,
-      `ax-node` let a lookup failure escape as an unhandled exception (exit 1)
-      instead of Go's `fatal("%v", err)` (exit 2), and the tree/lookup failures
-      had no Go fatal at all.
-      - Red: `ax-tree --depth abc` → `invalid depth value`; `ax-find --bogus` and
-        `ax-node` (no selector) printed `axfind`/`axnode` in the usage line.
-      - Green: usage lines now use the hyphenated names, the depth parse wraps
-        its own error, `ax-tree` fatals with `failed to get accessibility tree:
-        <cause>`, `ax-find` with `query failed: <cause>`, and `ax-node` fatals
-        with `getAXNode`'s message. `Webb.get_ax_node` now carries Go's per-step
-        prefixes (`element not found`, `failed to describe DOM node`, `failed to
-        get accessibility info`, `no accessibility node found for selector %q`)
-        instead of guessing from the message text, and `query_ax_nodes` splits
-        `failed to get document` from `accessibility query failed`.
-      - Kept divergence: `webb axtree`/`axfind`/`axnode` still work as aliases
-        (Go rejects them as unknown commands). They are not advertised; only
-        the usage text changed.
-      - Coverage: `cli_spec.cr` exercises the tree (plain and `--json`), find by
-        name/role/JSON/no-match/unknown flag, and ax-node detail/JSON/usage/
-        missing element (under `ROD_TIMEOUT=0.5`); `webb_spec.cr` gains a table
-        for `axValueStr` (nil, string, number, boolean, object).
-      - Ledger: `cmdAXTree`, `cmdAXFind`, `cmdAXNode`, and `axValueStr` →
-        `ported`.
-- [ ] **Split the plan if it outgrows one screen** — move per-area detail into
-      `plans/<area>.md`, link each file here, and mark it complete/in-progress.
+
+## History
+
+Completed work, split by area. Read only what you are changing:
+
+- [`history-cli.md`](history-cli.md) — every completed command entry (the
+  `--insecure` test, the harnesses, `stop`/`start`/`status`/`connect`,
+  `select`/`submit`, screenshot/sleep diagnostics, the empty-browser semantics,
+  the CONNECT proxy, `attr`, the element checks, `assert`, and the AX commands).
+- [`history-ledger.md`](history-ledger.md) — how the ledger and the tree-sitter
+  gates got their current shape.
+- [`history-shard.md`](history-shard.md) — why each `dsisnero/rod` pin mattered
+  (`wait_stable`, `strip_first_dir`, `IdleCounter`, the event hub, manager
+  logging).
 
 ## Done (no action)
 
@@ -522,9 +183,11 @@ Reference for what is already ported; do not re-open without a divergence:
   `rodney start --show` exits 2 with `unknown flag: --show`. Crystal accepts the
   flag (and keeps `[--show]` in its own unknown-flag usage line). Pinned by
   `spec/cli_spec.cr` → "accepts --show, which upstream advertises but rejects".
+- `webb axtree`/`axfind`/`axnode` are accepted as aliases; Go only knows the
+  hyphenated command names. Unadvertised, and the usage text uses Go's names.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
-  divergence is documented in `shard_issues/` with a reproducible case. No
-  open shard gaps and `shard_issues/` is empty: `Page#wait_stable` now runs
+  divergence is documented in `shard_issues/` with a reproducible case. No open
+  shard gaps and `shard_issues/` is empty: `Page#wait_stable` now runs
   `WaitRequestIdle` (rod `c459108`), the managed download strips its archive
   root on exFAT (rod `5e6a630`, an intentional exFAT-only shim recorded in the
   shard's own `plans/parity.md`), and `IdleCounter#wait` returns cleanly when
