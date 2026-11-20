@@ -328,3 +328,22 @@ spec, the ledger update, and this write-up.
         `newpage`; and unit examples for `.format_page_list`/`.page_info?` using
         stub pages that return or raise their `TargetInfo`.
       - Ledger: `cmdPages` → `ported`.
+- [x] **Give `page` Go's per-step errors and conditional output** — the plan
+      said `webb page abc` switched to index 0; that was wrong, because
+      `"abc".to_i` raises in Crystal (unlike Ruby), so the existing
+      `rescue ArgumentError` already exited 2. The real gaps: it printed
+      `invalid index: abc` without the parser's cause, a bare `rescue` collapsed
+      every other failure into `failed to switch page`, and the switch line read
+      `page.info` unconditionally where Go prints only when `Info()` succeeds.
+      - Red: a stale `debug_url` printed `error: failed to switch page` instead
+        of the connect cause.
+      - Green: parse with `to_i32` and fatal `invalid index: <cause>` (the
+        `--depth`/`seconds` convention), fatal per step (`%v` for connect,
+        `failed to list pages: <cause>`, `failed to save state: <cause>`), and
+        print `Switched to [%d] %s - %s` only through `Webb.page_info?`.
+      - Coverage: non-numeric index before any session, usage, out of range
+        (`page index 3 out of range (0-0)`), switching 0 then 1 with the saved
+        active page, and an unreachable browser. The `failed to save state`
+        branch has no spec: this exFAT volume ignores `chmod`, so the write
+        cannot be forced to fail deterministically.
+      - Ledger: `cmdPage` → `ported`.

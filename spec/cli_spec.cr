@@ -1034,6 +1034,65 @@ describe "CLI against a live browser" do
     end
   end
 
+  # Go's cmdPage parses with strconv.Atoi before loading state (main.go:1222-1251),
+  # so a bad index wins over a missing session.
+  it "rejects a non-numeric page index before touching the session" do
+    result = run_cli("page", "abc")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: invalid index: ")
+  end
+
+  it "requires a page index" do
+    result = run_cli("page")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb page <index>\n")
+  end
+
+  it "rejects a page index that is out of range" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("page", "3")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: page index 3 out of range (0-0)\n")
+  end
+
+  it "switches the active page and reports it" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("newpage", harness.fixture_url).status.should eq(0)
+
+    first = run_cli_live("page", "0")
+    first.status.should eq(0)
+    first.stderr.should be_empty
+    first.stdout.should eq("Switched to [0] CLI Fixture - #{harness.fixture_url}\n")
+    harness.read_state(harness.browser_home).active_page.should eq(0)
+
+    second = run_cli_live("page", "1")
+    second.status.should eq(0)
+    second.stderr.should be_empty
+    second.stdout.should eq("Switched to [1] CLI Fixture - #{harness.fixture_url}\n")
+    harness.read_state(harness.browser_home).active_page.should eq(1)
+  end
+
+  # Go fatals `%v` on a connect failure (main.go:1230-1237); the connect
+  # wrapper text belongs to connectBrowser's own row.
+  it "fails cleanly when the page switch cannot reach the browser" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("page_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+
+    result = harness.run(["page", "0"], home)
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should_not contain("Unhandled exception")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

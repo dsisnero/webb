@@ -977,23 +977,43 @@ module Webb
       if args.size < 1
         Webb.fatal("usage: webb page <index>")
       end
-      idx = args[0].to_i
+      idx = begin
+        args[0].to_i32
+      rescue ex
+        # Go: `fatal("invalid index: %v", err)` around strconv.Atoi
+        # (main.go:1226-1229).
+        Webb.fatal("invalid index: #{ex.message}")
+      end
+
       state = Webb.load_state
-      browser = Webb.connect_browser(state)
-      pages = browser.pages
+      browser = begin
+        Webb.connect_browser(state)
+      rescue ex
+        # Go: `fatal("%v", err)` (main.go:1230-1237); the connect wrapper text
+        # belongs to connectBrowser's own port row.
+        Webb.fatal(ex.message.to_s)
+      end
+      pages = begin
+        browser.pages
+      rescue ex
+        Webb.fatal("failed to list pages: #{ex.message}")
+      end
 
       if idx < 0 || idx >= pages.size
         Webb.fatal("page index #{idx} out of range (0-#{pages.size - 1})")
       end
 
       state.active_page = idx
-      Webb.save_state(state)
-      info = pages[idx].info
-      puts "Switched to [#{idx}] #{info.title} - #{info.url}"
-    rescue ArgumentError
-      Webb.fatal("invalid index: #{args[0]}")
-    rescue
-      Webb.fatal("failed to switch page")
+      begin
+        Webb.save_state(state)
+      rescue ex
+        Webb.fatal("failed to save state: #{ex.message}")
+      end
+
+      # Go prints the switch line only when Info() succeeds (main.go:1247-1250).
+      if info = Webb.page_info?(pages[idx])
+        puts "Switched to [#{idx}] #{info.title} - #{info.url}"
+      end
     end
 
     private def self.cmd_new_page(args : Array(String))
