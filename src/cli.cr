@@ -683,10 +683,34 @@ module Webb
         file = args[0]
       end
       _, _, page = Webb.with_page
-      reader = page.pdf
+      # Go wraps PrintToPDF's error: `fatal("failed to generate PDF: %v", err)`
+      # (main.go:691-695).
+      reader = begin
+        page.pdf
+      rescue ex
+        Webb.fatal("failed to generate PDF: #{ex.message}")
+      end
+      # Go drains the stream into a buffer and breaks on any read error, writing
+      # whatever arrived (main.go:696-705). Do not replace this with IO.copy:
+      # that raises instead of keeping the partial payload.
       buf = IO::Memory.new
-      IO.copy(reader, buf)
-      File.write(file, buf.to_slice)
+      tmp = Bytes.new(32 * 1024)
+      loop do
+        n = begin
+          reader.read(tmp)
+        rescue
+          break
+        end
+        buf.write(tmp.to_slice[0, n]) if n > 0
+        break if n == 0
+      end
+      # Go fatal(`failed to write PDF: %v`, err) covers only os.WriteFile
+      # (main.go:706-709); the size it prints is the drained buffer length.
+      begin
+        File.write(file, buf.to_slice)
+      rescue ex
+        Webb.fatal("failed to write PDF: #{ex.message}")
+      end
       puts "Saved #{file} (#{buf.size} bytes)"
     end
 

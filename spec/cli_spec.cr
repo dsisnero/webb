@@ -1370,6 +1370,35 @@ describe "CLI against a live browser" do
     end
   end
 
+  # Go's cmdPDF (main.go:684-707) defaults to `page.pdf`, fatals
+  # `failed to generate PDF: <cause>` when PrintToPDF fails, drains the stream,
+  # and fatals `failed to write PDF: <cause>` on the write before printing
+  # `Saved <file> (<n> bytes)`.
+  it "saves a PDF and reports its size" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "cli-spec.pdf")
+    File.delete?(path)
+    begin
+      result = run_cli_live("pdf", "cli-spec.pdf")
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      result.stdout.should eq("Saved cli-spec.pdf (#{File.size(path)} bytes)\n")
+      File.open(path, "rb") { |pdf| pdf.read_string(4) }.should eq("%PDF")
+    ensure
+      File.delete?(path)
+    end
+  end
+
+  it "fails with Go's write prefix when the PDF path is not writable" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("pdf", "no-such-dir/page.pdf")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: failed to write PDF: ")
+  end
+
   it "stops an external browser without closing it and forgets the state" do
     harness = CLISpecSupport.harness
     home = harness.state_home("external_home", harness.debug_url, 0)

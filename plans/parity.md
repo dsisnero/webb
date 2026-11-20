@@ -12,14 +12,15 @@ described there.
 
 ## Where we are
 
-- **Current focus:** `cmdPDF` (section below), then the **Queue after
-  `cmdPDF`** block — 18 `partial` ledger rows split into 7 CLI commands and 11
-  helpers, each with its Go contract and reachability recorded so a fresh
-  session can start without re-deriving state.
+- **Current focus:** `cmdDownload` (details in the **Files** block below), then
+  the rest of the **Queue** block — 17 `partial` ledger rows split into 6 CLI
+  commands and 11 helpers, each with its Go contract and reachability recorded
+  so a fresh session can start without re-deriving state.
 - **Next up (in order):**
-  1. **`cmdPDF`** — `failed to write PDF:` on the write path (details below).
-  2. Files: **`cmdDownload`**, **`cmdFile`** (the latter has a real message
-     divergence on its stat branch).
+  1. **`cmdDownload`** — `element not found:` on the lookup, `download failed:`
+     around the page-context fetch, `failed to write file:` around the write.
+  2. **`cmdFile`** — lookup and `set file` fatals, plus a real message
+     divergence on its stat branch (`stat <path>: no such file or directory`).
   3. Waits: **`cmdWait`** (lookup red), then spec-only **`cmdWaitLoad`** and
      **`cmdWaitIdle`**.
   4. **`cmdScreenshotEl`**.
@@ -32,11 +33,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 111 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 82 live-browser). Suite
-    total: 183 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 113 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 84 live-browser). Suite
+    total: 185 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **58 `ported`, 18
+    tests. All 78 function IDs have Crystal references: **59 `ported`, 17
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -78,7 +79,7 @@ described there.
 - **Last port commit:** `port: give focus Go's element-not-found fatal`
   (`c545369`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (183 examples), `make build` (CLI), `make inventory` (82 curated /
+  (185 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -96,34 +97,13 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdPDF`
-
-Go (`vendor/rodney/main.go:684-707`) takes an optional file (default
-`page.pdf`), calls `page.PDF(&req)`, fatals `failed to generate PDF: %v` on
-failure, drains the stream, writes it, and fatals
-`failed to write PDF: %v` before printing `Saved <file> (<n> bytes)`.
-
-Crystal's `cmd_pdf` calls `page.pdf`, `IO.copy`, and `File.write` bare, so a
-write failure escapes as an unhandled exception (exit 1 + stack trace) where Go
-prints `error: failed to write PDF: <cause>` and exits 2.
-
-Red proof: **reachable through the write path** — `webb pdf` into a directory
-that does not exist exits 1 today; the spec wants exit 2 with Go's prefix. (The
-generate branch needs a CDP failure and is not CLI-reachable, same story as
-`reload`.) Pair it with the happy path: a temp path prints
-`Saved <path> (<n> bytes)` and the file starts with `%PDF`.
-
-Green shape: `begin`/`rescue`/`Webb.fatal("failed to generate PDF: …")` around
-`page.pdf`, then the same around the copy-write pair for
-`failed to write PDF: <cause>`.
-
-## Queue after `cmdPDF`
+## Queue: files, waits, screenshot element, helpers
 
 Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (183 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (185 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -150,7 +130,11 @@ Check `uptime` before believing a red.
   divergence** on the stat branch: Go prints
   `error: file not found: stat <path>: no such file or directory`, Crystal
   prints `error: file not found: <path>`. That stat text is the reachable red,
-  and fixing it means carrying the OS error, not just the path.
+  and fixing it means carrying the OS error, not just the path. The same
+  wording gap exists in every wrapped `os.WriteFile` fatal (`pdf`, `download`,
+  `screenshot*`): Crystal prints its own `File::NotFoundError` text after the
+  Go prefix. Normalize it in one helper when the stat branch lands, then re-run
+  the write-path examples.
 
 ### Waits
 

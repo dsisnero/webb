@@ -536,3 +536,23 @@ spec, the ledger update, and this write-up.
         `error: element not found: context deadline exceeded`.
       - Ledger: `cmdFocus` → `ported`.
 
+- [x] **Give `pdf` Go's generate/write fatals** — `cmd_pdf` called `page.pdf`,
+      `IO.copy`, and `File.write` bare, so a write failure escaped as an
+      unhandled exception (exit 1 + stack trace) where Go prints
+      `error: failed to write PDF: <cause>` and exits 2 (`main.go:684-707`).
+      - Red was real: `pdf no-such-dir/page.pdf` exited **1** (expected 2).
+      - Green: `failed to generate PDF: <cause>` around `page.pdf`; a drain
+        loop that breaks on any read error and keeps the partial buffer, like
+        Go's `for { n, err := r.Read(tmp); …; if err != nil { break } }`; then
+        `failed to write PDF: <cause>` around `File.write`. The size line
+        reports the drained buffer, not `File.size`.
+      - Coverage: `pdf cli-spec.pdf` prints
+        `Saved cli-spec.pdf (<n> bytes)` with `<n>` equal to the file size and
+        the first four bytes `%PDF`, and an unwritable path exits 2 with Go's
+        prefix. The generate branch needs a CDP failure and stays structural,
+        same story as `reload`.
+      - Wording gap left open (recorded in `plans/parity.md`): the cause after
+        the prefix is Crystal's `File::NotFoundError` text where Go prints
+        `open <path>: no such file or directory`. It belongs to `cmdFile`'s
+        stat branch, which normalizes OS-error text for the whole family.
+      - Ledger: `cmdPDF` → `ported`.
