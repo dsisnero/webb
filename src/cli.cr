@@ -873,7 +873,13 @@ module Webb
       out_file = args.size > 1 ? args[1] : ""
 
       _, _, page = Webb.with_page
-      el = page.element(selector)
+      # Go wraps any Element() error as `element not found: %v`
+      # (main.go:853-856).
+      el = begin
+        page.element(selector)
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
 
       url_str = el.attribute("href") || el.attribute("src")
       if url_str.nil?
@@ -882,23 +888,9 @@ module Webb
 
       data : Bytes
       if url_str.starts_with?("data:")
-        data = Webb.decode_data_url(url_str)
+        data = download_data_url(url_str)
       else
-        js = <<-JS
-          async () => {
-            const resp = await fetch(#{url_str.to_json});
-            if (!resp.ok) throw new Error("HTTP " + resp.status);
-            const buf = await resp.arrayBuffer();
-            const bytes = new Uint8Array(buf);
-            let binary = "";
-            for (let i = 0; i < bytes.length; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            return btoa(binary);
-          }
-        JS
-        result = page.eval(js)
-        data = Base64.decode(result.value.try(&.as_s) || "")
+        data = download_via_fetch(page, url_str)
       end
 
       if out_file == "-"
@@ -910,8 +902,53 @@ module Webb
         out_file = Webb.infer_download_filename(url_str)
       end
 
-      File.write(out_file, data)
+      # Go: `fatal("failed to write file: %v", err)` (main.go:896-899).
+      begin
+        File.write(out_file, data)
+      rescue ex
+        Webb.fatal("failed to write file: #{ex.message}")
+      end
       puts "Saved #{out_file} (#{data.size} bytes)"
+    end
+
+    # download_data_url carries Go's `failed to decode data URL: %v` fatal
+    # (main.go:862-866).
+    private def self.download_data_url(url_str : String) : Bytes
+      Webb.decode_data_url(url_str)
+    rescue ex
+      Webb.fatal("failed to decode data URL: #{ex.message}")
+    end
+
+    # download_via_fetch runs Go's page-context fetch so the request carries
+    # cookies/session and relative URLs resolve, then base64-decodes the
+    # payload behind its own fatal (main.go:868-887).
+    private def self.download_via_fetch(page : Rod::Page, url_str : String) : Bytes
+      js = <<-JS
+        async () => {
+          const resp = await fetch(#{url_str.to_json});
+          if (!resp.ok) throw new Error("HTTP " + resp.status);
+          const buf = await resp.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          return btoa(binary);
+        }
+      JS
+      # Go: `fatal("download failed: %v", err)` on the fetch (main.go:880-883).
+      result = begin
+        page.eval(js)
+      rescue ex
+        Webb.fatal("download failed: #{ex.message}")
+      end
+      # Go: `fatal("failed to decode response: %v", err)` on the payload
+      # (main.go:884-887).
+      begin
+        Base64.decode(result.value.try(&.as_s) || "")
+      rescue ex
+        Webb.fatal("failed to decode response: #{ex.message}")
+      end
     end
 
     private def self.cmd_focus(args : Array(String))

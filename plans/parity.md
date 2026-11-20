@@ -12,20 +12,18 @@ described there.
 
 ## Where we are
 
-- **Current focus:** `cmdDownload` (details in the **Files** block below), then
-  the rest of the **Queue** block — 17 `partial` ledger rows split into 6 CLI
+- **Current focus:** `cmdFile` (details in the **Files** block below), then the
+  rest of the **Queue** block — 16 `partial` ledger rows split into 5 CLI
   commands and 11 helpers, each with its Go contract and reachability recorded
   so a fresh session can start without re-deriving state.
 - **Next up (in order):**
-  1. **`cmdDownload`** — `element not found:` on the lookup, `download failed:`
-     around the page-context fetch, `failed to write file:` around the write.
-  2. **`cmdFile`** — lookup and `set file` fatals, plus a real message
+  1. **`cmdFile`** — lookup and `set file` fatals, plus a real message
      divergence on its stat branch (`stat <path>: no such file or directory`).
-  3. Waits: **`cmdWait`** (lookup red), then spec-only **`cmdWaitLoad`** and
+  2. Waits: **`cmdWait`** (lookup red), then spec-only **`cmdWaitLoad`** and
      **`cmdWaitIdle`**.
-  4. **`cmdScreenshotEl`**.
-  5. The 11 helper rows — unit specs, no product code.
-  6. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
+  3. **`cmdScreenshotEl`**.
+  4. The 11 helper rows — unit specs, no product code.
+  5. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
      re-base on the next `vendor/rodney` pin.
 - **Optional:** a Chrome-through-the-proxy example against a real HTTPS
   origin; today `_proxy` is proven at the socket level.
@@ -33,11 +31,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 113 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 84 live-browser). Suite
-    total: 185 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 120 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 91 live-browser). Suite
+    total: 192 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **59 `ported`, 17
+    tests. All 78 function IDs have Crystal references: **60 `ported`, 16
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -79,7 +77,7 @@ described there.
 - **Last port commit:** `port: give pdf Go's generate/write fatals`
   (`6f56a0c`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (185 examples), `make build` (CLI), `make inventory` (82 curated /
+  (192 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -103,7 +101,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (185 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (192 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -117,13 +115,6 @@ Check `uptime` before believing a red.
 
 ### Files
 
-- **`cmdDownload`** (`main.go:836-899`) — five fatals, three reachable:
-  `element not found: %v` (bare `page.element` today), `download failed: %v`
-  around the page-context fetch, and `failed to write file: %v` around the
-  write. `failed to decode data URL:` and `failed to decode response:` need a
-  malformed fixture and stay structural. The suite already has `Webb.download`
-  browser parity, so the CLI example should cover `-` (raw bytes to stdout) and
-  the inferred filename instead of repeating the fetch path.
 - **`cmdFile`** (`main.go:792-834`) — `element not found: %v`,
   `failed to read stdin:` / `failed to create temp file:` / `failed to write
   temp file:` on the `-` branch, `failed to set file: %v`, and a **message

@@ -21,6 +21,12 @@ private class CLISpecHarness
   SLOW_REQUEST_DELAY = 400.milliseconds
   SLOW_POLLS         = 5
 
+  # Download fixtures: a real file the page can fetch, and a 404 the
+  # page-context fetch turns into `download failed:`.
+  DOWNLOAD_FILE_PATH    = "/download/testfile.txt"
+  DOWNLOAD_FILE_BODY    = "Hello World"
+  DOWNLOAD_MISSING_PATH = "/download/missing.txt"
+
   getter binary : String
 
   @repo : String
@@ -303,6 +309,15 @@ private class CLISpecHarness
           "</body>",
           "</html>",
         ].join('\n'))
+      when DOWNLOAD_FILE_PATH
+        context.response.content_type = "text/plain"
+        context.response.print(DOWNLOAD_FILE_BODY)
+      when DOWNLOAD_MISSING_PATH
+        # Lets `download` reach Go's `download failed:` fatal: the page-context
+        # fetch throws on a non-ok response (main.go:880-883).
+        context.response.status = HTTP::Status::NOT_FOUND
+        context.response.content_type = "text/plain"
+        context.response.print("not here")
       else
         context.response.content_type = "text/html"
         context.response.print([
@@ -318,6 +333,8 @@ private class CLISpecHarness
           "<option value='say \"hi\"'>Quoted</option>",
           "</select>",
           "<form id=\"search-form\" action=\"/submitted\"><input name=\"q\" value=\"hi\"></form>",
+          "<a id=\"file-link\" href=\"#{DOWNLOAD_FILE_PATH}\">Download file</a>",
+          "<a id=\"missing-link\" href=\"#{DOWNLOAD_MISSING_PATH}\">Missing file</a>",
           "</body>",
           "</html>",
         ].join('\n'))
@@ -1397,6 +1414,83 @@ describe "CLI against a live browser" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should start_with("error: failed to write PDF: ")
+  end
+
+  # Go's cmdDownload (main.go:836-899): usage fatal, `element not found:
+  # <cause>` for a failed lookup, `download failed: <cause>` around the
+  # page-context fetch, `failed to write file: <cause>` around the write, and
+  # `Saved <file> (<n> bytes)` unless the destination is `-`.
+  it "writes raw download bytes to stdout with -" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("download", "#file-link", "-")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq(CLISpecHarness::DOWNLOAD_FILE_BODY)
+  end
+
+  it "infers the download filename from the URL" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "testfile.txt")
+    File.delete?(path)
+    begin
+      result = run_cli_live("download", "#file-link")
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      result.stdout.should eq("Saved testfile.txt (11 bytes)\n")
+      File.read(path).should eq(CLISpecHarness::DOWNLOAD_FILE_BODY)
+    ensure
+      File.delete?(path)
+    end
+  end
+
+  it "fails with the usage line when download has no selector" do
+    result = run_cli_live("download")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb download <selector> [file|-]\n")
+  end
+
+  it "fails with element not found when download matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["download", "#missing", "-"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
+  it "fails with element has no href or src attribute" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("download", "#topic", "-")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element has no href or src attribute\n")
+  end
+
+  it "fails with download failed when the page-context fetch fails" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("download", "#missing-link", "-")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: download failed: ")
+  end
+
+  it "fails with Go's write prefix when the download path is not writable" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("download", "#file-link", "no-such-dir/out.txt")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: failed to write file: ")
   end
 
   it "stops an external browser without closing it and forgets the state" do

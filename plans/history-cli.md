@@ -556,3 +556,26 @@ spec, the ledger update, and this write-up.
         `open <path>: no such file or directory`. It belongs to `cmdFile`'s
         stat branch, which normalizes OS-error text for the whole family.
       - Ledger: `cmdPDF` → `ported`.
+- [x] **Give `download` Go's lookup/fetch/write fatals** — `cmd_download` looked
+      the element up bare, evaluated the page-context fetch bare, and called
+      `File.write` bare, so each failure escaped as an unhandled exception
+      (exit 1 + stack trace) where Go prints `error: <prefix>: <cause>` and
+      exits 2 (`main.go:836-899`).
+      - Red was real for all three reachable branches: missing selector,
+        404 fetch, and an unwritable path each exited **1** (expected 2). The
+        data-URL and response-decode branches need a malformed fixture and stay
+        structural, like `reload`'s fatal.
+      - Green: `element not found: <cause>` around `page.element`; `failed to
+        decode data URL: <cause>` around `Webb.decode_data_url`; `download
+        failed: <cause>` around `page.eval`; `failed to decode response:
+        <cause>` around `Base64.decode`; `failed to write file: <cause>` around
+        `File.write`. href-before-src and `element has no href or src
+        attribute` already matched.
+      - Coverage: `download "#file-link" -` writes `Hello World` raw to stdout;
+        without a file it infers `testfile.txt` and prints its 11-byte size;
+        plus the usage line, the ROD_TIMEOUT missing selector, an element with
+        no href/src (`#topic`), the 404 anchor (`download failed: …`), and
+        `no-such-dir/out.txt` exiting 2 with Go's prefix. The CLI fixture
+        gained `/download/testfile.txt`, a 404 `/download/missing.txt`, and
+        the `#file-link` and `#missing-link` anchors.
+      - Ledger: `cmdDownload` → `ported`.
