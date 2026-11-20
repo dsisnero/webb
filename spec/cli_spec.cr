@@ -1093,6 +1093,59 @@ describe "CLI against a live browser" do
     result.stderr.should_not contain("Unhandled exception")
   end
 
+  # Go's cmdNewPage fatals `%v` on loadState/connectBrowser, ignores the
+  # browser.Pages() error while locating the new index, and prints
+  # `Opened [%d] %s` only when Info() succeeds (main.go:1253-1291).
+  it "opens a blank page when no URL is given" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+
+    result = run_cli_live("newpage")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Opened [0] about:blank\n")
+    harness.read_state(harness.browser_home).active_page.should eq(0)
+  end
+
+  it "adds http:// to a schemeless URL when opening a page" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    schemeless = harness.fixture_url.lchop("http://")
+
+    result = run_cli_live("newpage", schemeless)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Opened [0] #{harness.fixture_url}\n")
+    harness.read_state(harness.browser_home).active_page.should eq(0)
+  end
+
+  it "makes the new page active" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("newpage", harness.fixture_url)
+    result.status.should eq(0)
+    result.stderr.should be_empty
+
+    active = harness.read_state(harness.browser_home).active_page
+    result.stdout.should eq("Opened [#{active}] #{harness.fixture_url}\n")
+    listing = run_cli_live("pages")
+    listing.stdout.lines.size.should eq(2)
+    listing.stdout.lines[active].should start_with("* [#{active}] ")
+  end
+
+  it "fails cleanly when the new page cannot reach the browser" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("newpage_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+
+    result = harness.run(["newpage"], home)
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should_not contain("Unhandled exception")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

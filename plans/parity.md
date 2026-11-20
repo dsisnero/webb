@@ -12,14 +12,14 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 32 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 31 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
   `_proxy` helper, the page-info error contract (`title`, `url`), and the
-  `pages`/`page` tab commands all match Go, and `shard_issues/` is empty.
+  `pages`/`page`/`newpage` tab commands all match Go, and `shard_issues/` is
+  empty.
 - **Next up:**
-  1. **`cmdNewPage`**, then `cmdClosePage` (details below) — the rest of the tab
-     family, one commit each.
+  1. **`cmdClosePage`** (details below) — the last tab command, one commit.
   2. **Navigation** (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), then
      page content (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`,
      `cmdInput`, `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`,
@@ -37,11 +37,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 72 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 43 live-browser). Suite
-    total: 144 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 76 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 47 live-browser). Suite
+    total: 148 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **44 `ported`, 32
+    tests. All 78 function IDs have Crystal references: **45 `ported`, 31
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -83,7 +83,7 @@ described there.
 - **Last port commit:** `port: give page Go's per-step errors and conditional
   output` (`88d0a69`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (144 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (148 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -100,28 +100,28 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdNewPage`
+## Next feature: `cmdClosePage`
 
-Go (`vendor/rodney/main.go:1253-1291`) loads state and connects with `fatal("%v",
-err)` per step, opens the page with `MustPage`, rewinds to `browser.Pages()`
-**ignoring its error** (`pages, _ :=`) to find the new page's index, saves state
-without checking, and prints `Opened [%d] %s` only when `Info()` succeeds
-(`info, _ :=`).
+Go (`vendor/rodney/main.go:1297-1335`) fatals per step — `%v` for
+`loadState`/`connectBrowser`, `failed to list pages: <cause>` for
+`browser.Pages()` — then `cannot close the last page` when one remains, parses
+an optional index with `strconv.Atoi` (`invalid index: <cause>`), bounds-checks
+with `page index %d out of range` (**no** `(0-N)` suffix, unlike `page`), calls
+`MustClose`, adjusts `ActivePage` (clamp to `len-2`, then `0`), saves without
+checking, and prints `Closed page %d`.
 
-Crystal's `cmd_new_page` wraps everything in a bare `rescue` that answers
-`failed to create new page`, so a stale `debug_url` loses the connect cause and
-`save_state`/`page.info` failures are mislabelled. The happy path already
-matches (scheme prefixing, `about:blank` for an empty argument, `wait_load` only
-for a real URL, index lookup by target id).
+Crystal's `cmd_close_page` has the same shape but the bare `rescue` turns a
+stale `debug_url` into `failed to close page`, a listing failure is mislabelled,
+`save_state` is unchecked, and the index parse drops the parser's cause.
 
-Green shape: mirror `cmd_page` — connect fatal `%v`, list lookup keeps Go's
-ignored error (`Webb.page_info?` is not needed there), `save_state` fatal
-`failed to save state: <cause>`, and the `Opened` line prints through
-`Webb.page_info?`.
+Green shape: mirror `cmd_page` — per-step fatals, `to_i32` with
+`invalid index: <cause>`, keep the clamp order, wrap `failed to save state:
+<cause>`, and let `MustClose` failures escape like every other Must* call.
 
-Red proofs: a stale `debug_url` prints `error: failed to create new page` today;
-`webb newpage` with no argument and one with a schemeless host are the happy-path
-guards.
+Red proofs: a stale `debug_url` prints `error: failed to close page` today;
+`closepage` on the only page must stay `cannot close the last page`, and closing
+page 0 of two must print `Closed page 0` and leave the adjusted active index in
+`state.json`.
 
 ## Open ledger hygiene
 

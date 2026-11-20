@@ -347,3 +347,22 @@ spec, the ledger update, and this write-up.
         branch has no spec: this exFAT volume ignores `chmod`, so the write
         cannot be forced to fail deterministically.
       - Ledger: `cmdPage` → `ported`.
+- [x] **Give `newpage` Go's per-step errors and conditional output** — a bare
+      `rescue` turned every failure of `cmd_new_page` into
+      `failed to create new page`, so a stale `debug_url` lost the connect cause,
+      `save_state` was unchecked, and the `Opened` line read `page.info`
+      unconditionally where Go prints only when `Info()` succeeds
+      (`main.go:1253-1291`). The happy path already matched: schemeless hosts get
+      `http://`, an empty argument opens `about:blank`, `wait_load` runs only for
+      a real URL, and the new index is found by target id.
+      - Red: a stale `debug_url` printed `error: failed to create new page`.
+      - Green: connect fatal `%v`, the index lookup keeps Go's ignored
+        `Pages()` error (`pages, _ :=`) so a listing failure leaves
+        `ActivePage` untouched, `failed to save state: <cause>`, and the
+        `Opened [%d] %s` line prints through `Webb.page_info?`.
+        `MustPage`/`MustWaitLoad` failures escape as exceptions, the treatment
+        every Go Must* call gets here.
+      - Coverage: a blank page with no argument, a schemeless fixture URL,
+        the new page becoming active (checked against `state.json` and the
+        `pages` marker), and an unreachable browser.
+      - Ledger: `cmdNewPage` → `ported`.

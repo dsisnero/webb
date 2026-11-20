@@ -1018,31 +1018,48 @@ module Webb
 
     private def self.cmd_new_page(args : Array(String))
       state = Webb.load_state
-      browser = Webb.connect_browser(state)
+      browser = begin
+        Webb.connect_browser(state)
+      rescue ex
+        # Go: `fatal("%v", err)` (main.go:1253-1260); the connect wrapper text
+        # belongs to connectBrowser's own port row.
+        Webb.fatal(ex.message.to_s)
+      end
 
       url = args.size > 0 ? args[0] : ""
       if !url.empty? && !url.includes?("://")
         url = "http://" + url
       end
 
+      # MustPage/MustWaitLoad: Go panics on failure, so the port lets the
+      # exception escape like every other Must* call.
       page = browser.page(url.empty? ? "about:blank" : url)
       page.wait_load unless url.empty?
 
-      # Find the new page's index
-      pages = browser.pages
-      page_array = pages.to_a
-      (0...page_array.size).each do |page_idx|
-        if page_array[page_idx].target_id == page.target_id
+      # Switch active to the new page. Go ignores the Pages() error
+      # (`pages, _ :=`, main.go:1273), so a listing failure leaves ActivePage
+      # untouched.
+      pages = begin
+        browser.pages.to_a
+      rescue
+        [] of Rod::Page
+      end
+      pages.each_with_index do |candidate, page_idx|
+        if candidate.target_id == page.target_id
           state.active_page = page_idx
           break
         end
       end
-      Webb.save_state(state)
+      begin
+        Webb.save_state(state)
+      rescue ex
+        Webb.fatal("failed to save state: #{ex.message}")
+      end
 
-      info = page.info
-      puts "Opened [#{state.active_page}] #{info.url}"
-    rescue
-      Webb.fatal("failed to create new page")
+      # Go prints the line only when Info() succeeds (main.go:1286-1289).
+      if info = Webb.page_info?(page)
+        puts "Opened [#{state.active_page}] #{info.url}"
+      end
     end
 
     private def self.cmd_close_page(args : Array(String))
