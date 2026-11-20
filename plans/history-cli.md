@@ -623,3 +623,11 @@ spec, the ledger update, and this write-up.
         The floor is 500ms (a two-second timer makes the wait unavoidable, and
         the threshold leaves room for process startup).
       - Ledger: `cmdWait` → `ported`.
+- [x] **Characterize `waitload`** — `cmd_wait_load` already matched Go
+      (`main.go:1059-1063`): no argument check, `MustWaitLoad()` through
+      `page.wait_load`, then `Page loaded`. The row was `partial` because
+      nothing pinned it, not because it was wrong.
+      - Coverage: `waitload` prints `Page loaded` at exit 0, and an extra
+        argument (`waitload ignored`) still exits 0 with the same line, matching
+        Go's ignored `args`.
+      - Ledger: `cmdWaitLoad` → `ported`.

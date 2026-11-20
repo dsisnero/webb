@@ -2299,6 +2299,23 @@ describe "CLI against a live browser" do
     result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
+  # Go's cmdWaitLoad (main.go:1059-1063) takes no arguments, calls
+  # MustWaitLoad(), and prints `Page loaded`; extra arguments are ignored.
+  it "waits for load and prints Page loaded" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("waitload")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Page loaded\n")
+
+    # Go never looks at args here, so an extra word is not an error.
+    ignored = run_cli_live("waitload", "ignored")
+    ignored.status.should eq(0)
+    ignored.stderr.should be_empty
+    ignored.stdout.should eq("Page loaded\n")
+  end
+
   it "waits about a second for DOM stability, like MustWaitStable()" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 
