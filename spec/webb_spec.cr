@@ -244,6 +244,19 @@ private def fetch_resource_bytes(page : Rod::Page, href : String) : Bytes
   Base64.decode(result.value.try(&.as_s) || "")
 end
 
+# FailingInfoPage stands in for a target that cannot report its info, the only
+# way to reach Go's `failed to get page info` branch (main.go:630-637) without
+# racing Target.closeTarget from the CLI.
+private class FailingInfoPage < Rod::Page
+  def initialize
+    super(Rod::Browser.new, Rod::TargetID.new("failing-info-target"))
+  end
+
+  def info : Cdp::Target::TargetInfo
+    raise "target closed"
+  end
+end
+
 describe Webb do
   home_dir = ENV["HOME"]? || ""
 
@@ -355,6 +368,25 @@ describe Webb do
       Webb.state_dir.should eq(dir)
 
       FileUtils.rm_rf(dir)
+    end
+  end
+
+  describe ".page_info" do
+    it "returns the live page info" do
+      page = navigate_to("/")
+      begin
+        Webb.page_info(page).title.should eq("Test Page")
+      ensure
+        page.close
+      end
+    end
+
+    # Go's cmdTitle/cmdURL print `failed to get page info: <cause>` through
+    # fatal, so the helper carries the same prefix.
+    it "wraps an info failure with Go's message" do
+      expect_raises(Exception, "failed to get page info: target closed") do
+        Webb.page_info(FailingInfoPage.new)
+      end
     end
   end
 

@@ -286,3 +286,17 @@ spec, the ledger update, and this write-up.
         for `axValueStr` (nil, string, number, boolean, object).
       - Ledger: `cmdAXTree`, `cmdAXFind`, `cmdAXNode`, and `axValueStr` →
         `ported`.
+- [x] **Give `title` Go's page-info error contract** — `cmd_title` printed
+      `page.info`'s result, so a `Target.getTargetInfo` failure escaped as an
+      unhandled exception (exit 1 with a stack trace) where Go fatals with
+      `failed to get page info: <cause>` (exit 2, `main.go:630-637`). A closed
+      target disappears from `pages` and racing `Target.closeTarget` is not
+      reliable, so the failure cannot be forced from the CLI.
+      - Green: `Webb.page_info(page)` wraps the exception with Go's prefix (the
+        same per-step shape as `get_ax_node`) and `cmd_title` routes it through
+        `Webb.fatal`, matching the other ported commands.
+      - Coverage: `spec/webb_spec.cr` → `.page_info` asserts the live title and
+        the wrapped message using a `Rod::Page` subclass whose `info` raises
+        (the `lib/rod/spec` stub pattern); `spec/cli_spec.cr` keeps the live
+        title example honest.
+      - Ledger: `cmdTitle` → `ported`.

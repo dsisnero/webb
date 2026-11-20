@@ -179,6 +179,15 @@ module Webb
     {state, browser, page}
   end
 
+  # page_info mirrors Go's `info, err := page.Info()` (main.go:630, main.go:621):
+  # the Go commands fatal with `failed to get page info: <cause>`, so wrap the
+  # exception here and let the caller turn it into `Webb.fatal`.
+  def self.page_info(page : Rod::Page) : Cdp::Target::TargetInfo
+    page.info
+  rescue ex
+    raise "failed to get page info: #{ex.message}"
+  end
+
   # parse_assert_args separates flags (--message/-m) from positional args.
   # Returns (expression, expected, message). expected is nil for truthy mode.
   def self.parse_assert_args(args : Array(String)) : Tuple(String, String?, String)

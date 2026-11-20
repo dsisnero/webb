@@ -12,13 +12,16 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 36 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 35 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
-  `attr`, `assert`, the element checks, the AX commands, `waitstable`, and the
-  `_proxy` helper all match Go, and `shard_issues/` is empty.
+  `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
+  `_proxy` helper, and the page-info error contract (`title`) all match Go, and
+  `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdTitle`** — the last row with a concrete divergence note, and the only
-     one that needs a test seam first. Details below.
+  1. **`cmdURL`** — the same page-info seam `cmdTitle` just landed is unused in
+     `cmd_url`; Go fatals `failed to get page info: <cause>` (main.go:621-628),
+     Crystal raises. One commit: swap `page.info` for `Webb.page_info` and tick
+     the ledger row (the happy path is already covered).
   2. **Output-only command rows**, cheapest first (each is one commit): the tab
      commands (`cmdPages`, `cmdPage`, `cmdNewPage`, `cmdClosePage`), navigation
      (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), page content
@@ -30,7 +33,7 @@ described there.
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
      `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
      `proc_unix.go::setSysProcAttr`. Most need unit specs in `webb_spec.cr`
-     (`axValueStr` was closed this way), not CLI examples.
+     (`axValueStr` and now `page_info` were closed this way), not CLI examples.
   4. **Re-base the ledger** when `vendor/rodney` moves off `v0.4.0`.
   5. **Optional:** a Chrome-through-the-proxy example against a real HTTPS
      origin; today `_proxy` is proven at the socket level.
@@ -38,11 +41,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 66 examples. `spec/cli_spec.cr`: 62 examples (22
+  - `spec/webb_spec.cr`: 68 examples. `spec/cli_spec.cr`: 62 examples (22
     process-contract, 3 `_proxy`, 4 `start` session, 33 live-browser). Suite
-    total: 128 examples, 0 pending, 0 failures.
+    total: 130 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **40 `ported`, 36
+    tests. All 78 function IDs have Crystal references: **41 `ported`, 35
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -101,42 +104,19 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdTitle`
+## Next feature: `cmdURL`
 
-`src/cli.cr::cmd_title` is three lines:
+`Webb.page_info(page)` (landed with `cmdTitle`) already wraps a failed
+`page.Info()` as `failed to get page info: <cause>`; `cmd_title` turns that into
+`Webb.fatal`. `src/cli.cr::cmd_url` still calls `page.info` directly, so a
+failure escapes as an unhandled exception: exit **1** with a stack trace where
+Go exits **2** with `error: failed to get page info: <cause>`
+(`vendor/rodney/main.go:621-628`).
 
-```crystal
-_, _, page = Webb.with_page
-info = page.info
-puts info.title
-```
-
-Go (`vendor/rodney/main.go:630-637`) fatals when `page.Info()` returns an error:
-
-```go
-info, err := page.Info()
-if err != nil {
-    fatal("failed to get page info: %v", err)
-}
-```
-
-Crystal's `page.info` raises instead of returning nil (`Target.getTargetInfo`),
-so a failure escapes as an unhandled exception: exit **1** with a stack trace
-where Go exits **2** with `error: failed to get page info: <cause>`.
-
-**Why it is not done yet:** there is no way to make `Target.getTargetInfo` fail
-from the CLI deterministically (a closed target disappears from `pages`, and
-racing a `Target.closeTarget` is not reliable). Suggested seam, which keeps the
-CLI shape identical:
-
-1. add `Webb.page_info(page) : Cdp::Target::TargetInfo` that rescues and raises
-   `"failed to get page info: <cause>"` (mirroring the `get_ax_node` prefixes
-   landed for the AX commands);
-2. `cmd_title` rescues it into `Webb.fatal(ex.message)`;
-3. unit spec in `spec/webb_spec.cr` with a `Rod::Page` subclass that overrides
-   `info` to raise — the same stub pattern `lib/rod/spec` uses — asserting the
-   wrapped message, plus a CLI example that the happy path still prints the
-   title.
+The change is three lines (mirror `cmd_title`), the existing live example in
+`spec/cli_spec.cr` ("prints the title and URL of the active page") keeps the
+happy path honest, and `spec/webb_spec.cr` → `.page_info` already covers the
+wrapped failure, so no new spec seam is needed.
 
 ## Open ledger hygiene
 
