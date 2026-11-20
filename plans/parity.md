@@ -82,8 +82,8 @@ described there.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
-- **Last port commit:** `port: give click Go's element not found and click
-  error wrapping` (`6ca4bd0`).
+- **Last port commit:** `port: give input Go's element-not-found fatal, file
+  the select_all_text gap` (`9b5b02a`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
   (174 examples, 1 pending), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
