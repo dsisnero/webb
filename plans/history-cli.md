@@ -708,3 +708,19 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         walk (`download`, `download-2`); and an existing directory named like
         the candidate counting as taken, as Go's successful stat does.
       - Ledger: `nextAvailableFile` → `ported`.
+
+- [x] **Reproduce Go's `connectBrowser` wrapper** — `Webb.connect_browser`
+      returned rod's raw connect error, so every command that fatals `%v`
+      printed `Error connecting to ...` where Go prints
+      `failed to connect to browser (is it still running?): ...`
+      (`main.go:132-138`).
+      - Red was real: `.connect_browser` with a dead `debug_url` raised the
+        unwrapped rod message.
+      - Green: rescue `browser.connect` and re-raise with Go's wrapper.
+      - Coverage: `.connect_browser` in `spec/webb_spec.cr` asserts the wrapper
+        for a stale `ws://127.0.0.1:1/...` URL; the four CLI stale-session
+        examples (`pages`, `page`, `newpage`, `closepage`) that previously
+        deferred the text now assert
+        `error: failed to connect to browser (is it still running?): ` and the
+        underlying `Error connecting to` cause.
+      - Ledger: `connectBrowser` → `ported`.

@@ -526,6 +526,19 @@ describe Webb do
     end
   end
 
+  # Go's connectBrowser (main.go:132-138) wraps any Connect error as
+  # `failed to connect to browser (is it still running?): <cause>`, which every
+  # command that fatals `%v` prints verbatim.
+  describe ".connect_browser" do
+    it "wraps a stale debug URL like Go" do
+      state = Webb::State.new(debug_url: "ws://127.0.0.1:1/devtools/browser/dead")
+
+      expect_raises(Exception, /failed to connect to browser \(is it still running\?\): /) do
+        Webb.connect_browser(state)
+      end
+    end
+  end
+
   describe ".page_info" do
     it "returns the live page info" do
       page = navigate_to("/")

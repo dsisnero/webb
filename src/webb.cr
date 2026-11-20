@@ -140,10 +140,16 @@ module Webb
     File.delete(state_path) if File.exists?(state_path)
   end
 
-  # connect_browser connects to the running Chrome instance
+  # connect_browser connects to the running Chrome instance. Go wraps a Connect
+  # failure as `failed to connect to browser (is it still running?): <cause>`
+  # (main.go:132-138), so callers that fatal `%v` print it verbatim.
   def self.connect_browser(state : State) : Rod::Browser
     browser = Rod::Browser.new.control_url(state.debug_url)
-    browser.connect
+    begin
+      browser.connect
+    rescue ex
+      raise "failed to connect to browser (is it still running?): #{ex.message}"
+    end
     browser
   end
 

@@ -1048,9 +1048,9 @@ describe "CLI against a live browser" do
     result.stderr.should start_with("error: corrupt state file: ")
   end
 
-  # Go's cmdPages fatals `%v` on a connect failure (main.go:1200-1203); the
-  # `failed to connect to browser (is it still running?)` wrapper belongs to
-  # connectBrowser's own row, so this asserts the fatal shape, not the text.
+  # Go's cmdPages fatals `%v` on a connect failure (main.go:1200-1203), and
+  # connectBrowser supplies the `failed to connect to browser (is it still
+  # running?): <cause>` wrapper (main.go:132-138).
   it "fails cleanly when the browser cannot be reached" do
     harness = CLISpecSupport.harness
     home = harness.state_home("pages_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
@@ -1058,7 +1058,8 @@ describe "CLI against a live browser" do
     result = harness.run(["pages"], home)
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should start_with("error: failed to connect to browser (is it still running?): ")
+    result.stderr.should contain("Error connecting to ")
     result.stderr.should_not contain("Unhandled exception")
   end
 
@@ -1141,8 +1142,8 @@ describe "CLI against a live browser" do
     harness.read_state(harness.browser_home).active_page.should eq(1)
   end
 
-  # Go fatals `%v` on a connect failure (main.go:1230-1237); the connect
-  # wrapper text belongs to connectBrowser's own row.
+  # Go fatals `%v` on a connect failure (main.go:1230-1237), so connectBrowser's
+  # `failed to connect to browser (is it still running?): <cause>` is the text.
   it "fails cleanly when the page switch cannot reach the browser" do
     harness = CLISpecSupport.harness
     home = harness.state_home("page_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
@@ -1150,7 +1151,8 @@ describe "CLI against a live browser" do
     result = harness.run(["page", "0"], home)
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should start_with("error: failed to connect to browser (is it still running?): ")
+    result.stderr.should contain("Error connecting to ")
     result.stderr.should_not contain("Unhandled exception")
   end
 
@@ -1203,7 +1205,8 @@ describe "CLI against a live browser" do
     result = harness.run(["newpage"], home)
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should start_with("error: failed to connect to browser (is it still running?): ")
+    result.stderr.should contain("Error connecting to ")
     result.stderr.should_not contain("Unhandled exception")
   end
 
@@ -1279,7 +1282,8 @@ describe "CLI against a live browser" do
     result = harness.run(["closepage"], home)
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should start_with("error: failed to connect to browser (is it still running?): ")
+    result.stderr.should contain("Error connecting to ")
     result.stderr.should_not contain("Unhandled exception")
   end
 
