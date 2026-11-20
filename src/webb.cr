@@ -7,6 +7,15 @@ require "../lib/rod/src/cdp/accessibility/accessibility"
 module Webb
   VERSION = "0.1.0"
 
+  # Go's second init() (main.go:1492-1494) ignores SIGPIPE so `rodney ... | head`
+  # is not killed when the reader goes away. Crystal ignores the signal too, but
+  # it emulates the old behaviour by exiting 141 on a broken STDOUT/STDERR write,
+  # so turn that emulation off; src/main.cr turns the resulting IO::Error into a
+  # clean exit.
+  Signal::PIPE.ignore
+  STDOUT.exit_on_broken_pipe = false
+  STDERR.exit_on_broken_pipe = false
+
   # Default timeout for element queries (seconds). Configurable via ROD_TIMEOUT env var.
   DEFAULT_TIMEOUT = begin
     env = ENV["ROD_TIMEOUT"]?
@@ -639,7 +648,12 @@ module Webb
   end
 
   def self.fatal(message : String)
-    STDERR.puts "error: #{message}"
+    begin
+      STDERR.puts "error: #{message}"
+    rescue IO::Error
+      # Go's fmt writes to a closed stderr are ignored, and the exit code stays
+      # the command's (main.cr would otherwise see the EPIPE and exit 0).
+    end
     exit 2
   end
 

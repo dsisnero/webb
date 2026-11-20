@@ -100,10 +100,11 @@ private class CLISpecHarness
 
   # spawn_cli starts the CLI without waiting, for long-running commands such as
   # the hidden `_proxy` helper.
-  def spawn_cli(args : Array(String), home : String = @home) : Process
+  def spawn_cli(args : Array(String), home : String = @home, env : Hash(String, String)? = nil) : Process
     process_env = {"HOME" => home, "RODNEY_HOME" => home}
     chrome_bin = ENV["ROD_CHROME_BIN"]? || (CHROME_BIN if File::Info.executable?(CHROME_BIN))
     process_env["ROD_CHROME_BIN"] = chrome_bin if chrome_bin
+    env.try &.each { |key, value| process_env[key] = value }
 
     Process.new(
       @binary,
@@ -1621,6 +1622,82 @@ describe "CLI against a live browser" do
     result.status.should eq(2)
     result.stdout.should be_empty
     result.stderr.should eq("error: file not found: stat no-such-file.txt: no such file or directory\n")
+  end
+
+  # Go's second init() ignores SIGPIPE (main.go:1492-1494), so a closed stdout
+  # is not fatal: fmt's write errors are discarded and the command finishes.
+  # Crystal turns SIGPIPE into an IO::Error once it is ignored, so main.cr must
+  # treat a broken pipe as the end of output instead of an exception.
+  it "finishes normally when stdout is closed, like Go's ignored SIGPIPE" do
+    harness = CLISpecSupport.harness
+    process = Process.new(
+      harness.binary,
+      ["help"],
+      env: {"HOME" => harness.workdir, "RODNEY_HOME" => harness.workdir},
+      clear_env: true,
+      chdir: harness.workdir,
+      input: Process::Redirect::Close,
+      output: Process::Redirect::Pipe,
+      error: Process::Redirect::Close,
+    )
+    # Close the read end before the child can write: its first put lands on a
+    # broken pipe.
+    process.output.not_nil!.close
+
+    status = process.wait
+    status.normal_exit?.should be_true
+    status.exit_code?.should eq(0)
+  end
+
+  # Go's init() reads ROD_TIMEOUT with strconv.ParseFloat and keeps the 30s
+  # default when the value is empty or unparsable (main.go:291-297). A live
+  # lookup that never matches is the only observable surface, so these examples
+  # spawn the CLI, wait a moment, and check whether it is still waiting.
+  it "keeps the default lookup timeout when ROD_TIMEOUT is unset" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    process = harness.spawn_cli(["wait", "#missing"], harness.browser_home)
+    begin
+      sleep 1.5.seconds
+      process.terminated?.should be_false
+    ensure
+      process.terminate rescue nil
+      process.wait rescue nil
+    end
+  end
+
+  it "keeps the default lookup timeout when ROD_TIMEOUT is garbage" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    process = harness.spawn_cli(["wait", "#missing"], harness.browser_home, env: {"ROD_TIMEOUT" => "abc"})
+    begin
+      sleep 1.5.seconds
+      process.terminated?.should be_false
+    ensure
+      process.terminate rescue nil
+      process.wait rescue nil
+    end
+  end
+
+  it "honors a valid ROD_TIMEOUT" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    started = Time.instant
+    result = harness.run(
+      ["wait", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    elapsed = Time.instant - started
+
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+    # 30s would blow this budget; the 0.5s override finishes quickly.
+    elapsed.should be < 10.seconds
   end
 
   it "stops an external browser without closing it and forgets the state" do

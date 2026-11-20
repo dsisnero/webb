@@ -12,14 +12,12 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the last 2 helper rows, `init` and `setSysProcAttr`
-  (**Helpers with no CLI surface** below) — `init` also needs the SIGPIPE
-  proof from **Open ledger hygiene**.
+- **Current focus:** the last `partial` row, `setSysProcAttr` (**Helpers with
+  no CLI surface** below) — a note-level justification for the structural port.
 - **Next up (in order):**
-  1. `init` — one example per env case (unset, valid, garbage) plus the
-     SIGPIPE verification.
-  2. `setSysProcAttr` — note-level justification for the structural port.
-  3. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
+  1. `setSysProcAttr` — document why Crystal needs no `Setsid`, backed by the
+     existing process specs.
+  2. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
      `vendor/rodney` pin.
 - **Optional:** a Chrome-through-the-proxy example against a real HTTPS
   origin; today `_proxy` is proven at the socket level.
@@ -27,11 +25,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 100 examples. `spec/cli_spec.cr`: 135 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 106 live-browser). Suite
-    total: 235 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 100 examples. `spec/cli_spec.cr`: 139 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 110 live-browser). Suite
+    total: 239 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **74 `ported`, 2
+    tests. All 78 function IDs have Crystal references: **75 `ported`, 1
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -78,7 +76,7 @@ described there.
 - **Last port commit:** `port: pin the state helpers and make their OS errors
   Go-shaped` (`4f6c4cd`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (235 examples), `make build` (CLI), `make inventory` (82 curated /
+  (239 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -102,7 +100,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (235 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (239 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -124,22 +122,15 @@ proof) and `cmdWaitIdle` (`page.wait_idle(1.minute)`, Go's
 
 ### Helpers with no CLI surface
 
-These 2 rows are `partial` because nothing pins them, not because they are
+One row is still `partial`: because nothing pins them, not because they are
 wrong. Unit specs close them without touching product code:
 
-- `init` — `Webb::DEFAULT_TIMEOUT` is the load-time equivalent of Go's
-  `init()`; the row wants one example per env case (unset, valid, garbage) plus
-  the SIGPIPE verification below.
 - `proc_unix.go::setSysProcAttr` — Crystal parity is structural (no `Setsid`);
   needs a note-level justification plus the existing process specs that prove
   the helper survives `stop`.
 
 ## Open ledger hygiene
 
-- [ ] **Verify SIGPIPE handling for `init`** — Go's second `init()`
-  (`main.go:455-457`) ignores `SIGPIPE`, so `webb js` piped into `head` exits 0
-  instead of dying on a closed stdout. Pin it with a spec (`webb js ... | head
-  -1` style) before flipping the row.
 - [ ] **Audit `cmdOpen`'s ignored upstream errors** — Go discards both the
       `browser.Pages()` and `page.Info()` errors in `cmdOpen`
       (`pages, _ :=`, `info, _ :=`, `vendor/rodney/main.go:549-568`), so a
@@ -192,6 +183,11 @@ Reference for what is already ported; do not re-open without a divergence:
   `spec/cli_spec.cr` → "accepts --show, which upstream advertises but rejects".
 - `webb axtree`/`axfind`/`axnode` are accepted as aliases; Go only knows the
   hyphenated command names. Unadvertised, and the usage text uses Go's names.
+- A broken stdout is silent but exits 0: Crystal raises `IO::Error` on an EPIPE
+  write, so `src/main.cr` turns it into `exit 0` instead of finishing the
+  command like Go (whose ignored `fmt` errors keep the command's own status).
+  Pinned by `spec/cli_spec.cr` → "finishes normally when stdout is closed, like
+  Go's ignored SIGPIPE".
 - `webb file` resolves the upload path with `File.expand_path` before handing it
   to Chrome, so a relative path works from any cwd; Go forwards `args[1]`
   verbatim and Chrome resolves it against its own process. Pinned by

@@ -743,3 +743,22 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         cannot remove). Permission-based failure injection is a no-op on this
         exFAT volume, so a directory at the state path is the blocker.
       - Ledger: `loadState`, `saveState`, `removeState` → `ported`.
+
+- [x] **Pin `init` and reproduce Go's SIGPIPE tolerance** — Go's two `init`
+      functions read `ROD_TIMEOUT` (`main.go:291-297`) and ignore `SIGPIPE`
+      (`main.go:1492-1494`). The timeout half already matched; the signal half
+      did not: `webb help | head -1` died with **141**.
+      - Root cause: Crystal ignores `SIGPIPE` but emulates the old behaviour by
+        calling `exit(141)` on a broken `STDOUT`/`STDERR` write
+        (`IO::FileDescriptor#exit_on_broken_pipe`).
+      - Green: clear that flag for both streams in `webb.cr` (next to the
+        `Signal::PIPE.ignore`), rescue `IO::Error` EPIPE in `src/main.cr` and
+        exit 0, and let `Webb.fatal` ignore a closed stderr so its exit code
+        stays 2. Divergence recorded: a broken stdout exits 0 rather than
+        finishing the command like Go.
+      - Coverage in `spec/cli_spec.cr`: a spawned CLI whose stdout pipe is
+        closed before its first write finishes with exit 0; an unset or garbage
+        `ROD_TIMEOUT` keeps a live `wait "#missing"` running past 1.5s (Go's
+        30s default), and `ROD_TIMEOUT=0.5` returns inside a 10s budget with
+        `element not found: context deadline exceeded`.
+      - Ledger: `init` → `ported`.
