@@ -366,3 +366,17 @@ spec, the ledger update, and this write-up.
         the new page becoming active (checked against `state.json` and the
         `pages` marker), and an unreachable browser.
       - Ledger: `cmdNewPage` → `ported`.
+- [x] **Give `closepage` Go's per-step errors and clamp order** — the bare
+      `rescue` answered `failed to close page` for a stale `debug_url` (or a
+      listing failure), the index parse lost the parser's cause, and
+      `save_state` was checked where Go ignores the error (`main.go:1297-1335`).
+      - Red: a stale `debug_url` printed `error: failed to close page`.
+      - Green: per-step fatals (`%v` connect, `failed to list pages: <cause>`),
+        `to_i32` with `invalid index: <cause>`, Go's `page index %d out of
+        range` without a range suffix, the len-2-then-0 clamp order, and
+        `save_state` failure ignored as upstream does.
+      - Coverage: last-page refusal (also before an index parse, matching Go's
+        order), closing page 0 of two with the adjusted active index in
+        `state.json`, out of range, non-numeric index, and an unreachable
+        browser.
+      - Ledger: `cmdClosePage` → `ported`.

@@ -1064,8 +1064,18 @@ module Webb
 
     private def self.cmd_close_page(args : Array(String))
       state = Webb.load_state
-      browser = Webb.connect_browser(state)
-      pages = browser.pages
+      browser = begin
+        Webb.connect_browser(state)
+      rescue ex
+        # Go: `fatal("%v", err)` (main.go:1297-1304); the connect wrapper text
+        # belongs to connectBrowser's own port row.
+        Webb.fatal(ex.message.to_s)
+      end
+      pages = begin
+        browser.pages
+      rescue ex
+        Webb.fatal("failed to list pages: #{ex.message}")
+      end
 
       if pages.size <= 1
         Webb.fatal("cannot close the last page")
@@ -1073,7 +1083,12 @@ module Webb
 
       idx = state.active_page
       if args.size > 0
-        idx = args[0].to_i
+        idx = begin
+          args[0].to_i32
+        rescue ex
+          # Go: `fatal("invalid index: %v", err)` around strconv.Atoi.
+          Webb.fatal("invalid index: #{ex.message}")
+        end
       end
 
       if idx < 0 || idx >= pages.size
@@ -1082,15 +1097,12 @@ module Webb
 
       pages[idx].close
 
-      # Adjust active page
+      # Adjust active page (Go's clamp order, main.go:1327-1333).
       state.active_page = Math.min(state.active_page, pages.size - 2)
       state.active_page = Math.max(state.active_page, 0)
-      Webb.save_state(state)
+      # Go calls saveState without checking the error here (main.go:1334).
+      Webb.save_state(state) rescue nil
       puts "Closed page #{idx}"
-    rescue ArgumentError
-      Webb.fatal("invalid index: #{args[0]}")
-    rescue
-      Webb.fatal("failed to close page")
     end
 
     private def self.cmd_exists(args : Array(String))

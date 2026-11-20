@@ -1146,6 +1146,82 @@ describe "CLI against a live browser" do
     result.stderr.should_not contain("Unhandled exception")
   end
 
+  # Go's cmdClosePage fatals `%v` for loadState/connectBrowser,
+  # `failed to list pages: <cause>` for browser.Pages(), then
+  # `cannot close the last page`, parses the optional index with strconv.Atoi
+  # (`invalid index: <cause>`), and bounds-checks with `page index %d out of
+  # range` (no range suffix, unlike `page`). It ignores the saveState error and
+  # prints `Closed page %d` (main.go:1297-1335).
+  it "cannot close the last page" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("closepage")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: cannot close the last page\n")
+  end
+
+  it "checks the last page before parsing an index" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("closepage", "abc")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: cannot close the last page\n")
+  end
+
+  it "closes a page and keeps the active index in range" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("newpage", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("closepage", "0")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Closed page 0\n")
+    harness.read_state(harness.browser_home).active_page.should eq(0)
+  end
+
+  it "rejects an out-of-range page index to close" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("newpage", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("closepage", "5")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: page index 5 out of range\n")
+  end
+
+  it "rejects a non-numeric index to close" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("newpage", harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("closepage", "abc")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: invalid index: ")
+  end
+
+  it "fails cleanly when closing cannot reach the browser" do
+    harness = CLISpecSupport.harness
+    home = harness.state_home("closepage_stale_home", "ws://127.0.0.1:1/devtools/browser/dead", 0)
+
+    result = harness.run(["closepage"], home)
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: Error connecting to ")
+    result.stderr.should_not contain("Unhandled exception")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 
