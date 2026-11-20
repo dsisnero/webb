@@ -1,7 +1,7 @@
 # History — `dsisnero/rod` pin and shard fixes
 
 > webb tracks rod `branch: main` and moves the pin when a fix it needs lands.
-> Current pin: `35d540d` (see `shard.lock`). This file records why each pin
+> Current pin: `1567742` (see `shard.lock`). This file records why each pin
 > mattered; `plans/parity.md` has the current pin and gotchas.
 
 ## `waitstable` and `start` gaps (closed)
@@ -89,3 +89,25 @@
   and "clears an element's value" asserts the field reads back empty. With the
   old pin both fail (`hello therehi`, and the untouched `hi`).
 - Ledger: `cmdInput` and `cmdClear` → `ported`.
+
+## Latest pin adoption (`1567742`)
+
+- Moved from `35d540d` to `1567742` with `shards update rod`. Nine upstream
+  commits, no webb code change needed: every touched path was already exercised
+  by the suite, which stayed green (239 examples).
+  - `76b1db9` restores the fetch domain after `HandleAuth`, so an authenticated
+    `start` keeps intercepting requests the way go-rod does (`CLI auth proxy`
+    CONNECT examples still pass).
+  - `1aa85f3` keeps caller-enabled CDP domains across event waits; `waitload`,
+    `waitstable`, `waitidle`, and `assert` rely on that event plumbing.
+  - `eb7b88f` reads `LoadState` params and restores the browser viewport, which
+    is the path `start`, `open`, and the screenshot viewport override use.
+  - `974bd28`, `1ba3793`, `7b02393`, `68fa9cd`, and `1567742` move element
+    queries, ancestor walks, xpath evaluation, iframe panic handling, and quad
+    geometry onto go-rod's own JS helpers and `Cdp::DOM` types. Those feed
+    `element`, `click`, `hover`, `input`, `focus`, `screenshot-el`, and the
+    download/attribute lookups.
+  - `c2c9436` is docs-only in the shard.
+- Verification: `make format`, `make lint`, `make build`, `make test` (239
+  examples, 0 failures), `make inventory` (tree-sitter), and
+  `make parity-verify` all pass on the new pin; `make docs-lint` clean.

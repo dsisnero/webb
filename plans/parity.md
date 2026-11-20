@@ -61,9 +61,9 @@ described there.
     CONNECT (`main.go:1930-1943`) and Crystal's server cannot hand a connection
     back. Do not "simplify" it into `HTTP::Server`; that is what produced the
     old 501.
-  - `shard.yml` tracks rod `branch: main` (locked at `35d540d`) because the
+  - `shard.yml` tracks rod `branch: main` (locked at `1567742`) because the
     fixes this repo needs are not tagged yet. Go back to tag tracking when a
-    release contains them.
+    release contains them; the pin history is in `plans/history-shard.md`.
   - `webb axtree`/`axfind`/`axnode` still work as unadvertised aliases (Go
     rejects them as unknown commands); the usage text uses Go's hyphenated
     names.
@@ -77,10 +77,11 @@ described there.
     debug-URL race under load.
 - **Last port commit:** `port: match cmdOpen's ignored upstream errors`
   (`1ad7a6e`).
-- **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (239 examples), `make build` (CLI), `make inventory` (82 curated /
-  83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4), and
-  `make parity-verify` (`PARITY_SKILL_VERIFIED=1`) all passed.
+- **Gates (2026-11-20, rod `1567742`):** `make format`, `make lint` (5
+  files), `make test` (239 examples), `make build` (CLI), `make inventory`
+  (82 curated / 83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4),
+  `make parity-verify` (`PARITY_SKILL_VERIFIED=1`), and `make docs-lint` all
+  passed on the latest shard pin.
 
 ## How features are sliced
 
