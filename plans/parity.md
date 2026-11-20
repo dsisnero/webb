@@ -76,8 +76,8 @@ described there.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
-- **Last port commit:** `port: give wait Go's element-not-found fatal and prove
-  MustWaitVisible` (`39877cd`).
+- **Last port commit:** `port: give waitidle Go's MustWaitIdle semantics`
+  (`bd75d6e`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
   (205 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
