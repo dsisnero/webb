@@ -548,8 +548,10 @@ module Webb
       _, _, page = Webb.with_page
       page.navigate_back
       page.wait_load
-      info = page.info
-      puts info.url
+      # Go prints the URL only when Info() succeeds (main.go:571-579).
+      if info = Webb.page_info?(page)
+        puts info.url
+      end
     end
 
     private def self.cmd_forward(args : Array(String))

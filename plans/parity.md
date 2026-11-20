@@ -12,19 +12,21 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 30 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 29 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
-  `_proxy` helper, the page-info error contract (`title`, `url`), and the whole
-  tab family (`pages`, `page`, `newpage`, `closepage`) all match Go, and
+  `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
+  family (`pages`, `page`, `newpage`, `closepage`), and `back` all match Go, and
   `shard_issues/` is empty.
 - **Next up:**
-  1. **Navigation**, one commit each: `cmdBack` (details below), then
-     `cmdForward`, `cmdReload`, `cmdClearCache`.
-  2. **Page content** (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`,
-     `cmdInput`, `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`,
-     `cmdDownload`, `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`,
-     `cmdWaitIdle`, `cmdScreenshotEl`).
+  1. **`cmdForward`** (details below) — the identical twin of `back`, one
+     commit.
+  2. **`cmdReload`** (`reload failed: <cause>` on the `--hard` branch) and
+     **`cmdClearCache`** (`clear cache failed: <cause>`), then page content
+     (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`, `cmdInput`,
+     `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
+     `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
+     `cmdScreenshotEl`).
   3. **Helper rows with no CLI surface** — `formatAXNodeList`,
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
      `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
@@ -37,11 +39,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 82 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 53 live-browser). Suite
-    total: 154 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 83 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 54 live-browser). Suite
+    total: 155 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **46 `ported`, 30
+    tests. All 78 function IDs have Crystal references: **47 `ported`, 29
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -83,7 +85,7 @@ described there.
 - **Last port commit:** `port: give closepage Go's per-step errors and clamp
   order` (`c6c768f`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (154 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (155 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -100,27 +102,21 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdBack`
+## Next feature: `cmdForward`
 
-Go (`vendor/rodney/main.go:571-579`) runs `MustNavigateBack` + `MustWaitLoad`,
-then prints the resulting URL only when `Info()` succeeds (`info, _ :=`), i.e. a
-page that cannot report info exits 0 silently.
+Go (`vendor/rodney/main.go:581-589`) is `cmdBack`'s twin: `MustNavigateForward`,
+`MustWaitLoad`, then the URL only when `Info()` succeeds (`info, _ :=`).
 
-Crystal's `cmd_back` calls `page.navigate_back`, `page.wait_load`, then reads
-`page.info` unconditionally, so an info failure escapes as an unhandled
-exception (exit 1 + stack trace) where Go prints nothing and exits 0. That
-failure is not reachable from the CLI deterministically (a closed target
-disappears from `pages`), exactly like `title`, so the seam is the already-tested
-`Webb.page_info?`.
+Crystal's `cmd_forward` still prints `page.info.url` unconditionally, so an info
+failure escapes as an unhandled exception (exit 1 + stack trace) where Go prints
+nothing and exits 0. As with `back`, that failure is not CLI-reachable; the seam
+is the already-tested `Webb.page_info?`.
 
-Green shape: one `if info = Webb.page_info?(page)` guard around the `puts`, the
-same shape `cmd_title`/`cmd_url` use for the fatal side. `cmd_forward` has the
-identical body and follows as its own commit.
+Green shape: the same one-line guard around the `puts`.
 
-Red proof: none is reachable through the CLI — write the characterization
-examples first (back from `/second` prints the root URL; forward restores it),
-then make the seam change; the `.page_info?` unit examples already cover the nil
-branch.
+Red proof: none through the CLI — write the characterization first (open `/`,
+then `/second`, `back`, then `forward` prints `/second`), apply the guard, and
+re-run.
 
 ## Open ledger hygiene
 

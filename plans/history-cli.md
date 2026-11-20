@@ -380,3 +380,13 @@ spec, the ledger update, and this write-up.
         `state.json`, out of range, non-numeric index, and an unreachable
         browser.
       - Ledger: `cmdClosePage` → `ported`.
+- [x] **Give `back` Go's conditional URL output** — `cmd_back` printed
+      `page.info.url` unconditionally, so a page that could not report its info
+      escaped as an unhandled exception where Go prints nothing and exits 0
+      (`info, _ :=`, `main.go:571-579`).
+      - No red was reachable through the CLI (a closed target disappears from
+        `pages`), so the characterization went in first: open `/`, open
+        `/second`, `back` prints `/` — green before and after.
+      - Green: the `puts` now runs only when `Webb.page_info?` returns info, the
+        same seam `title`/`url` use for their fatal side.
+      - Ledger: `cmdBack` → `ported`.

@@ -1222,6 +1222,22 @@ describe "CLI against a live browser" do
     result.stderr.should_not contain("Unhandled exception")
   end
 
+  # Go's cmdBack runs MustNavigateBack + MustWaitLoad and prints the resulting
+  # URL only when Info() succeeds (main.go:571-579), so a page that cannot
+  # report info exits 0 silently.
+  it "navigates back and prints the previous URL" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    second = "#{harness.fixture_url}second"
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("open", second).status.should eq(0)
+
+    result = run_cli_live("back")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("#{harness.fixture_url}\n")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 
