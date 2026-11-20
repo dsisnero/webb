@@ -73,8 +73,8 @@ described there.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
-- **Last port commit:** `port: pin the state helpers and make their OS errors
-  Go-shaped` (`4f6c4cd`).
+- **Last port commit:** `port: reproduce Go's SIGPIPE tolerance and pin init's
+  timeout` (`89bcb46`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
   (239 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
