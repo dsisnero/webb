@@ -711,8 +711,18 @@ module Webb
         Webb.fatal("usage: webb click <selector>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
-      el.click
+      # Go wraps any Element() error: `fatal("element not found: %v", err)`
+      # (main.go:759-762), then `click failed: %v` for the click itself.
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
+      begin
+        el.click
+      rescue ex
+        Webb.fatal("click failed: #{ex.message}")
+      end
       sleep 100.milliseconds
       puts "Clicked"
     end

@@ -468,3 +468,16 @@ spec, the ledger update, and this write-up.
         The detail text after the prefix comes from rod's `EvalError`, as it
         does from Go's rod.
       - Ledger: `cmdJS` → `ported`.
+- [x] **Give `click` Go's error wrapping** — `cmd_click` looked the element up
+      bare, so a selector that matched nothing escaped as an unhandled exception
+      (exit 1) where Go prints `error: element not found: <cause>` and exits 2,
+      then checks the click itself for `click failed: <cause>`
+      (`main.go:755-770`).
+      - Red was real: `click "#missing"` exited **1** (expected 2).
+      - Green: the `cmd_attr` element block plus a second
+        `begin`/`rescue`/`Webb.fatal("click failed: …")` around `el.click`;
+        the 100ms handler pause and `Clicked` are unchanged.
+      - Coverage: `click "#topic"` prints `Clicked`, the usage line with no
+        selector, and the missing selector with `ROD_TIMEOUT=0.5` pinned to
+        `error: element not found: context deadline exceeded`.
+      - Ledger: `cmdClick` → `ported`.

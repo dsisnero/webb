@@ -1526,6 +1526,39 @@ describe "CLI against a live browser" do
     result.stderr.should_not contain("Unhandled exception")
   end
 
+  # Go's cmdClick (main.go:755-770) fatals `element not found: <cause>` for a
+  # failed lookup and `click failed: <cause>` for a failed click, then pauses
+  # 100ms for handlers and prints `Clicked`.
+  it "clicks an element" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("click", "#topic")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Clicked\n")
+  end
+
+  it "fails with the usage line when click has no selector" do
+    result = run_cli_live("click")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb click <selector>\n")
+  end
+
+  it "fails with element not found when click matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["click", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do
