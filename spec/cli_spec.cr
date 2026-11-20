@@ -1571,11 +1571,11 @@ describe "CLI against a live browser" do
     result.stdout.should eq("Typed: hello there\n")
   end
 
-  # Go's MustSelectAllText().MustInput(text) replaces the field's value. rod's
-  # Element#select_all_text builds a document Range instead of calling
-  # this.select(), which no-ops on <input>/<textarea>, so the inserted text
-  # lands in front of the existing value. Blocked on shard_issues/rod.004.md.
-  pending "replaces the field value like MustSelectAllText" do
+  # Go's MustSelectAllText().MustInput(text) replaces the field's value. rod
+  # pinned this at 35d540d: Element#select_all_text now evaluates
+  # js.SelectAllText (`function(){this.select()}`) as a user gesture instead of
+  # building a document Range, which no-ops on <input>/<textarea>.
+  it "replaces the field value like MustSelectAllText" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 
     run_cli_live("input", "#search-form input", "hello", "there").status.should eq(0)
@@ -1596,6 +1596,42 @@ describe "CLI against a live browser" do
     harness = CLISpecSupport.harness
     result = harness.run(
       ["input", "#missing", "x"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
+  # Go's cmdClear (main.go:779-791) fatals the usage line without a selector and
+  # `element not found: <cause>` when the lookup fails, then runs
+  # MustSelectAllText().MustInput("") and prints `Cleared`.
+  it "clears an element's value" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("clear", "#search-form input")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Cleared\n")
+
+    emptied = run_cli_live("js", "document.querySelector('#search-form input').value")
+    emptied.stdout.should eq("\n")
+  end
+
+  it "fails with the usage line when clear has no selector" do
+    result = run_cli_live("clear")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb clear <selector>\n")
+  end
+
+  it "fails with element not found when clear matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["clear", "#missing"],
       harness.browser_home,
       env: {"ROD_TIMEOUT" => "0.5"},
     )

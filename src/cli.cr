@@ -751,7 +751,13 @@ module Webb
         Webb.fatal("usage: webb clear <selector>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
+      # Go wraps any Element() error: `fatal("element not found: %v", err)`
+      # (main.go:784-787); emptying mirrors MustSelectAllText().MustInput("").
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
       el.select_all_text
       el.input("")
       puts "Cleared"

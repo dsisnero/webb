@@ -1,7 +1,7 @@
 # History — `dsisnero/rod` pin and shard fixes
 
 > webb tracks rod `branch: main` and moves the pin when a fix it needs lands.
-> Current pin: `46e6c7f` (see `shard.lock`). This file records why each pin
+> Current pin: `35d540d` (see `shard.lock`). This file records why each pin
 > mattered; `plans/parity.md` has the current pin and gotchas.
 
 ## `waitstable` and `start` gaps (closed)
@@ -68,3 +68,24 @@
   manager events Go logs. webb never uses `Manager`; `webb start` still
   prints exactly Go's two lines and nothing on stderr (re-checked by hand
   after the bump).
+
+## `select_all_text` (closed)
+
+- Found while porting `input`'s happy path: `webb input "#search-form input"
+  "hello there"` on a field holding `hi` produced `hello therehi`. `lib/rod`'s
+  `Element#select_all_text` built a document Range (`window.getSelection()` +
+  `range.selectNodeContents(this)`), which never covers `<input>`/`<textarea>`
+  contents, so `InsertText` landed at the caret. Go rod evaluates
+  `js.SelectAllText` (`function(){this.select()}`) as a user gesture.
+- The shard already shipped that helper (`Rod::JS::SELECT_ALL_TEXT`) and just
+  called a hand-rolled range instead. Filed as `shard_issues/rod.004.md` with
+  the repro, the cause proof (`document.querySelector(...).select()` through
+  `webb js` first makes the value replace), and the patch sketch; the file is
+  deleted now that the gap is closed, matching how rod.001-003 were retired.
+- Landed in `dsisnero/rod` as `35d540d`, adopted by moving `shard.lock`.
+  `webb clear` was blocked by the same method, so it could never empty a field.
+- Proof here: `spec/cli_spec.cr` → "replaces the field value like
+  MustSelectAllText" (un-pended) asserts the field reads back `hello there`,
+  and "clears an element's value" asserts the field reads back empty. With the
+  old pin both fail (`hello therehi`, and the untouched `hi`).
+- Ledger: `cmdInput` and `cmdClear` → `ported`.

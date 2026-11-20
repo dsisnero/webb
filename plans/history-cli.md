@@ -493,9 +493,22 @@ spec, the ledger update, and this write-up.
         `error: element not found: context deadline exceeded`.
       - **Found a shard bug while writing the happy path:** the field came back
         as `hello therehi`, not `hello there` — rod's
-        `Element#select_all_text` selects a document Range instead of calling
-        `this.select()`, so `insertText` appends at the caret. Verified the
+        `Element#select_all_text` selected a document Range instead of calling
+        `this.select()`, so `insertText` appended at the caret. Verified the
         cause by running `document.querySelector(...).select()` through
         `webb js` first (then the value replaced correctly). Filed as
-        [`shard_issues/rod.004.md`](../shard_issues/rod.004.md); the value
-        assertion is `pending` on it and the row stays `partial`.
+        `shard_issues/rod.004.md` and closed by rod `35d540d`; the value
+        assertion is now a live example and the row is `ported`.
+- [x] **Give `clear` Go's element-not-found fatal and prove the emptying** —
+      `cmd_clear` had the same bare lookup (`main.go:784-787`) and, because of
+      the `select_all_text` bug above, could never empty a field.
+      - Red was real for the fatal: `clear "#missing"` exited **1** (expected
+        2). The emptying was red against the old pin (field kept `hi`).
+      - Green: the `cmd_attr` element block, with rod `35d540d` doing the
+        selection work.
+      - Coverage: `clear "#search-form input"` prints `Cleared` and the field
+        reads back empty, the usage line with no selector, and the missing
+        selector pinned to
+        `error: element not found: context deadline exceeded`.
+      - Ledger: `cmdClear` → `ported`.
+
