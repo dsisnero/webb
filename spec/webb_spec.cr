@@ -907,6 +907,28 @@ describe Webb do
     end
   end
 
+  describe ".go_path_error" do
+    # Go's os.Stat/os.WriteFile failures are *PathError values whose text is
+    # `<op> <path>: <cause>` with a lowercase cause, which is what the wrapped
+    # fatals in cli.cr print.
+    it "renders a real stat failure like Go's PathError" do
+      error = begin
+        File.info("no-such-file.txt")
+        raise "expected File.info to fail"
+      rescue ex : File::NotFoundError
+        ex
+      end
+
+      Webb.go_path_error("stat", "no-such-file.txt", error)
+        .should eq("stat no-such-file.txt: no such file or directory")
+    end
+
+    it "falls back to the exception message when there is no strerror tail" do
+      Webb.go_path_error("write", "out.txt", Exception.new("boom"))
+        .should eq("write out.txt: boom")
+    end
+  end
+
   describe ".mime_to_ext" do
     it "matches TestMimeToExt" do
       Webb.mime_to_ext("image/png").should eq(".png")

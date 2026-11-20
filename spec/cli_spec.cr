@@ -55,8 +55,9 @@ private class CLISpecHarness
 
   # Runs the CLI with a scrubbed environment so the spec never reads or writes
   # the developer's real session. `home` becomes `RODNEY_HOME`; `env` adds
-  # process-level variables such as `HTTPS_PROXY` for the proxy-helper branch.
-  def run(args : Array(String), home : String = @home, env : Hash(String, String)? = nil) : Result
+  # process-level variables such as `HTTPS_PROXY` for the proxy-helper branch;
+  # `input` feeds stdin for the `file ... -` branch.
+  def run(args : Array(String), home : String = @home, env : Hash(String, String)? = nil, input : String? = nil) : Result
     process_env = {"HOME" => home, "RODNEY_HOME" => home}
     # `start` launches through rod's launcher, which downloads a managed browser
     # when no bin is given. Pin the same local Chrome the harness uses so the
@@ -73,6 +74,7 @@ private class CLISpecHarness
       env: process_env,
       clear_env: true,
       chdir: @workdir,
+      input: input ? IO::Memory.new(input) : Process::Redirect::Inherit,
       output: stdout,
       error: stderr,
     )
@@ -335,6 +337,16 @@ private class CLISpecHarness
           "<form id=\"search-form\" action=\"/submitted\"><input name=\"q\" value=\"hi\"></form>",
           "<a id=\"file-link\" href=\"#{DOWNLOAD_FILE_PATH}\">Download file</a>",
           "<a id=\"missing-link\" href=\"#{DOWNLOAD_MISSING_PATH}\">Missing file</a>",
+          # `file` needs a real input plus a change handler that records what
+          # Chrome attached, so a spec can read it back with `webb text`.
+          "<input id=\"file-input\" type=\"file\">",
+          "<span id=\"file-summary\"></span>",
+          "<script>",
+          "  document.getElementById('file-input').addEventListener('change', function (e) {",
+          "    var f = e.target.files[0];",
+          "    document.getElementById('file-summary').textContent = f ? f.name + ':' + f.size : '';",
+          "  });",
+          "</script>",
           "</body>",
           "</html>",
         ].join('\n'))
@@ -1387,6 +1399,15 @@ describe "CLI against a live browser" do
     end
   end
 
+  it "fails with Go's write prefix when the screenshot path is not writable" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("screenshot", "no-such-dir/shot.png")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: failed to write screenshot: open no-such-dir/shot.png: no such file or directory\n")
+  end
+
   # Go's cmdPDF (main.go:684-707) defaults to `page.pdf`, fatals
   # `failed to generate PDF: <cause>` when PrintToPDF fails, drains the stream,
   # and fatals `failed to write PDF: <cause>` on the write before printing
@@ -1413,7 +1434,7 @@ describe "CLI against a live browser" do
     result = run_cli_live("pdf", "no-such-dir/page.pdf")
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: failed to write PDF: ")
+    result.stderr.should eq("error: failed to write PDF: open no-such-dir/page.pdf: no such file or directory\n")
   end
 
   # Go's cmdDownload (main.go:836-899): usage fatal, `element not found:
@@ -1490,7 +1511,80 @@ describe "CLI against a live browser" do
     result = run_cli_live("download", "#file-link", "no-such-dir/out.txt")
     result.status.should eq(2)
     result.stdout.should be_empty
-    result.stderr.should start_with("error: failed to write file: ")
+    result.stderr.should eq("error: failed to write file: open no-such-dir/out.txt: no such file or directory\n")
+  end
+
+  # Go's cmdFile (main.go:792-834): usage fatal, `element not found: <cause>`,
+  # `failed to read stdin:` / `failed to create temp file:` / `failed to write
+  # temp file:` on the `-` branch, `file not found: <cause>` from os.Stat, and
+  # `failed to set file: <cause>`.
+  it "sets a file input and echoes the argument" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "cli-spec-upload.txt")
+    File.write(path, "uploaded")
+    begin
+      result = run_cli_live("file", "#file-input", "cli-spec-upload.txt")
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      result.stdout.should eq("Set file: cli-spec-upload.txt\n")
+
+      summary = run_cli_live("text", "#file-summary")
+      summary.stdout.should eq("cli-spec-upload.txt:8\n")
+    ensure
+      File.delete?(path)
+    end
+  end
+
+  it "uploads stdin through a temp file on the - branch" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(["file", "#file-input", "-"], harness.browser_home, input: "hello")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Set file: -\n")
+
+    # The change handler records Chrome's view of the attachment: the temp
+    # file's basename and the five bytes read from stdin.
+    summary = run_cli_live("text", "#file-summary")
+    summary.stdout.should match(/\Awebb-upload-.+:5\n\z/)
+  end
+
+  it "fails with the usage line when file has one argument" do
+    result = run_cli_live("file", "#file-input")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb file <selector> <path|->\n")
+  end
+
+  it "fails with element not found when file matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "cli-spec-upload.txt")
+    File.write(path, "uploaded")
+    begin
+      harness = CLISpecSupport.harness
+      result = harness.run(
+        ["file", "#missing", "cli-spec-upload.txt"],
+        harness.browser_home,
+        env: {"ROD_TIMEOUT" => "0.5"},
+      )
+      result.status.should eq(2)
+      result.stdout.should be_empty
+      result.stderr.should eq("error: element not found: context deadline exceeded\n")
+    ensure
+      File.delete?(path)
+    end
+  end
+
+  it "reports a missing file with Go's stat error" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("file", "#file-input", "no-such-file.txt")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: file not found: stat no-such-file.txt: no such file or directory\n")
   end
 
   it "stops an external browser without closing it and forgets the state" do

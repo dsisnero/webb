@@ -12,15 +12,15 @@ described there.
 
 ## Where we are
 
-- **Current focus:** `cmdFile` (details in the **Files** block below), then the
-  rest of the **Queue** block — 16 `partial` ledger rows split into 5 CLI
-  commands and 11 helpers, each with its Go contract and reachability recorded
-  so a fresh session can start without re-deriving state.
+- **Current focus:** the **Waits** block below (`cmdWait`, then spec-only
+  `cmdWaitLoad`/`cmdWaitIdle`), then `cmdScreenshotEl` — 15 `partial` ledger
+  rows split into 3 CLI commands and the 11 helpers, each with its Go contract
+  and reachability recorded so a fresh session can start without re-deriving
+  state.
 - **Next up (in order):**
-  1. **`cmdFile`** — lookup and `set file` fatals, plus a real message
-     divergence on its stat branch (`stat <path>: no such file or directory`).
-  2. Waits: **`cmdWait`** (lookup red), then spec-only **`cmdWaitLoad`** and
-     **`cmdWaitIdle`**.
+  1. **`cmdWait`** — `element not found:` on the lookup; proving the wait needs
+     a fixture element that appears late.
+  2. Spec-only **`cmdWaitLoad`** and **`cmdWaitIdle`**.
   3. **`cmdScreenshotEl`**.
   4. The 11 helper rows — unit specs, no product code.
   5. Hygiene: SIGPIPE proof for `init`, `cmdOpen`'s ignored errors, ledger
@@ -31,11 +31,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 120 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 91 live-browser). Suite
-    total: 192 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 74 examples. `spec/cli_spec.cr`: 126 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 97 live-browser). Suite
+    total: 200 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **60 `ported`, 16
+    tests. All 78 function IDs have Crystal references: **61 `ported`, 15
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -71,13 +71,18 @@ described there.
   - `webb axtree`/`axfind`/`axnode` still work as unadvertised aliases (Go
     rejects them as unknown commands); the usage text uses Go's hyphenated
     names.
+  - OS-error fatals (cmdFile's stat branch and the wrapped `File.write` fatals
+    in `pdf`, `download`, and `screenshot`) print Go's `*PathError` text through
+    `Webb.go_path_error` (`stat <path>: no such file or directory`). Do not
+    revert to `ex.message` there: Crystal's phrasing is
+    `Unable to get file info: '<path>': No such file or directory`.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
 - **Last port commit:** `port: give download Go's lookup/fetch/write fatals`
   (`4b5ae79`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (192 examples), `make build` (CLI), `make inventory` (82 curated /
+  (200 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -101,7 +106,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (192 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (200 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -112,20 +117,6 @@ Known flakes, not regressions: `waitstable`'s timing example
 (`waits about a second for DOM stability`) and the `download`/`file` browser
 parity examples fail under host load and pass on a re-run or in isolation.
 Check `uptime` before believing a red.
-
-### Files
-
-- **`cmdFile`** (`main.go:792-834`) — `element not found: %v`,
-  `failed to read stdin:` / `failed to create temp file:` / `failed to write
-  temp file:` on the `-` branch, `failed to set file: %v`, and a **message
-  divergence** on the stat branch: Go prints
-  `error: file not found: stat <path>: no such file or directory`, Crystal
-  prints `error: file not found: <path>`. That stat text is the reachable red,
-  and fixing it means carrying the OS error, not just the path. The same
-  wording gap exists in every wrapped `os.WriteFile` fatal (`pdf`, `download`,
-  `screenshot*`): Crystal prints its own `File::NotFoundError` text after the
-  Go prefix. Normalize it in one helper when the stat branch lands, then re-run
-  the write-path examples.
 
 ### Waits
 
@@ -230,6 +221,11 @@ Reference for what is already ported; do not re-open without a divergence:
   `spec/cli_spec.cr` → "accepts --show, which upstream advertises but rejects".
 - `webb axtree`/`axfind`/`axnode` are accepted as aliases; Go only knows the
   hyphenated command names. Unadvertised, and the usage text uses Go's names.
+- `webb file` resolves the upload path with `File.expand_path` before handing it
+  to Chrome, so a relative path works from any cwd; Go forwards `args[1]`
+  verbatim and Chrome resolves it against its own process. Pinned by
+  `spec/cli_spec.cr` → "sets a file input and echoes the argument" (the file
+  lives in the harness workdir, which is not Chrome's cwd).
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
   divergence is documented in `shard_issues/` with a reproducible case. No open
   shard gaps and `shard_issues/` is empty: the latest, `select_all_text`

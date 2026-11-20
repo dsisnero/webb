@@ -579,3 +579,31 @@ spec, the ledger update, and this write-up.
         gained `/download/testfile.txt`, a 404 `/download/missing.txt`, and
         the `#file-link` and `#missing-link` anchors.
       - Ledger: `cmdDownload` → `ported`.
+- [x] **Give `file` Go's element/stat/temp-file fatals and normalize OS-error
+      text** — `cmd_file` looked the element up bare and checked the path with
+      `File.exists?`, so a missing selector escaped as an unhandled exception
+      (exit 1) and a missing path printed `error: file not found: <path>` where
+      Go prints the `*PathError` text (`main.go:792-834`).
+      - Red was real: `file "#missing" …` exited **1** (expected 2), and the
+        stat branch printed the bare path instead of
+        `stat <path>: no such file or directory`.
+      - Green: `element not found: <cause>` around `page.element`; the stat
+        branch prints `Webb.go_path_error("stat", path, ex)`; the `-` branch
+        moved into `upload_temp_file`, which drains stdin, creates a
+        `webb-upload-` temp file with `File.tempfile`, writes it, and closes it
+        behind `failed to read stdin:` / `failed to create temp file:` /
+        `failed to write temp file:`; `failed to set file:` wraps `set_files`.
+      - New helper: `Webb.go_path_error(op, path, ex)` renders Go's
+        `<op> <path>: <cause>` with a lowercased cause, recovering the strerror
+        tail from Crystal's File message. Adopted by the wrapped writes in
+        `pdf`, `download`, and `screenshot`, whose specs now pin Go's exact
+        text (`open <path>: no such file or directory`).
+      - Coverage: a relative upload read back from the page's change handler
+        (`cli-spec-upload.txt:8`), stdin bytes proven through the temp file
+        (`webb-upload-…:5`), the usage line, the ROD_TIMEOUT missing selector,
+        and the exact stat message; plus two `Webb.go_path_error` unit
+        examples. The read/create/write temp-file fatals need an injected IO
+        failure and stay structural.
+      - Divergence recorded: `File.expand_path` makes relative upload paths
+        work, where Go forwards the argument verbatim.
+      - Ledger: `cmdFile` → `ported`.

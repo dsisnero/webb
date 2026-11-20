@@ -709,7 +709,7 @@ module Webb
       begin
         File.write(file, buf.to_slice)
       rescue ex
-        Webb.fatal("failed to write PDF: #{ex.message}")
+        Webb.fatal("failed to write PDF: #{Webb.go_path_error("open", file, ex)}")
       end
       puts "Saved #{file} (#{buf.size} bytes)"
     end
@@ -849,20 +849,58 @@ module Webb
       file_path = args[1]
 
       _, _, page = Webb.with_page
-      el = page.element(selector)
+      # Go wraps any Element() error as `element not found: %v`
+      # (main.go:800-803).
+      el = begin
+        page.element(selector)
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
 
       if file_path == "-"
-        data = STDIN.gets_to_end.to_slice
-        tmp = File.tempname("webb-upload-")
-        File.write(tmp, data)
-        el.set_files([tmp])
+        file_path = upload_temp_file
       else
-        unless File.exists?(file_path)
-          Webb.fatal("file not found: #{file_path}")
+        # Go stats the path and fatals the *PathError text, so a missing file
+        # reads `stat <path>: no such file or directory` (main.go:819-825).
+        begin
+          File.info(file_path)
+        rescue ex
+          Webb.fatal("file not found: #{Webb.go_path_error("stat", file_path, ex)}")
         end
+      end
+
+      # Go: `fatal("failed to set file: %v", err)` (main.go:827-829).
+      begin
         el.set_files([File.expand_path(file_path)])
+      rescue ex
+        Webb.fatal("failed to set file: #{ex.message}")
       end
       puts "Set file: #{args[1]}"
+    end
+
+    # upload_temp_file drains stdin into a temp file, mirroring Go's
+    # io.ReadAll + os.CreateTemp + Write + Close (main.go:805-818).
+    private def self.upload_temp_file : String
+      data = begin
+        STDIN.gets_to_end
+      rescue ex
+        Webb.fatal("failed to read stdin: #{ex.message}")
+      end
+      tmp = begin
+        # Prefix overload: the name starts with `webb-upload-`, like Go's
+        # os.CreateTemp("", "rodney-upload-*").
+        File.tempfile("webb-upload-", nil)
+      rescue ex
+        Webb.fatal("failed to create temp file: #{ex.message}")
+      end
+      begin
+        tmp.write(data.to_slice)
+      rescue ex
+        tmp.close rescue nil
+        Webb.fatal("failed to write temp file: #{ex.message}")
+      end
+      tmp.close
+      tmp.path
     end
 
     private def self.cmd_download(args : Array(String))
@@ -906,7 +944,7 @@ module Webb
       begin
         File.write(out_file, data)
       rescue ex
-        Webb.fatal("failed to write file: #{ex.message}")
+        Webb.fatal("failed to write file: #{Webb.go_path_error("open", out_file, ex)}")
       end
       puts "Saved #{out_file} (#{data.size} bytes)"
     end
@@ -1072,7 +1110,7 @@ module Webb
       begin
         File.write(file, data)
       rescue ex
-        Webb.fatal("failed to write screenshot: #{ex.message}")
+        Webb.fatal("failed to write screenshot: #{Webb.go_path_error("open", file, ex)}")
       end
       puts file
     end

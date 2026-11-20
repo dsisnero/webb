@@ -598,6 +598,22 @@ module Webb
     next_available_file("download", "")
   end
 
+  # go_path_error renders an OS failure the way Go's *PathError does:
+  # `<op> <path>: <cause>`, with the cause lowercased. Crystal ends its File
+  # errors with the same strerror text Go uses, only capitalized (`No such file
+  # or directory`), so the wrapped `os.Stat`/`os.WriteFile` fatals can print
+  # Go's exact wording instead of Crystal's
+  # `Unable to get file info: '<path>': ...` phrasing.
+  def self.go_path_error(op : String, path : String, ex : Exception) : String
+    message = ex.message.to_s
+    cause = message.rpartition(": ")[2]
+    cause = message if cause.empty?
+    unless cause.empty?
+      cause = "#{cause[0].downcase}#{cause[1..]}"
+    end
+    "#{op} #{path}: #{cause}"
+  end
+
   def self.fatal(message : String)
     STDERR.puts "error: #{message}"
     exit 2
