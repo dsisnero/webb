@@ -453,3 +453,18 @@ spec, the ledger update, and this write-up.
         with no argument, and the missing selector with `ROD_TIMEOUT=0.5`
         pinned to `error: element not found: context deadline exceeded`.
       - Ledger: `cmdText` → `ported`.
+- [x] **Give `js` Go's `JS error:` fatal** — `cmd_js` evaluated the wrapped
+      expression bare, so a throwing expression escaped as an unhandled
+      exception (exit 1) where Go prints `error: JS error: <cause>` and exits 2
+      (`main.go:722-728`).
+      - Red was real: `js "nope()"` (a `ReferenceError` at runtime, valid
+        syntax inside Go's `() => { return (expr); }` wrapper) exited **1**
+        where the spec wants 2.
+      - Green: `begin`/`rescue ex`/`Webb.fatal("JS error: …")` around
+        `page.eval`, leaving `Webb.format_js_result` for the value switch.
+      - Coverage: `1 + 1` → `2`, `'hi'` → `hi`, `null` → `null`,
+        `true` → `true`, `({a: 1})` → two-space pretty JSON, and a throwing
+        expression asserting Go's prefix with no `Unhandled exception` line.
+        The detail text after the prefix comes from rod's `EvalError`, as it
+        does from Go's rod.
+      - Ledger: `cmdJS` → `ported`.

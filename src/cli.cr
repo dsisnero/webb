@@ -696,7 +696,13 @@ module Webb
       end
       expr = args.join(" ")
       _, _, page = Webb.with_page
-      result = page.eval("() => { return (#{expr}); }")
+      # Go wraps the expression as `() => { return (<expr>); }` and fatals
+      # `JS error: %v` when the evaluation fails (main.go:722-728).
+      result = begin
+        page.eval("() => { return (#{expr}); }")
+      rescue ex
+        Webb.fatal("JS error: #{ex.message}")
+      end
       puts Webb.format_js_result(result)
     end
 

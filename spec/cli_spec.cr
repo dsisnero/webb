@@ -1502,6 +1502,30 @@ describe "CLI against a live browser" do
     result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
+  # Go's cmdJS (main.go:717-754) wraps the expression as `() => { return (expr); }`
+  # and fatals `JS error: <cause>` when Eval fails; the value then prints by JSON
+  # type (null/undefined and booleans raw, strings unquoted, objects and arrays
+  # pretty-printed with two spaces, other primitives raw).
+  it "prints a JS value by its JSON type" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    run_cli_live("js", "1 + 1").stdout.should eq("2\n")
+    run_cli_live("js", "'hi'").stdout.should eq("hi\n")
+    run_cli_live("js", "null").stdout.should eq("null\n")
+    run_cli_live("js", "true").stdout.should eq("true\n")
+    run_cli_live("js", "({a: 1})").stdout.should eq("{\n  \"a\": 1\n}\n")
+  end
+
+  it "fails with JS error when the expression throws" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("js", "nope()")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should start_with("error: JS error: ")
+    result.stderr.should_not contain("Unhandled exception")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do

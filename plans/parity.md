@@ -12,15 +12,17 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 24 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 23 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
   `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
   family (`pages`, `page`, `newpage`, `closepage`), `back`, `forward`, `reload`,
-  `clear-cache`, `html`, and `text` all match Go, and `shard_issues/` is empty.
+  `clear-cache`, `html`, `text`, and `js` all match Go, and `shard_issues/` is
+  empty.
 - **Next up:**
-  1. **`cmdJS`** (details below) — `JS error: <cause>`, one commit.
-  2. Then interaction (`cmdClick`, `cmdInput`,
+  1. **`cmdClick`** (details below) — `element not found:` / `click failed:`,
+     one commit.
+  2. Then interaction (`cmdInput`,
      `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
      `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
      `cmdScreenshotEl`).
@@ -36,11 +38,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 93 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 64 live-browser). Suite
-    total: 165 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 95 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 66 live-browser). Suite
+    total: 167 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **52 `ported`, 24
+    tests. All 78 function IDs have Crystal references: **53 `ported`, 23
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -82,7 +84,7 @@ described there.
 - **Last port commit:** `port: give text Go's element not found and text error
   wrapping` (`cfcddbc`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (165 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (167 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -99,24 +101,24 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdJS`
+## Next feature: `cmdClick`
 
-Go (`vendor/rodney/main.go:717-754`) joins the arguments into `expr`, wraps it
-as `() => { return (<expr>); }`, and fatals `JS error: %v` when `page.Eval`
-fails, then prints the value by JSON type: `null`/`undefined` and booleans raw,
-strings unquoted, objects/arrays pretty-printed with a two-space indent, other
-primitives raw.
+Go (`vendor/rodney/main.go:755-772`) fatals `element not found: %v` when
+`page.Element` fails, `click failed: %v` when
+`el.Click(proto.InputMouseButtonLeft, 1)` fails, then sleeps 100ms and prints
+`Clicked`.
 
-Crystal's `cmd_js` evaluates bare, so a throwing expression escapes as an
-unhandled exception (exit 1 + stack trace) where Go prints `error: JS error:
-<cause>` and exits 2.
+Crystal's `cmd_click` looks the element up bare, so a selector that matches
+nothing escapes as an unhandled exception (exit 1 + stack trace) where Go prints
+`error: element not found: <cause>` and exits 2.
 
-Red proof: **reachable** — `webb js "throw new Error('boom')"` (or a bare
-undefined identifier) exits 1 today; the spec wants exit 2 with Go's
-`error: JS error: ` prefix and no `Unhandled exception` line.
+Red proof: **reachable**, same shape as `html`/`text` — a `click "#missing"`
+with `ROD_TIMEOUT=0.5` exits 1 today; the spec wants exit 2 with Go's message.
+Pair it with a happy path (`click "#topic"` prints `Clicked`, and the element
+still exists afterwards).
 
-Green shape: `begin`/`rescue ex`/`Webb.fatal("JS error: #{ex.message}")` around
-`page.eval`, leaving `Webb.format_js_result` to handle the value switch.
+Green shape: wrap the lookup in the `cmd_attr` element block, then a second
+`rescue` for `click failed: <cause>` around `el.click`.
 
 ## Open ledger hygiene
 
