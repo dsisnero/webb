@@ -12,16 +12,15 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 25 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 24 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
   `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
   family (`pages`, `page`, `newpage`, `closepage`), `back`, `forward`, `reload`,
-  `clear-cache`, and `html` all match Go, and `shard_issues/` is empty.
+  `clear-cache`, `html`, and `text` all match Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdText`** (details below) — `element not found:` /
-     `failed to get text:` fatals, one commit.
-  2. Then `cmdJS`, interaction (`cmdClick`, `cmdInput`,
+  1. **`cmdJS`** (details below) — `JS error: <cause>`, one commit.
+  2. Then interaction (`cmdClick`, `cmdInput`,
      `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
      `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
      `cmdScreenshotEl`).
@@ -37,11 +36,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 90 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 61 live-browser). Suite
-    total: 162 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 93 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 64 live-browser). Suite
+    total: 165 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **51 `ported`, 25
+    tests. All 78 function IDs have Crystal references: **52 `ported`, 24
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -83,7 +82,7 @@ described there.
 - **Last port commit:** `port: give html Go's element not found and HTML error
   wrapping` (`960a2c8`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (162 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
+  (165 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
   passed earlier in the day.
 
@@ -100,26 +99,24 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdText`
+## Next feature: `cmdJS`
 
-Go (`vendor/rodney/main.go:657-673`) fatals `usage: rodney text <selector>`
-without an argument, then `page.Element(sel)` →
-`fatal("element not found: %v", err)`, then `el.Text()` →
-`fatal("failed to get text: %v", err)`.
+Go (`vendor/rodney/main.go:717-754`) joins the arguments into `expr`, wraps it
+as `() => { return (<expr>); }`, and fatals `JS error: %v` when `page.Eval`
+fails, then prints the value by JSON type: `null`/`undefined` and booleans raw,
+strings unquoted, objects/arrays pretty-printed with a two-space indent, other
+primitives raw.
 
-Crystal's `cmd_text` only guards the usage case: `page.element(args[0])` and
-`el.text` are bare, so a selector that matches nothing escapes as an unhandled
-exception (exit 1 + stack trace) instead of `error: element not found: <cause>`
-with exit 2.
+Crystal's `cmd_js` evaluates bare, so a throwing expression escapes as an
+unhandled exception (exit 1 + stack trace) where Go prints `error: JS error:
+<cause>` and exits 2.
 
-Red proof: **reachable**, exactly like `html` — `webb text "#missing"` with
-`ROD_TIMEOUT=0.5` exits 1 today; the spec wants exit 2 and Go's
-`error: element not found: context deadline exceeded` line. The happy path
-(`text "#topic"` printing the fixture's option labels) is the companion
-characterization.
+Red proof: **reachable** — `webb js "throw new Error('boom')"` (or a bare
+undefined identifier) exits 1 today; the spec wants exit 2 with Go's
+`error: JS error: ` prefix and no `Unhandled exception` line.
 
-Green shape: the same two `begin`/`rescue`/`Webb.fatal` blocks the `cmdHTML`
-commit just added.
+Green shape: `begin`/`rescue ex`/`Webb.fatal("JS error: #{ex.message}")` around
+`page.eval`, leaving `Webb.format_js_result` to handle the value switch.
 
 ## Open ledger hygiene
 

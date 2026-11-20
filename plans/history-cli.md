@@ -441,3 +441,15 @@ spec, the ledger update, and this write-up.
         missing selector with `ROD_TIMEOUT=0.5` pinning
         `error: element not found: context deadline exceeded` at exit 2.
       - Ledger: `cmdHTML` → `ported`.
+- [x] **Give `text` Go's error wrapping** — `cmd_text` guarded only the usage
+      case, so `page.element` and `el.text` escaped as an unhandled exception
+      (exit 1) where Go prints `error: element not found: <cause>` and exits 2,
+      then checks `el.Text()` for `failed to get text: <cause>`
+      (`main.go:657-670`).
+      - Red was real: `text "#missing"` exited **1** (expected 2).
+      - Green: the same two `begin`/`rescue ex`/`Webb.fatal` blocks as `html`.
+      - Coverage: `text "#topic"` prints the select's selected option text
+        (`General`, rod's `text` helper joins `selectedOptions`), the usage line
+        with no argument, and the missing selector with `ROD_TIMEOUT=0.5`
+        pinned to `error: element not found: context deadline exceeded`.
+      - Ledger: `cmdText` → `ported`.

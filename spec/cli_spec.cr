@@ -1469,6 +1469,39 @@ describe "CLI against a live browser" do
     result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
+  # Go's cmdText (main.go:657-670) fatals `usage: rodney text <selector>`
+  # without an argument, `element not found: <cause>` when the lookup fails, and
+  # `failed to get text: <cause>` when the element's text cannot be read.
+  it "prints an element's text" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("text", "#topic")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("General\n")
+  end
+
+  it "fails with the usage line when text has no selector" do
+    result = run_cli_live("text")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb text <selector>\n")
+  end
+
+  it "fails with element not found when text matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["text", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do

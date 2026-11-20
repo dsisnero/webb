@@ -643,8 +643,19 @@ module Webb
         Webb.fatal("usage: webb text <selector>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
-      puts el.text
+      # Go wraps any Element() error: `fatal("element not found: %v", err)`
+      # (main.go:662-665), then checks el.Text() on its own line.
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
+      text = begin
+        el.text
+      rescue ex
+        Webb.fatal("failed to get text: #{ex.message}")
+      end
+      puts text
     end
 
     private def self.cmd_attr(args : Array(String))
