@@ -1137,9 +1137,25 @@ module Webb
       end
       file = args.size > 1 ? args[1] : "element.png"
       _, _, page = Webb.with_page
-      el = page.element(args[0])
-      data = el.screenshot
-      File.write(file, data)
+      # Go wraps any Element() error as `element not found: %v`
+      # (main.go:1181-1184).
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
+      # Go: `fatal("screenshot failed: %v", err)` (main.go:1185-1188); the
+      # capture itself needs a CDP failure and has no upstream test.
+      data = begin
+        el.screenshot
+      rescue ex
+        Webb.fatal("screenshot failed: #{ex.message}")
+      end
+      begin
+        File.write(file, data)
+      rescue ex
+        Webb.fatal("failed to write screenshot: #{Webb.go_path_error("open", file, ex)}")
+      end
       puts "Saved #{file} (#{data.size} bytes)"
     end
 

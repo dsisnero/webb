@@ -2340,6 +2340,58 @@ describe "CLI against a live browser" do
     ignored.stdout.should eq("Network idle\n")
   end
 
+  # Go's cmdScreenshotEl (main.go:1172-1192): usage fatal, `element not
+  # found: <cause>`, `screenshot failed: <cause>`, `failed to write
+  # screenshot: <cause>`, then `Saved <file> (<n> bytes)`.
+  it "saves an element screenshot and reports its size" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    path = File.join(CLISpecSupport.harness.workdir, "cli-spec-element.png")
+    File.delete?(path)
+    begin
+      result = run_cli_live("screenshot-el", "h1", "cli-spec-element.png")
+      result.status.should eq(0)
+      result.stderr.should be_empty
+      result.stdout.should eq("Saved cli-spec-element.png (#{File.size(path)} bytes)\n")
+
+      head = Bytes.new(4)
+      File.open(path, "rb") { |png| png.read_fully(head) }
+      head.should eq(Bytes[0x89, 0x50, 0x4E, 0x47])
+    ensure
+      File.delete?(path)
+    end
+  end
+
+  it "fails with the usage line when screenshot-el has no selector" do
+    result = run_cli_live("screenshot-el")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb screenshot-el <selector> [file]\n")
+  end
+
+  it "fails with element not found when screenshot-el matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["screenshot-el", "#missing", "cli-spec-element.png"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
+  it "fails with Go's write prefix when the element screenshot path is not writable" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("screenshot-el", "h1", "no-such-dir/element.png")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: failed to write screenshot: open no-such-dir/element.png: no such file or directory\n")
+  end
+
   it "waits about a second for DOM stability, like MustWaitStable()" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

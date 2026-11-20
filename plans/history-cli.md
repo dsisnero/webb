@@ -646,3 +646,20 @@ spec, the ledger update, and this write-up.
         exit 0 in under 2s (a network wait cannot manage that), and
         `waitidle ignored` still exits 0 with the same line.
       - Ledger: `cmdWaitIdle` → `ported`.
+- [x] **Give `screenshot-el` Go's element/write fatals** — `cmd_screenshot_el`
+      looked the element up bare and called `File.write` bare, so both failures
+      escaped as unhandled exceptions (exit 1) where Go prints
+      `error: <prefix>: <cause>` and exits 2 (`main.go:1172-1192`).
+      - Red was real: a missing selector and an unwritable path each exited
+        **1** (expected 2).
+      - Green: `element not found: <cause>` around `page.element`;
+        `screenshot failed: <cause>` around `el.screenshot` (structural: needs a
+        CDP failure); `failed to write screenshot: <cause>` through
+        `Webb.go_path_error("open", …)`.
+      - Coverage: a live element PNG whose size line matches `File.size` and
+        whose first four bytes are `89 50 4E 47`, the usage line, the missing
+        selector pinned to
+        `error: element not found: context deadline exceeded` (ROD_TIMEOUT=0.5),
+        and `no-such-dir/element.png` pinned to
+        `open no-such-dir/element.png: no such file or directory`.
+      - Ledger: `cmdScreenshotEl` → `ported`.
