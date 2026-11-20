@@ -653,13 +653,13 @@ module Webb
 
   # detect_proxy checks for HTTPS_PROXY/HTTP_PROXY with credentials.
   # Returns {proxy_server, username, password, needed}.
-  # ameba:disable Metrics/CyclomaticComplexity
   def self.detect_proxy : {String, String, String, Bool}
-    proxy_env = ENV["HTTPS_PROXY"]? ||
-                ENV["https_proxy"]? ||
-                ENV["HTTP_PROXY"]? ||
-                ENV["http_proxy"]?
-    return {"", "", "", false} if proxy_env.nil? || proxy_env.empty?
+    # Go walks the four variables in order and skips empty values
+    # (main.go:1842-1854), so an empty HTTPS_PROXY must not mask HTTP_PROXY.
+    proxy_env = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]
+      .compact_map { |name| ENV[name]? }
+      .find { |value| !value.empty? }
+    return {"", "", "", false} if proxy_env.nil?
 
     begin
       parsed = URI.parse(proxy_env)
@@ -667,16 +667,15 @@ module Webb
       return {"", "", "", false}
     end
 
-    user_info = parsed.user
-    return {"", "", "", false} if user_info.nil? || user_info.empty?
+    user = parsed.user
+    return {"", "", "", false} if user.nil? || user.empty?
 
-    password = parsed.password || ""
     host = parsed.host || ""
-    port = parsed.port
-
     return {"", "", "", false} if host.empty?
+    # url.URL.Hostname strips the brackets around an IPv6 literal.
+    host = host[1..-2] if host.starts_with?('[') && host.ends_with?(']')
 
-    server = port ? "#{host}:#{port}" : host
-    {server, user_info, password, true}
+    # Go renders Hostname() + ":" + Port(), so a portless URL keeps the colon.
+    {"#{host}:#{parsed.port || ""}", user, parsed.password || "", true}
   end
 end

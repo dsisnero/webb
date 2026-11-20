@@ -683,3 +683,19 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         `.format_properties` (nil/empty, true-only booleans, unconditional
         `level=`, non-empty `name=value` pairs, unknown names dropped).
       - Ledger: all three rows → `ported`.
+
+- [x] **Pin `detectProxy`** — the helper was only exercised by the live
+      `_proxy` examples. Direct cases exposed three divergences from Go's
+      `detectProxy` (`main.go:1841-1866`):
+      - an empty `HTTPS_PROXY` stopped the lookup (`ENV[...]? || …` treats `""`
+        as present) where Go keeps walking to `HTTP_PROXY`;
+      - a portless proxy URL rendered `host` instead of Go's `host:` from
+        `Hostname() + ":" + Port()`;
+      - an IPv6 literal kept its brackets where `url.URL.Hostname` strips them.
+      - Green: walk the four names in Go's order skipping empties, require a
+        non-empty user, strip IPv6 brackets, and always render `host:port`.
+      - Coverage in `spec/webb_spec.cr`: `.detect_proxy` with 8 examples (no
+        proxy, priority, empty-value fallthrough, missing and empty user, empty
+        password, portless host, IPv6, malformed), using a `with_proxy_env`
+        helper that restores the developer's environment.
+      - Ledger: `detectProxy` → `ported`.

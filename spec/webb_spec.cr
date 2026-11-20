@@ -274,6 +274,24 @@ private def stub_target_info(title : String, url : String) : Cdp::Target::Target
   Cdp::Target::TargetInfo.new("stub-target", "page", title, url, true, false)
 end
 
+# with_proxy_env runs a block with the four proxy variables cleared and only
+# `values` set, restoring the developer's environment afterwards.
+private def with_proxy_env(values : Hash(String, String), &) : Nil
+  keys = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]
+  saved = keys.map { |key| {key, ENV[key]?} }
+  keys.each { |key| ENV.delete(key) }
+  values.each { |key, value| ENV[key] = value }
+  yield
+ensure
+  saved.try &.each do |(key, value)|
+    if value
+      ENV[key] = value
+    else
+      ENV.delete(key)
+    end
+  end
+end
+
 describe Webb do
   home_dir = ENV["HOME"]? || ""
 
@@ -385,6 +403,76 @@ describe Webb do
       Webb.state_dir.should eq(dir)
 
       FileUtils.rm_rf(dir)
+    end
+  end
+
+  # Go's detectProxy (main.go:1841-1866) reads HTTPS_PROXY, https_proxy,
+  # HTTP_PROXY, http_proxy in that order (an empty value falls through), needs a
+  # user, and renders `<hostname>:<port>` like url.URL.Hostname + Port.
+  describe ".detect_proxy" do
+    it "returns false without a proxy" do
+      with_proxy_env({} of String => String) do
+        Webb.detect_proxy.should eq({"", "", "", false})
+      end
+    end
+
+    it "prefers HTTPS_PROXY over HTTP_PROXY" do
+      with_proxy_env({
+        "HTTPS_PROXY" => "http://user:pass@secure:8080",
+        "HTTP_PROXY"  => "http://other:pw@plain:3128",
+      }) do
+        Webb.detect_proxy.should eq({"secure:8080", "user", "pass", true})
+      end
+    end
+
+    it "falls through the Go order and skips empty values" do
+      # Go's per-variable `== ""` check keeps walking down the list, so an empty
+      # HTTPS_PROXY must not stop HTTP_PROXY from being used.
+      with_proxy_env({
+        "HTTPS_PROXY" => "",
+        "https_proxy" => "",
+        "HTTP_PROXY"  => "http://user:pass@plain:3128",
+      }) do
+        Webb.detect_proxy.should eq({"plain:3128", "user", "pass", true})
+      end
+
+      with_proxy_env({"http_proxy" => "http://user:pass@lower:8080"}) do
+        Webb.detect_proxy.should eq({"lower:8080", "user", "pass", true})
+      end
+    end
+
+    it "requires a user" do
+      with_proxy_env({"HTTPS_PROXY" => "http://proxy:8080"}) do
+        Webb.detect_proxy.should eq({"", "", "", false})
+      end
+
+      with_proxy_env({"HTTPS_PROXY" => "http://:pass@proxy:8080"}) do
+        Webb.detect_proxy.should eq({"", "", "", false})
+      end
+    end
+
+    it "keeps an empty password" do
+      with_proxy_env({"HTTPS_PROXY" => "http://user@proxy:3128"}) do
+        Webb.detect_proxy.should eq({"proxy:3128", "user", "", true})
+      end
+    end
+
+    it "renders an empty port with Go's trailing colon" do
+      with_proxy_env({"HTTPS_PROXY" => "http://user:pass@proxy.example.com"}) do
+        Webb.detect_proxy.should eq({"proxy.example.com:", "user", "pass", true})
+      end
+    end
+
+    it "drops IPv6 brackets like url.URL.Hostname" do
+      with_proxy_env({"HTTPS_PROXY" => "http://user:pass@[::1]:8080"}) do
+        Webb.detect_proxy.should eq({"::1:8080", "user", "pass", true})
+      end
+    end
+
+    it "ignores malformed proxy URLs" do
+      with_proxy_env({"HTTPS_PROXY" => "://bad"}) do
+        Webb.detect_proxy.should eq({"", "", "", false})
+      end
     end
   end
 

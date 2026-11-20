@@ -12,12 +12,12 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the 8 helper rows left in the **Helpers with no CLI
+- **Current focus:** the 7 helper rows left in the **Helpers with no CLI
   surface** block — each closes with unit specs and no product-code change
   (except any divergence the specs expose).
 - **Next up (in order):**
-  1. `detectProxy`, `nextAvailableFile`, `connectBrowser` — environment,
-     filename, and stale-`debug_url` paths.
+  1. `nextAvailableFile`, `connectBrowser` — filename and stale-`debug_url`
+     paths.
   2. `loadState`, `saveState`, `removeState`, `init`, `setSysProcAttr` — state
      I/O, env, and the SIGPIPE proof.
   3. Hygiene: `cmdOpen`'s ignored errors, ledger re-base on the next
@@ -28,11 +28,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 81 examples. `spec/cli_spec.cr`: 135 examples (22
+  - `spec/webb_spec.cr`: 89 examples. `spec/cli_spec.cr`: 135 examples (22
     process-contract, 3 `_proxy`, 4 `start` session, 106 live-browser). Suite
-    total: 216 examples, 0 pending, 0 failures.
+    total: 224 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **68 `ported`, 8
+    tests. All 78 function IDs have Crystal references: **69 `ported`, 7
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -79,7 +79,7 @@ described there.
 - **Last port commit:** `port: pin the AX formatters and drop a zero
   backendNodeId` (`3360a6a`).
 - **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
-  (216 examples), `make build` (CLI), `make inventory` (82 curated /
+  (224 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -103,7 +103,7 @@ Ordered so one commit closes one row. Each item records the Go contract and
 whether its red is reachable from the CLI; "spec only" items already match Go
 and just need the characterization that lets the row go `ported`.
 
-Resume with `make lint` + `make test` first (216 examples, 0 pending), then:
+Resume with `make lint` + `make test` first (224 examples, 0 pending), then:
 
 ```bash
 crystal spec spec/cli_spec.cr:<line>   # one example while iterating
@@ -125,12 +125,9 @@ proof) and `cmdWaitIdle` (`page.wait_idle(1.minute)`, Go's
 
 ### Helpers with no CLI surface
 
-These 8 rows are `partial` because nothing pins them, not because they are
+These 7 rows are `partial` because nothing pins them, not because they are
 wrong. Unit specs close them without touching product code:
 
-- `detectProxy` — environment priority (`HTTPS_PROXY` before `HTTP_PROXY`),
-  malformed URLs, and the no-proxy case; `spec/cli_spec.cr` already has the
-  proxy server helpers.
 - `nextAvailableFile` — `base`, `base-2`, `base-3` in a temp dir
   (`Webb.next_available_file`).
 - `connectBrowser` — `start`/`status`/`connect` specs cover the success and
