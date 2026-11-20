@@ -12,16 +12,17 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 22 `partial` ledger rows. Every
-  *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
-  `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
-  `_proxy` helper, the page-info error contract (`title`, `url`), the whole tab
-  family (`pages`, `page`, `newpage`, `closepage`), `back`, `forward`, `reload`,
-  `clear-cache`, `html`, `text`, `js`, and `click` all match Go, and
-  `shard_issues/` is empty.
+- **Current focus:** the open rod shard bug that blocks `input`/`clear`
+  ([`shard_issues/rod.001.md`](shard_issues/rod.001.md)), then the remaining 22
+  `partial` ledger rows. Every *documented* divergence is otherwise closed —
+  `start`, `stop`, `connect`, `status`, `attr`, `assert`, the element checks,
+  the AX commands, `waitstable`, the `_proxy` helper, the page-info error
+  contract (`title`, `url`), the whole tab family (`pages`, `page`, `newpage`,
+  `closepage`), `back`, `forward`, `reload`, `clear-cache`, `html`, `text`,
+  `js`, and `click` all match Go.
 - **Next up:**
-  1. **`cmdInput`** (details below) — `element not found:` on the lookup, one
-     commit.
+  1. **rod `Element#select_all_text`** (details below) — unblocks `input` and
+     `clear`, one commit plus a rod pin bump.
   2. Then `cmdClear`, `cmdHover`, `cmdFocus`, files (`cmdPDF`,
      `cmdDownload`, `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`,
      `cmdWaitIdle`, `cmdScreenshotEl`).
@@ -37,9 +38,10 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 98 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 69 live-browser). Suite
-    total: 170 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 102 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 73 live-browser). Suite
+    total: 174 examples, 1 pending (the shard-blocked value replacement),
+    0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
     tests. All 78 function IDs have Crystal references: **54 `ported`, 22
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
@@ -83,8 +85,9 @@ described there.
 - **Last port commit:** `port: give click Go's element not found and click
   error wrapping` (`6ca4bd0`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (170 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
-  63 tests on `chiasmus-tree-sitter` v0.3.4) passed; `make parity-verify`
+  (174 examples, 1 pending), `make build` (CLI), `make inventory` (82 curated /
+  83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
+  `make parity-verify`
   passed earlier in the day.
 
 ## How features are sliced
@@ -100,28 +103,37 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdInput`
+## Next feature: rod `Element#select_all_text`
 
-Go (`vendor/rodney/main.go:771-784`) fatals `usage: rodney input <selector>
-<text>` without two arguments and `element not found: %v` when
-`page.Element` fails; the typing itself is `el.MustSelectAllText().MustInput(
-text)`, i.e. a panic on failure like every other `Must*` in the upstream
-commands.
+Full write-up: [`shard_issues/rod.001.md`](shard_issues/rod.001.md).
 
-Crystal's `cmd_input` looks the element up bare, so a selector that matches
-nothing escapes as an unhandled exception (exit 1 + stack trace) where Go
-prints `error: element not found: <cause>` and exits 2. The `select_all_text` /
-`input` pair stays bare on purpose: Go's `Must*` is an unstructured panic, not
-a `fatal`, so there is no message shape to match — record that in the row's
-note.
+rod's method selects a document Range (`window.getSelection()` +
+`range.selectNodeContents(this)`), which no-ops on `<input>`/`<textarea>`; Go
+rod evaluates `js.SelectAllText` = `function(){this.select()}`. The shard
+already ships that helper as `Rod::JS::SELECT_ALL_TEXT`, so the fix is one line
+plus a user-gesture flag to match `.ByUser()`.
 
-Red proof: **reachable** — `webb input "#missing" "x"` with `ROD_TIMEOUT=0.5`
-exits 1 today; the spec wants exit 2 with Go's message. Pair it with
-`input "#search-form input" "hello"` printing `Typed: hello` and the field
-holding the text (`attr`-free check via `js`).
+**Sequencing matters:** the fork's `main` (`71c0134`) is 14 commits ahead of the
+lock (`46e6c7f`), including element-lookup and wait changes that would alter
+messages this repo's specs pin. So cut the fix branch from `46e6c7f`, prove it
+with a rod spec, push it, and bump `shard.lock` deliberately — do not
+`shards update rod` and accept whatever `main` holds.
 
-Green shape: wrap the lookup in the `cmd_attr` element block and leave the
-typing calls unguarded.
+Once the pin moves:
+
+1. un-`pending` the `replaces the field value like MustSelectAllText` example;
+2. `cmdInput` and `cmdClear` → `ported` in the curated ledger;
+3. delete the open-gap sentence from the plan's divergences section.
+
+## Then: `cmdClear`
+
+Go (`vendor/rodney/main.go:779-791`) fatals the usage line without a selector
+and `element not found: %v` when the lookup fails, then runs
+`el.MustSelectAllText().MustInput("")` and prints `Cleared`.
+
+Crystal's `cmd_clear` is the same shape as `cmd_input`: wrap the lookup in the
+`cmd_attr` element block, and the emptying follows from the shard fix above —
+until then the field keeps its value, which is why the row stays `partial`.
 
 ## Open ledger hygiene
 
@@ -178,9 +190,12 @@ Reference for what is already ported; do not re-open without a divergence:
 - `webb axtree`/`axfind`/`axnode` are accepted as aliases; Go only knows the
   hyphenated command names. Unadvertised, and the usage text uses Go's names.
 - `lib/rod/` carries local patches against `dsisnero/rod`; each deliberate
-  divergence is documented in `shard_issues/` with a reproducible case. No open
-  shard gaps and `shard_issues/` is empty: `Page#wait_stable` now runs
-  `WaitRequestIdle` (rod `c459108`), the managed download strips its archive
-  root on exFAT (rod `5e6a630`, an intentional exFAT-only shim recorded in the
-  shard's own `plans/parity.md`), and `IdleCounter#wait` returns cleanly when
-  its context is cancelled (rod `7356dd8`).
+  divergence is documented in `shard_issues/` with a reproducible case. One gap
+  is open — [`shard_issues/rod.001.md`](shard_issues/rod.001.md):
+  `Element#select_all_text` builds a document Range instead of Go's
+  `this.select()`, so `input` appends and `clear` cannot empty a field. Earlier
+  gaps are closed: `Page#wait_stable` runs `WaitRequestIdle` (rod `c459108`),
+  the managed download strips its archive root on exFAT (rod `5e6a630`, an
+  intentional exFAT-only shim recorded in the shard's own `plans/parity.md`),
+  and `IdleCounter#wait` returns cleanly when its context is cancelled
+  (rod `7356dd8`).

@@ -732,7 +732,14 @@ module Webb
         Webb.fatal("usage: webb input <selector> <text>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
+      # Go wraps any Element() error: `fatal("element not found: %v", err)`
+      # (main.go:776-779). The typing below mirrors
+      # MustSelectAllText().MustInput(text), an unstructured panic upstream.
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
       text = args[1..].join(" ")
       el.select_all_text
       el.input(text)

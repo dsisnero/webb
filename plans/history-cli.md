@@ -481,3 +481,21 @@ spec, the ledger update, and this write-up.
         selector, and the missing selector with `ROD_TIMEOUT=0.5` pinned to
         `error: element not found: context deadline exceeded`.
       - Ledger: `cmdClick` → `ported`.
+- [x] **Give `input` Go's element-not-found fatal** — `cmd_input` looked the
+      element up bare, so a selector that matched nothing escaped as an
+      unhandled exception (exit 1) where Go prints
+      `error: element not found: <cause>` and exits 2 (`main.go:776-779`).
+      - Red was real: `input "#missing" "x"` exited **1** (expected 2).
+      - Green: the `cmd_attr` element block; the typing stays
+        `select_all_text` + `input` to mirror `MustSelectAllText().MustInput()`.
+      - Coverage: the `Typed: hello there` line (the joined arguments), the
+        usage line with one argument, and the missing selector pinned to
+        `error: element not found: context deadline exceeded`.
+      - **Found a shard bug while writing the happy path:** the field came back
+        as `hello therehi`, not `hello there` — rod's
+        `Element#select_all_text` selects a document Range instead of calling
+        `this.select()`, so `insertText` appends at the caret. Verified the
+        cause by running `document.querySelector(...).select()` through
+        `webb js` first (then the value replaced correctly). Filed as
+        [`shard_issues/rod.001.md`](../shard_issues/rod.001.md); the value
+        assertion is `pending` on it and the row stays `partial`.
