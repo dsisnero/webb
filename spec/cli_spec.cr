@@ -1238,6 +1238,23 @@ describe "CLI against a live browser" do
     result.stdout.should eq("#{harness.fixture_url}\n")
   end
 
+  # Go's cmdForward is cmdBack's twin (main.go:581-589): MustNavigateForward +
+  # MustWaitLoad, then the URL only when Info() succeeds, so a page that cannot
+  # report info exits 0 silently instead of aborting.
+  it "navigates forward and prints the next URL" do
+    harness = CLISpecSupport.harness
+    harness.reset_pages
+    second = "#{harness.fixture_url}second"
+    run_cli_live("open", harness.fixture_url).status.should eq(0)
+    run_cli_live("open", second).status.should eq(0)
+    run_cli_live("back").stdout.should eq("#{harness.fixture_url}\n")
+
+    result = run_cli_live("forward")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("#{second}\n")
+  end
+
   it "connects to a running browser and stores its debug URL" do
     run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
 

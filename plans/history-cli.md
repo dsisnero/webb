@@ -390,3 +390,13 @@ spec, the ledger update, and this write-up.
       - Green: the `puts` now runs only when `Webb.page_info?` returns info, the
         same seam `title`/`url` use for their fatal side.
       - Ledger: `cmdBack` → `ported`.
+- [x] **Give `forward` the same conditional URL output** — `cmd_forward` was
+      `cmd_back`'s untouched twin: it printed `page.info.url` unconditionally,
+      so an info failure escaped as an unhandled exception where Go prints
+      nothing and exits 0 (`info, _ :=`, `main.go:581-589`).
+      - No red was reachable through the CLI for the same reason as `back`, so
+        the characterization went in first: open `/`, open `/second`, `back`
+        prints `/`, then `forward` prints `/second` — green before and after.
+      - Green: an `if info = Webb.page_info?(page)` guard around the `puts`,
+        matching `cmd_back` line for line.
+      - Ledger: `cmdForward` → `ported`.
