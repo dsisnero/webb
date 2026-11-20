@@ -300,3 +300,14 @@ spec, the ledger update, and this write-up.
         (the `lib/rod/spec` stub pattern); `spec/cli_spec.cr` keeps the live
         title example honest.
       - Ledger: `cmdTitle` → `ported`.
+- [x] **Give `url` the same page-info error contract** — `cmd_url` still called
+      `page.info` directly, so the failure `cmdTitle` had just learned to wrap
+      escaped here as an unhandled exception (exit 1 + stack trace) where Go
+      fatals with `failed to get page info: <cause>` (exit 2,
+      `main.go:621-628`).
+      - Green: `cmd_url` now uses the `Webb.page_info` seam and `Webb.fatal`,
+        exactly like `cmd_title`.
+      - Coverage: the existing `spec/cli_spec.cr` example ("prints the title and
+        URL of the active page") keeps the happy path; `.page_info` already
+        covers the wrapped failure.
+      - Ledger: `cmdURL` → `ported`.

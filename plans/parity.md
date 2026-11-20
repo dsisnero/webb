@@ -12,28 +12,24 @@ described there.
 
 ## Where we are
 
-- **Current focus:** slice the remaining 35 `partial` ledger rows. Every
+- **Current focus:** slice the remaining 34 `partial` ledger rows. Every
   *documented* divergence is closed — `start`, `stop`, `connect`, `status`,
   `attr`, `assert`, the element checks, the AX commands, `waitstable`, the
-  `_proxy` helper, and the page-info error contract (`title`) all match Go, and
-  `shard_issues/` is empty.
+  `_proxy` helper, and the page-info error contract (`title`, `url`) all match
+  Go, and `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdURL`** — the same page-info seam `cmdTitle` just landed is unused in
-     `cmd_url`; Go fatals `failed to get page info: <cause>` (main.go:621-628),
-     Crystal raises. One commit: swap `page.info` for `Webb.page_info` and tick
-     the ledger row (the happy path is already covered).
-  2. **Output-only command rows**, cheapest first (each is one commit): the tab
-     commands (`cmdPages`, `cmdPage`, `cmdNewPage`, `cmdClosePage`), navigation
-     (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), page content
-     (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`, `cmdInput`,
-     `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`, `cmdDownload`,
-     `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`,
-     `cmdScreenshotEl`).
+  1. **Tab commands**, cheapest first, each one commit: `cmdPages` (details
+     below), then `cmdPage`, `cmdNewPage`, `cmdClosePage`.
+  2. **Navigation** (`cmdBack`, `cmdForward`, `cmdReload`, `cmdClearCache`), then
+     page content (`cmdHTML`, `cmdText`, `cmdJS`), interaction (`cmdClick`,
+     `cmdInput`, `cmdClear`, `cmdHover`, `cmdFocus`), files (`cmdPDF`,
+     `cmdDownload`, `cmdFile`), and waits (`cmdWait`, `cmdWaitLoad`,
+     `cmdWaitIdle`, `cmdScreenshotEl`).
   3. **Helper rows with no CLI surface** — `formatAXNodeList`,
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
      `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
      `proc_unix.go::setSysProcAttr`. Most need unit specs in `webb_spec.cr`
-     (`axValueStr` and now `page_info` were closed this way), not CLI examples.
+     (`axValueStr`, `page_info`), not CLI examples.
   4. **Re-base the ledger** when `vendor/rodney` moves off `v0.4.0`.
   5. **Optional:** a Chrome-through-the-proxy example against a real HTTPS
      origin; today `_proxy` is proven at the socket level.
@@ -45,7 +41,7 @@ described there.
     process-contract, 3 `_proxy`, 4 `start` session, 33 live-browser). Suite
     total: 130 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **41 `ported`, 35
+    tests. All 78 function IDs have Crystal references: **42 `ported`, 34
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -84,9 +80,8 @@ described there.
   - Suite runtime tracks host load (`uptime`): ~40 s idle, minutes at load > 20.
     Chrome launch retries three times because it intermittently loses the
     debug-URL race under load.
-- **Last port commit:** `port: give the AX commands Go's flags and errors`
-  (`c8e46ac`). This file was split afterwards; `git log -1 --oneline` shows the
-  docs commit, not the port.
+- **Last port commit:** `port: give title Go's page-info error contract`
+  (`5a351aa`).
 - **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
   (128 examples), `make build` (CLI), `make inventory` (82 curated / 83 source /
   63 tests on `chiasmus-tree-sitter` v0.3.4), and `make parity-verify` passed.
@@ -104,19 +99,29 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdURL`
+## Next feature: `cmdPages`
 
-`Webb.page_info(page)` (landed with `cmdTitle`) already wraps a failed
-`page.Info()` as `failed to get page info: <cause>`; `cmd_title` turns that into
-`Webb.fatal`. `src/cli.cr::cmd_url` still calls `page.info` directly, so a
-failure escapes as an unhandled exception: exit **1** with a stack trace where
-Go exits **2** with `error: failed to get page info: <cause>`
-(`vendor/rodney/main.go:621-628`).
+Go (`vendor/rodney/main.go:1195-1220`) loads state, connects, then fatals with
+its own cause per step: `%v` for `loadState`/`connectBrowser` and
+`failed to list pages: <cause>` for `browser.Pages()`. It also ignores
+`p.Info()`'s error: a page that cannot report info prints
+`<marker> [<i>] (unknown)`, and the active page is marked with `*`.
 
-The change is three lines (mirror `cmd_title`), the existing live example in
-`spec/cli_spec.cr` ("prints the title and URL of the active page") keeps the
-happy path honest, and `spec/webb_spec.cr` → `.page_info` already covers the
-wrapped failure, so no new spec seam is needed.
+Crystal's `cmd_pages` (`src/cli.cr`) wraps the whole body in one bare `rescue`
+and fatals `failed to list pages` with **no cause** — wrong message for a state
+or connect failure, and it also swallows an `info` failure that upstream would
+print as `(unknown)`.
+
+Green shape: mirror the ported commands — `Webb.load_state`/`connect_browser`
+keep their existing fatals, `browser.pages` gets its own
+`failed to list pages: <cause>` rescue, and `page.info` failures print the
+`(unknown)` line (a `Webb.page_info?`-style helper returning nil is the cheap
+seam, and it must not disturb `Webb.page_info`'s CLI contract).
+
+Related, same family, separate commits: `cmdPage` parses with `args[0].to_i`
+instead of Go's `strconv.Atoi` (so `webb page abc` silently becomes index 0,
+and its `rescue ArgumentError` never fires), `cmdNewPage` swallows
+`browser.Pages`' error, and `cmdClosePage` has the same `to_i` gap.
 
 ## Open ledger hygiene
 

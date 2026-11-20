@@ -580,7 +580,12 @@ module Webb
 
     private def self.cmd_url(args : Array(String))
       _, _, page = Webb.with_page
-      info = page.info
+      info = begin
+        Webb.page_info(page)
+      rescue ex
+        # Go: `fatal("failed to get page info: %v", err)` (main.go:621-628).
+        Webb.fatal(ex.message.to_s)
+      end
       puts info.url
     end
 
