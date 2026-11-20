@@ -12,19 +12,19 @@ described there.
 
 ## Where we are
 
-- **Current focus:** the remaining 19 `partial` ledger rows. Every *documented*
+- **Current focus:** the remaining 18 `partial` ledger rows. Every *documented*
   divergence is closed —
   `start`, `stop`, `connect`, `status`, `attr`, `assert`, the element checks,
   the AX commands, `waitstable`, the `_proxy` helper, the page-info error
   contract (`title`, `url`), the whole tab family (`pages`, `page`, `newpage`,
   `closepage`), `back`, `forward`, `reload`, `clear-cache`, `html`, `text`,
-  `js`, `click`, `input`, `clear`, and `hover` all match Go, and
+  `js`, `click`, `input`, `clear`, `hover`, and `focus` all match Go, and
   `shard_issues/` is empty.
 - **Next up:**
-  1. **`cmdFocus`** (details below) — `element not found:` on the lookup, one
-     commit.
-  2. Then files (`cmdPDF`, `cmdDownload`, `cmdFile`), and waits
-     (`cmdWait`, `cmdWaitLoad`, `cmdWaitIdle`, `cmdScreenshotEl`).
+  1. **`cmdPDF`** (details below) — `failed to write PDF:` on the write path,
+     one commit.
+  2. Then `cmdDownload` and `cmdFile`, and waits (`cmdWait`, `cmdWaitLoad`,
+     `cmdWaitIdle`, `cmdScreenshotEl`).
   3. **Helper rows with no CLI surface** — `formatAXNodeList`,
      `formatAXNodeDetail`, `formatProperties`, `detectProxy`, `nextAvailableFile`,
      `connectBrowser`, `loadState`, `saveState`, `removeState`, `init`, and
@@ -37,11 +37,11 @@ described there.
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
     including `--insecure` over a self-signed HTTPS origin.
-  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 108 examples (22
-    process-contract, 3 `_proxy`, 4 `start` session, 79 live-browser). Suite
-    total: 180 examples, 0 pending, 0 failures.
+  - `spec/webb_spec.cr`: 72 examples. `spec/cli_spec.cr`: 111 examples (22
+    process-contract, 3 `_proxy`, 4 `start` session, 82 live-browser). Suite
+    total: 183 examples, 0 pending, 0 failures.
   - Curated ledger: 145 rows across 82 source declarations and 63 upstream
-    tests. All 78 function IDs have Crystal references: **57 `ported`, 19
+    tests. All 78 function IDs have Crystal references: **58 `ported`, 18
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
@@ -82,8 +82,8 @@ described there.
     debug-URL race under load.
 - **Last port commit:** `port: give hover Go's element-not-found fatal`
   (`61518f6`).
-- **Gates (2026-11-19):** `make format`, `make lint` (5 files), `make test`
-  (180 examples), `make build` (CLI), `make inventory` (82 curated /
+- **Gates (2026-11-20):** `make format`, `make lint` (5 files), `make test`
+  (183 examples), `make build` (CLI), `make inventory` (82 curated /
   83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4) passed;
   `make parity-verify`
   passed earlier in the day.
@@ -101,23 +101,26 @@ Each checklist item below is **one feature = one commit**, sized so it:
 If an item needs a second area, split it into two items instead of widening it.
 Do not batch items: a commit that closes two checkboxes is two features.
 
-## Next feature: `cmdFocus`
+## Next feature: `cmdPDF`
 
-Go (`vendor/rodney/main.go:1034-1045`) is `cmdHover`'s twin: usage fatal
-without a selector, `fatal("element not found: %v", err)` when
-`page.Element` fails, then `el.MustFocus()` (a panic on failure) and
-`Focused`.
+Go (`vendor/rodney/main.go:684-707`) takes an optional file (default
+`page.pdf`), calls `page.PDF(&req)`, fatals `failed to generate PDF: %v` on
+failure, drains the stream, writes it, and fatals
+`failed to write PDF: %v` before printing `Saved <file> (<n> bytes)`.
 
-Crystal's `cmd_focus` looks the element up bare, so a selector that matches
-nothing escapes as an unhandled exception (exit 1) where Go prints
-`error: element not found: <cause>` and exits 2.
+Crystal's `cmd_pdf` calls `page.pdf`, `IO.copy`, and `File.write` bare, so a
+write failure escapes as an unhandled exception (exit 1 + stack trace) where Go
+prints `error: failed to write PDF: <cause>` and exits 2.
 
-Red proof: **reachable** — `webb focus "#missing"` with `ROD_TIMEOUT=0.5`
-exits 1 today; the spec wants exit 2 with Go's message. Pair it with
-`focus "#topic"` printing `Focused`, which exercises rod's `focus` +
-wait-enabled path.
+Red proof: **reachable through the write path** — `webb pdf` into a directory
+that does not exist exits 1 today; the spec wants exit 2 with Go's prefix. (The
+generate branch needs a CDP failure and is not CLI-reachable, same story as
+`reload`.) Pair it with the happy path: a temp path prints
+`Saved <path> (<n> bytes)` and the file starts with `%PDF`.
 
-Green shape: the `cmd_attr` element block; `el.focus` stays bare.
+Green shape: `begin`/`rescue`/`Webb.fatal("failed to generate PDF: …")` around
+`page.pdf`, then the same around the copy-write pair for
+`failed to write PDF: <cause>`.
 
 ## Open ledger hygiene
 

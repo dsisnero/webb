@@ -1673,6 +1673,39 @@ describe "CLI against a live browser" do
     result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
+  # Go's cmdFocus (main.go:1034-1045) is cmdHover's twin: usage fatal, then
+  # `element not found: <cause>` for a failed lookup, MustFocus() (a panic on
+  # failure), and `Focused`.
+  it "focuses an element" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    result = run_cli_live("focus", "#search-form input")
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Focused\n")
+  end
+
+  it "fails with the usage line when focus has no selector" do
+    result = run_cli_live("focus")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb focus <selector>\n")
+  end
+
+  it "fails with element not found when focus matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["focus", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
+  end
+
   # Go's cmdAttr wraps any Element() error as `element not found: %v`
   # (main.go:712-718) and fatals on a missing attribute with %q quoting.
   it "prints an attribute value" do

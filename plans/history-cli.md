@@ -523,4 +523,16 @@ spec, the ledger update, and this write-up.
         the missing selector pinned to
         `error: element not found: context deadline exceeded`.
       - Ledger: `cmdHover` → `ported`.
+- [x] **Give `focus` Go's element-not-found fatal** — `cmd_focus` looked the
+      element up bare, so a selector that matched nothing escaped as an
+      unhandled exception (exit 1) where Go prints
+      `error: element not found: <cause>` and exits 2 (`main.go:1039-1042`).
+      - Red was real: `focus "#missing"` exited **1** (expected 2).
+      - Green: the `cmd_attr` element block; `el.focus` stays bare to mirror
+        `MustFocus()`'s panic.
+      - Coverage: `focus "#search-form input"` prints `Focused` through rod's
+        focus + wait-enabled path, the usage line with no selector, and the
+        missing selector pinned to
+        `error: element not found: context deadline exceeded`.
+      - Ledger: `cmdFocus` → `ported`.
 
