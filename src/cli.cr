@@ -1010,7 +1010,13 @@ module Webb
         Webb.fatal("usage: webb wait <selector>")
       end
       _, _, page = Webb.with_page
-      el = page.element(args[0])
+      # Go wraps any Element() error as `element not found: %v`
+      # (main.go:1052-1055); MustWaitVisible() itself stays bare like upstream.
+      el = begin
+        page.element(args[0])
+      rescue ex
+        Webb.fatal("element not found: #{ex.message}")
+      end
       el.wait_visible
       puts "Element visible"
     end

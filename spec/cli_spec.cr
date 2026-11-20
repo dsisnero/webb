@@ -27,6 +27,14 @@ private class CLISpecHarness
   DOWNLOAD_FILE_BODY    = "Hello World"
   DOWNLOAD_MISSING_PATH = "/download/missing.txt"
 
+  # Late fixture used by the `wait` examples: the element exists from the first
+  # paint but stays hidden until the timer fires, so MustWaitVisible has to
+  # block. A separate page keeps the shared fixture DOM (and every other spec)
+  # untouched.
+  LATE_PAGE_PATH    = "/late-page"
+  LATE_SELECTOR     = "#late"
+  LATE_REVEAL_DELAY = 2.seconds
+
   getter binary : String
 
   @repo : String
@@ -137,6 +145,13 @@ private class CLISpecHarness
   def slow_fixture_url : String
     start_browser
     "#{@fixture_url || raise "CLI spec fixture server did not start"}#{SLOW_PAGE_PATH.lchop}"
+  end
+
+  # late_fixture_url is the fixture page whose element stays hidden for
+  # LATE_REVEAL_DELAY; used to prove `wait` blocks in MustWaitVisible.
+  def late_fixture_url : String
+    start_browser
+    "#{@fixture_url || raise "CLI spec fixture server did not start"}#{LATE_PAGE_PATH.lchop}"
   end
 
   # browser_home is the state directory holding the live browser's state.json.
@@ -307,6 +322,23 @@ private class CLISpecHarness
           "  if (n++ >= #{SLOW_POLLS}) { clearInterval(t); return; }",
           "  fetch('#{SLOW_PATH}');",
           "}, #{SLOW_REQUEST_DELAY.total_milliseconds.to_i});",
+          "</script>",
+          "</body>",
+          "</html>",
+        ].join('\n'))
+      when LATE_PAGE_PATH
+        context.response.content_type = "text/html"
+        context.response.print([
+          "<!DOCTYPE html>",
+          "<html lang=\"en\">",
+          "<head><title>#{FIXTURE_TITLE}</title></head>",
+          "<body>",
+          "<h1>Late fixture</h1>",
+          "<div id=\"late\" style=\"display:none\">Late</div>",
+          "<script>",
+          "setTimeout(function () {",
+          "  document.getElementById('late').style.display = '';",
+          "}, #{LATE_REVEAL_DELAY.total_milliseconds.to_i});",
           "</script>",
           "</body>",
           "</html>",
@@ -2218,6 +2250,53 @@ describe "CLI against a live browser" do
     result.status.should eq(0)
     result.stderr.should be_empty
     result.stdout.should eq("CLI Fixture\n")
+  end
+
+  # Go's cmdWait (main.go:1047-1057): usage fatal, `element not found: <cause>`
+  # for a failed lookup, MustWaitVisible() (a panic on failure), then
+  # `Element visible`.
+  it "waits for a selector that is still hidden" do
+    harness = CLISpecSupport.harness
+    run_cli_live("open", harness.late_fixture_url).status.should eq(0)
+
+    # The fixture keeps #late hidden for LATE_REVEAL_DELAY after load, so this
+    # first read proves the element exists without being visible yet.
+    before = run_cli_live("visible", CLISpecHarness::LATE_SELECTOR)
+    before.status.should eq(1)
+    before.stdout.should eq("false\n")
+
+    started = Time.instant
+    result = run_cli_live("wait", CLISpecHarness::LATE_SELECTOR)
+    elapsed = Time.instant - started
+
+    result.status.should eq(0)
+    result.stderr.should be_empty
+    result.stdout.should eq("Element visible\n")
+    # MustWaitVisible cannot return before the timer reveals the element.
+    elapsed.should be >= 500.milliseconds
+
+    run_cli_live("visible", CLISpecHarness::LATE_SELECTOR).stdout.should eq("true\n")
+  end
+
+  it "fails with the usage line when wait has no selector" do
+    result = run_cli_live("wait")
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: usage: webb wait <selector>\n")
+  end
+
+  it "fails with element not found when wait matches nothing" do
+    run_cli_live("open", CLISpecSupport.harness.fixture_url).status.should eq(0)
+
+    harness = CLISpecSupport.harness
+    result = harness.run(
+      ["wait", "#missing"],
+      harness.browser_home,
+      env: {"ROD_TIMEOUT" => "0.5"},
+    )
+    result.status.should eq(2)
+    result.stdout.should be_empty
+    result.stderr.should eq("error: element not found: context deadline exceeded\n")
   end
 
   it "waits about a second for DOM stability, like MustWaitStable()" do

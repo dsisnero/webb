@@ -607,3 +607,19 @@ spec, the ledger update, and this write-up.
       - Divergence recorded: `File.expand_path` makes relative upload paths
         work, where Go forwards the argument verbatim.
       - Ledger: `cmdFile` → `ported`.
+- [x] **Give `wait` Go's element-not-found fatal and prove the wait** —
+      `cmd_wait` looked the element up bare, so a selector that matched nothing
+      escaped as an unhandled exception (exit 1) where Go prints
+      `error: element not found: <cause>` and exits 2 (`main.go:1047-1057`).
+      - Red was real: `wait "#missing"` exited **1** (expected 2).
+      - Green: the `cmd_attr` element block; `el.wait_visible` stays bare to
+        mirror `MustWaitVisible()`'s panic.
+      - Coverage: the fixture gained `/late-page`, which keeps `#late` hidden
+        for two seconds after load. `visible "#late"` reads `false` (exit 1)
+        first, `wait "#late"` blocks for the reveal, prints `Element visible`,
+        and `visible "#late"` then reads `true`; plus the usage line and the
+        missing selector pinned to
+        `error: element not found: context deadline exceeded` (ROD_TIMEOUT=0.5).
+        The floor is 500ms (a two-second timer makes the wait unavoidable, and
+        the threshold leaves room for process startup).
+      - Ledger: `cmdWait` → `ported`.
