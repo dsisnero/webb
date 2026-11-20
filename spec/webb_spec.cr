@@ -476,6 +476,56 @@ describe Webb do
     end
   end
 
+  # Go's nextAvailableFile (main.go:1091-1102) returns base+ext when os.Stat
+  # reports IsNotExist, then walks base-2, base-3, ... A directory counts as
+  # taken because the stat succeeds.
+  describe ".next_available_file" do
+    it "returns base, then base-2 and base-3 when those exist" do
+      dir = File.join("temp", "spec-next-available")
+      FileUtils.rm_rf(dir)
+      Dir.mkdir_p(dir)
+      begin
+        Dir.cd(dir) do
+          Webb.next_available_file("shot", ".png").should eq("shot.png")
+          File.write("shot.png", "")
+          Webb.next_available_file("shot", ".png").should eq("shot-2.png")
+          File.write("shot-2.png", "")
+          Webb.next_available_file("shot", ".png").should eq("shot-3.png")
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+
+    it "appends the counter without an extension" do
+      dir = File.join("temp", "spec-next-available-nil")
+      FileUtils.rm_rf(dir)
+      Dir.mkdir_p(dir)
+      begin
+        Dir.cd(dir) do
+          Webb.next_available_file("download", "").should eq("download")
+          File.write("download", "")
+          Webb.next_available_file("download", "").should eq("download-2")
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+
+    it "treats an existing directory as taken" do
+      dir = File.join("temp", "spec-next-available-dir")
+      FileUtils.rm_rf(dir)
+      Dir.mkdir_p(File.join(dir, "shot.png"))
+      begin
+        Dir.cd(dir) do
+          Webb.next_available_file("shot", ".png").should eq("shot-2.png")
+        end
+      ensure
+        FileUtils.rm_rf(dir)
+      end
+    end
+  end
+
   describe ".page_info" do
     it "returns the live page info" do
       page = navigate_to("/")

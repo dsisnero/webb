@@ -699,3 +699,12 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         password, portless host, IPv6, malformed), using a `with_proxy_env`
         helper that restores the developer's environment.
       - Ledger: `detectProxy` → `ported`.
+
+- [x] **Pin `nextAvailableFile`** — the helper was exercised only through the
+      default screenshot/download names. `Webb.next_available_file` already
+      matched Go (`main.go:1091-1102`).
+      - Coverage in `spec/webb_spec.cr`: `.next_available_file` with three
+        examples in temp dirs — `base`, `base-2`, `base-3`; the empty-extension
+        walk (`download`, `download-2`); and an existing directory named like
+        the candidate counting as taken, as Go's successful stat does.
+      - Ledger: `nextAvailableFile` → `ported`.
