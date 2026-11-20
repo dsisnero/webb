@@ -274,6 +274,21 @@ private def stub_target_info(title : String, url : String) : Cdp::Target::Target
   Cdp::Target::TargetInfo.new("stub-target", "page", title, url, true, false)
 end
 
+# with_state_home points RODNEY_HOME at a fresh temp directory for a block and
+# removes it afterwards, so state-file examples never touch the real session.
+private def with_state_home(name : String, &) : Nil
+  dir = File.join("temp", name)
+  begin
+    FileUtils.rm_rf(dir)
+    Dir.mkdir_p(dir)
+    ENV["RODNEY_HOME"] = dir
+    yield dir
+  ensure
+    ENV.delete("RODNEY_HOME")
+    FileUtils.rm_rf(dir)
+  end
+end
+
 # with_proxy_env runs a block with the four proxy variables cleared and only
 # `values` set, restoring the developer's environment afterwards.
 private def with_proxy_env(values : Hash(String, String), &) : Nil
@@ -535,6 +550,111 @@ describe Webb do
 
       expect_raises(Exception, /failed to connect to browser \(is it still running\?\): /) do
         Webb.connect_browser(state)
+      end
+    end
+  end
+
+  # load_state? is the Crystal shape of Go's loadState() error return
+  # (main.go:107-115): nil for any read or decode failure, so callers such as
+  # cmdStatus and cmdStart can treat both "missing" and "corrupt" alike.
+  describe ".load_state?" do
+    it "returns nil when the state file is missing" do
+      with_state_home("spec-load-state-missing") do |home|
+        Webb.state_path.should eq(File.join(home, "state.json"))
+        Webb.load_state?.should be_nil
+      end
+    end
+
+    it "returns nil when the state file is corrupt" do
+      with_state_home("spec-load-state-corrupt") do |home|
+        File.write(File.join(home, "state.json"), "{not json")
+        Webb.load_state?.should be_nil
+      end
+    end
+
+    it "parses a valid state file" do
+      with_state_home("spec-load-state-valid") do |home|
+        state = Webb::State.new(
+          debug_url: "ws://127.0.0.1:9222/devtools/browser/x",
+          chrome_pid: 7,
+          active_page: 2,
+          data_dir: "temp/spec-data",
+        )
+        File.write(File.join(home, "state.json"), state.to_pretty_json)
+
+        loaded = Webb.load_state?
+        loaded.should_not be_nil
+        loaded = loaded.not_nil!
+        loaded.debug_url.should eq(state.debug_url)
+        loaded.chrome_pid.should eq(7)
+        loaded.active_page.should eq(2)
+        loaded.data_dir.should eq("temp/spec-data")
+      end
+    end
+  end
+
+  # Go's saveState creates the state dir, writes pretty JSON, and returns the
+  # os.MkdirAll/os.WriteFile error for the caller to fatal (main.go:116-125);
+  # removeState calls os.Remove and ignores the result (main.go:127-129).
+  describe ".save_state" do
+    it "writes pretty JSON into a freshly created state dir" do
+      with_state_home("spec-save-state") do |home|
+        state = Webb::State.new(
+          debug_url: "ws://127.0.0.1:9222/devtools/browser/x",
+          chrome_pid: 3,
+          active_page: 1,
+          data_dir: home,
+        )
+
+        Webb.save_state(state)
+
+        path = File.join(home, "state.json")
+        File.exists?(path).should be_true
+        File.read(path).should contain("\n  \"debug_url\"")
+        loaded = Webb.load_state?
+        loaded.should_not be_nil
+        loaded.not_nil!.chrome_pid.should eq(3)
+      end
+    end
+
+    it "raises Go's PathError text when the state file cannot be written" do
+      with_state_home("spec-save-state-fail") do |home|
+        path = File.join(home, "state.json")
+        # A directory at the state path blocks the write on any filesystem,
+        # which is how this exFAT volume can exercise the failure at all.
+        Dir.mkdir_p(path)
+
+        error = expect_raises(Exception) { Webb.save_state(Webb::State.new) }
+
+        error.message.to_s.should start_with("open #{path}: ")
+        error.message.to_s.should_not contain("Error opening file")
+      end
+    end
+  end
+
+  describe ".remove_state" do
+    it "deletes the state file and stays silent when it is already gone" do
+      with_state_home("spec-remove-state") do |home|
+        path = File.join(home, "state.json")
+        File.write(path, "{}")
+
+        Webb.remove_state
+        File.exists?(path).should be_false
+
+        # Go's removeState ignores os.Remove's error, so a second call is fine.
+        Webb.remove_state
+      end
+    end
+
+    it "ignores a removal failure, like Go's unchecked os.Remove" do
+      with_state_home("spec-remove-state-fail") do |home|
+        path = File.join(home, "state.json")
+        Dir.mkdir_p(path)
+
+        # os.Remove on a directory errors; Go ignores it and so must we.
+        Webb.remove_state
+
+        File.directory?(path).should be_true
       end
     end
   end

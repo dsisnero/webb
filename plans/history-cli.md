@@ -724,3 +724,22 @@ Unit-spec work that closed `partial` ledger rows without adding a command.
         `error: failed to connect to browser (is it still running?): ` and the
         underlying `Error connecting to` cause.
       - Ledger: `connectBrowser` → `ported`.
+
+- [x] **Pin the state helpers and make their OS errors Go-shaped** —
+      `loadState`, `saveState`, and `removeState` were only covered indirectly
+      by `start`/`stop`. Direct examples exposed two divergences:
+      - `save_state` let Crystal's `File`/`Dir` messages escape, so callers
+        printed `failed to save state: Error opening file with mode 'w': …`
+        where Go prints `failed to save state: open <path>: <cause>`;
+      - `remove_state` called `File.delete`, which raised on anything but a
+        missing file, while Go's `removeState` discards `os.Remove`'s error.
+      - Green: `save_state` raises `go_path_error("mkdir"|"open", …)` for the
+        dir and write steps, and `remove_state` rescues `File::Error`.
+      - Coverage in `spec/webb_spec.cr`: `.load_state?` (missing, corrupt,
+        valid round-trip), `.save_state` (fresh dir + parseable pretty JSON,
+        and a blocked path raising `open <path>: …` rather than Crystal's
+        `Error opening file with mode …`), and `.remove_state` (delete, silent
+        second call, and a directory at the state path that `File.delete`
+        cannot remove). Permission-based failure injection is a no-op on this
+        exFAT volume, so a directory at the state path is the blocker.
+      - Ledger: `loadState`, `saveState`, `removeState` → `ported`.

@@ -128,16 +128,32 @@ module Webb
     nil
   end
 
+  # save_state mirrors Go's saveState (main.go:116-125): create the state dir,
+  # then write pretty JSON. OS failures are raised with Go's *PathError text
+  # (`mkdir <dir>: ...` / `open <path>: ...`) because every caller that checks
+  # the result fatals `failed to save state: <cause>`.
   def self.save_state(state : State) : Nil
     dir = state_dir
-    Dir.mkdir_p(dir)
+    begin
+      Dir.mkdir_p(dir)
+    rescue ex
+      raise go_path_error("mkdir", dir, ex)
+    end
 
     data = state.to_pretty_json
-    File.write(state_path, data)
+    begin
+      File.write(state_path, data)
+    rescue ex
+      raise go_path_error("open", state_path, ex)
+    end
   end
 
+  # remove_state mirrors Go's removeState (main.go:127-129), which ignores the
+  # os.Remove error: a missing or undeletable file is not the caller's problem.
   def self.remove_state : Nil
-    File.delete(state_path) if File.exists?(state_path)
+    File.delete(state_path)
+  rescue File::Error
+    # Go discards the error outright.
   end
 
   # connect_browser connects to the running Chrome instance. Go wraps a Connect
