@@ -1,8 +1,8 @@
 # History — Ledger and discovery tooling
 
 > Completed work on the parity ledger and the tree-sitter gates. The ledger
-> itself is the current state; this file records how it got its shape. The one
-> open item (re-basing on a pin change) lives in `plans/parity.md`.
+> itself is the current state; this file records how it got its shape. Open
+> items live in `plans/parity.md` (**Open work**).
 
 - [x] **Refresh Go source declaration discovery** — regenerate the source
       manifest against the pinned Go tree with the corrected skill, preserve

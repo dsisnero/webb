@@ -16,11 +16,17 @@ described there.
   curated row is `ported` or an intentional divergence, and `cmdOpen`'s ignored
   errors now match upstream. The rod pin advanced to `7063829` (nine upstream
   commits: context/domain/event-helper fixes) with no webb code change needed.
-  Nothing is queued except pin-driven work.
-- **Next up (in order):**
-  1. Ledger re-base when `vendor/rodney` moves off `v0.4.0`.
-  2. Optional: a Chrome-through-the-proxy example against a real HTTPS origin
-     (`_proxy` is proven at the socket level today).
+  The only unblocked work left is the curated `scopeMode` type mapping; the rest
+  waits on a rod tag or a rodney release.
+- **Next up (in order)** — details and commands in **Open work** below:
+  1. Close the last `missing` source row: the curated `scopeMode` type mapping
+     (docs/ledger only, ~1 file + row).
+  2. Return `rod` to tag tracking once a release tag covers our fixes (v0.8.0
+     is the newest tag and still predates all of them).
+  3. Ledger re-base when `vendor/rodney` moves off `v0.4.0` (blocked upstream).
+  4. Optional: a Chrome-through-the-proxy example against a real HTTPS origin
+     (`_proxy` is proven at the socket level today); do it only if someone asks
+     — it is not parity work.
 - **Status by area:**
   - `src/webb.cr` (state, asserts, accessibility, downloads): ported.
   - `src/cli.cr` (command implementations): ported command-by-command,
@@ -34,7 +40,8 @@ described there.
     All 63 upstream test rows are `ported`; no test row is `partial`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
     functions, 1 type). Implementation statuses live in the curated ledger;
-    `scopeMode` still needs a curated type mapping.
+    `scopeMode` is the only remaining `missing` row (curated `type` mapping not
+    yet added — **Open work** item 1).
   - Docs: `README.md` and `docs/*.md` re-verified against the built CLI on
     2026-11-20 (every example captured from a live session; README borrows the
     upstream README's wording and adds the verified sample output). `rumdl
@@ -100,10 +107,12 @@ Do not batch items: a commit that closes two checkboxes is two features.
 
 ## Queue
 
-No per-row work is queued: every ledger row is either `ported` or an
-intentional divergence. The next feature comes from the next `vendor/rodney`
-pin (re-base the ledger first, per the hygiene item) or from the optional proxy
-example; `plans/history-cli.md` records how each closed block got there.
+No per-row porting work is queued: every curated row is `ported` or an
+intentional divergence. What remains is the **Open work** list below — one
+unblocked ledger item, one pin item gated on a rod release, and one item blocked
+on a rodney release (plus one optional, non-parity idea). New port work only
+appears when `vendor/rodney` moves off `v0.4.0`; `plans/history-cli.md` records
+how each closed block got there.
 
 Gates first, always:
 
@@ -119,11 +128,48 @@ isolation. A live example can also lose Chrome's debug-URL race on the first
 run of `make test` and pass on the second. Check `uptime` before believing a
 red.
 
-## Open ledger hygiene
+## Open work
 
-- [ ] **Re-base the ledger on a pin change** — only when `vendor/rodney` moves
-      off `v0.4.0`: rewrite the `# baseline=` header and rows for the new tag in
-      one commit; never append across releases.
+Ordered; take the first unchecked item. Each is one commit with its gates.
+
+- [ ] **Curated `scopeMode` type mapping** — the source manifest's only
+      `missing` row (`main.go::type::scopeMode`) exists because the curated
+      ledger's `# kinds=` stops at `class,const,function,method,test`. Add
+      `type` to that header and the single row it then demands:
+      `main.go::type::scopeMode` → `type` → `ported` →
+      `src/webb.cr::Webb::ScopeMode`. `make inventory` enforces the row the
+      moment `type` is in scope (the check compares discovered IDs to ledger
+      IDs in both directions), so this is red-then-green without touching
+      `src/`. Record the close in `plans/history-ledger.md` (the entry that left
+      type coverage out of scope). Dry-run verified on 2026-11-20: with `type`
+      in `# kinds=` plus that row the gate reports 83 items tracked; without the
+      row it fails with `Source items missing from inventory:
+      main.go::type::scopeMode`.
+- [ ] **Return `rod` to tag tracking when a release covers our fixes** —
+      `shard.yml` pins `branch: main` (locked `7063829`) because no tag has the
+      fixes this repo needs. `v0.8.0` is the newest tag and still lacks both
+      `35d540d` (`select_all_text`) and `c459108` (`wait_stable`); it is 68
+      commits behind the pin. Re-check with:
+
+      ```bash
+      ROD_REPO=~/.cache/shards/github.com/dsisnero/rod.git
+      git -C "$ROD_REPO" fetch --tags -q
+      TAG=$(git -C "$ROD_REPO" tag --sort=-v:refname | head -1)
+      git -C "$ROD_REPO" merge-base --is-ancestor 35d540d "$TAG" &&
+        git -C "$ROD_REPO" merge-base --is-ancestor c459108 "$TAG" &&
+        echo "$TAG covers our fixes"
+      ```
+
+      When a tag passes, replace `branch: main` with that `version:` in
+      `shard.yml`, run `shards update rod`, and record the move in
+      `plans/history-shard.md` plus the pin gotcha above.
+- [ ] **Re-base the ledger on a pin change** — blocked until `vendor/rodney`
+      moves off `v0.4.0`: rewrite the `# baseline=` header and rows for the new
+      tag in one commit; never append across releases.
+- [ ] **Optional (not parity work):** drive Chrome through `_proxy` to a real
+      HTTPS origin. `_proxy` is proven at the socket level by three socket-level
+      examples; a browser-level example would exercise `--proxy-server` end to
+      end, at the cost of a network dependency in the suite.
 
 ## History
 
