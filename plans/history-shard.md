@@ -1,7 +1,7 @@
 # History — `dsisnero/rod` pin and shard fixes
 
 > webb tracks rod `branch: main` and moves the pin when a fix it needs lands.
-> Current pin: `1567742` (see `shard.lock`). This file records why each pin
+> Current pin: `7063829` (see `shard.lock`). This file records why each pin
 > mattered; `plans/parity.md` has the current pin and gotchas.
 
 ## `waitstable` and `start` gaps (closed)
@@ -90,7 +90,34 @@
   old pin both fail (`hello therehi`, and the untouched `hi`).
 - Ledger: `cmdInput` and `cmdClear` → `ported`.
 
-## Latest pin adoption (`1567742`)
+## Latest pin adoption (`7063829`)
+
+- Moved from `1567742` to `7063829` with `shards update rod`. Nine upstream
+  commits, no webb code change needed: the whole suite stayed green (239
+  examples) because the touched paths are already covered here.
+  - `d9b1431` gates `src/cdp` against the pinned generation (shard-only gate
+    script and docs).
+  - `d4de3b0` waits for the root repaint before scrolling an element, which the
+    `click`, `hover`, and `screenshot-el` paths ride on.
+  - `ee1e789` drops go-rod's dev-helper trace overlays, so screenshots and
+    dev-helper output match upstream again.
+  - `94e5e08` listens for expose bindings and omits false capture flags;
+    flagged `screenshot` options no longer send `captureBeyondViewport=false`.
+  - `72f43f6` omits false `eval` flags like go's `omitempty`, which changes what
+    `evaluate` puts on the wire for `userGesture`/`awaitPromise`.
+  - `344a9ba` runs element operations in the element's own context (8 call
+    sites), matching go's `el.page.Context(el.ctx)`.
+  - `b664677` and `0e1ebbd` restore event domains through the state registry
+    (`EnableDomain`), so `wait`, `waitidle`, `waitload`, `waitstable`,
+    `assert`, `HandleAuth`, `set-extra-headers`, and dialog handling stop
+    disabling domains another caller enabled.
+  - `7063829` dispatches `input`/`change` through go's `InputEvent` helper with
+    `.by_user`, so `webb input`/`clear` fire inside a user gesture.
+- Verification: `make format`, `make lint`, `make test` (239 examples, 0
+  failures), `make build`, `make inventory` (tree-sitter), `make parity-verify`,
+  and `make docs-lint` all pass on the new pin.
+
+## Previous pin adoption (`1567742`)
 
 - Moved from `35d540d` to `1567742` with `shards update rod`. Nine upstream
   commits, no webb code change needed: every touched path was already exercised
