@@ -36,3 +36,26 @@
         post-condition beyond not raising; both temp files are now removed.
       - Discovery: `plans/inventory/go_test_parity.tsv` already recorded all
         three as `ported`; only the curated ledger still said `partial`.
+- [x] **Adopt the skill's symbol `crystal_refs`** — the installed parity skill
+      now validates every ref as `path::kind::symbol` (a Chiasmus Crystal
+      declaration id) and rejects a two-part `path::Symbol` ref as malformed, so
+      the whole curated ledger had to migrate before any gate could pass.
+      - Source rows: each legacy `path::Module.method` / `path::Module::Type`
+        ref became the discovered id, e.g. `src/cli.cr::Webb::CLI.cmd_click` →
+        `src/cli.cr::method::CLI.cmd_click` (discovery drops the `Webb` module
+        wrapper) and `src/webb.cr::Webb::State` → `src/webb.cr::class::State`.
+        The three `ScopeMode` members point at the enum
+        (`src/webb.cr::enum::ScopeMode`) because members are not discovered.
+      - Test rows: Chiasmus discovers no `it` blocks, so the 62 example refs
+        became file refs with the example name moved into `notes`
+        (`(example: query_ax_nodes by name)`). `src/main.cr` stays file-only: the
+        ledger's `main`/`init` rows have no Crystal declaration to point at.
+      - 164 refs today: 100 exact declaration ids, 64 file refs, 0 unknown — the
+        ids were verified against tree-sitter discovery of `src/` and `spec/`
+        (873 + 692 items). The ledger header now records the form, and
+        `plans/parity.md` carries the gotcha.
+      - The skill's `migrate_crystal_refs.py` was not usable here: it treats a
+        two-part ref as "already a symbol ref" and left all 145 rows untouched,
+        which is what the checker then rejected. Mapping went through discovery
+        ids instead.
+

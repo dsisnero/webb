@@ -64,6 +64,11 @@ described there.
   - The source manifest and curated ledger declare their kind scopes with
     `# kinds=`. The curated scope is `class,const,function,method,test`. The
     source manifest includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`.
+  - Curated `crystal_refs` use the skill's `path::kind::symbol` form (a Chiasmus
+    Crystal declaration id, e.g. `src/webb.cr::method::Webb.fatal`), which the
+    gate validates for syntax and checks that the file exists. Chiasmus
+    discovers no `it` blocks, so a ported upstream test names the spec file and
+    keeps the example name in `notes`.
   - The repo lives on an exFAT volume that grows AppleDouble `._*` sidecars;
     `._foo_spec.cr` breaks spec discovery. `make format|lint|test` and
     `make clean` strip them first.
