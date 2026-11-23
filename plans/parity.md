@@ -14,10 +14,13 @@ described there.
 
 - **Current focus:** the port is feature-complete against the pin — every
   curated row is `ported` or an intentional divergence, and `cmdOpen`'s ignored
-  errors now match upstream. The rod pin advanced to `7063829` (nine upstream
-  commits: context/domain/event-helper fixes) with no webb code change needed.
-  The only unblocked work left is the curated `scopeMode` type mapping; the rest
-  waits on a rod tag or a rodney release.
+  errors now match upstream. The rod pin advanced to `04403b0` (sixteen upstream
+  commits: element-as-CDP-client requests, parent-page iframe refresh, the
+  `interactable` covered-check error, shared JS helpers for
+  time/color/contains, screenshot `quality`, `Browser#page` options, and
+  `pdf`'s stream close) with no webb code change needed. The only unblocked work
+  left is the curated `scopeMode` type mapping; the rest waits on a rod tag or a
+  rodney release.
 - **Next up (in order)** — details and commands in **Open work** below:
   1. Close the last `missing` source row: the curated `scopeMode` type mapping
      (docs/ledger only, ~1 file + row).
@@ -70,7 +73,7 @@ described there.
     CONNECT (`main.go:1930-1943`) and Crystal's server cannot hand a connection
     back. Do not "simplify" it into `HTTP::Server`; that is what produced the
     old 501.
-  - `shard.yml` tracks rod `branch: main` (locked at `7063829`) because the
+  - `shard.yml` tracks rod `branch: main` (locked at `04403b0`) because the
     fixes this repo needs are not tagged yet. Go back to tag tracking when a
     release contains them; the pin history is in `plans/history-shard.md`.
   - `webb axtree`/`axfind`/`axnode` still work as unadvertised aliases (Go
@@ -86,7 +89,7 @@ described there.
     debug-URL race under load.
 - **Last port commit:** `port: match cmdOpen's ignored upstream errors`
   (`1ad7a6e`).
-- **Gates (2026-11-20, rod `7063829`):** `make format`, `make lint` (5
+- **Gates (2026-11-23, rod `04403b0`):** `make format`, `make lint` (5
   files), `make test` (239 examples), `make build` (CLI), `make inventory`
   (82 curated / 83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4),
   `make parity-verify` (`PARITY_SKILL_VERIFIED=1`), and `make docs-lint` all
@@ -146,9 +149,9 @@ Ordered; take the first unchecked item. Each is one commit with its gates.
       row it fails with `Source items missing from inventory:
       main.go::type::scopeMode`.
 - [ ] **Return `rod` to tag tracking when a release covers our fixes** —
-      `shard.yml` pins `branch: main` (locked `7063829`) because no tag has the
+      `shard.yml` pins `branch: main` (locked `04403b0`) because no tag has the
       fixes this repo needs. `v0.8.0` is the newest tag and still lacks both
-      `35d540d` (`select_all_text`) and `c459108` (`wait_stable`); it is 68
+      `35d540d` (`select_all_text`) and `c459108` (`wait_stable`); it is 84
       commits behind the pin. Re-check with:
 
       ```bash

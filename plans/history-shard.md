@@ -1,7 +1,7 @@
 # History — `dsisnero/rod` pin and shard fixes
 
 > webb tracks rod `branch: main` and moves the pin when a fix it needs lands.
-> Current pin: `7063829` (see `shard.lock`). This file records why each pin
+> Current pin: `04403b0` (see `shard.lock`). This file records why each pin
 > mattered; `plans/parity.md` has the current pin and gotchas.
 
 ## `waitstable` and `start` gaps (closed)
@@ -90,7 +90,61 @@
   old pin both fail (`hello therehi`, and the untouched `hi`).
 - Ledger: `cmdInput` and `cmdClear` → `ported`.
 
-## Latest pin adoption (`7063829`)
+## Latest pin adoption (`04403b0`)
+
+- Moved from `7063829` to `04403b0` with `shards update rod`. Sixteen upstream
+  commits, no webb code change needed: the whole suite stayed green (239
+  examples) because the touched paths are already covered here.
+  - Element request plumbing (the commands webb's `el`, `attr`, `scroll`,
+    `input file`, `click`, and `hover` ride on):
+    - `ffad909` makes `Element` a `Cdp::Client`, so `describe`, `shape`,
+      `scroll_into_view`, `set_files`, and `shadow_root` carry the element's own
+      context instead of the page's — an element cloned with `#timeout` now
+      has its deadline reach those requests.
+    - `6f15d6e` keeps a refreshed `<iframe>` element on the **parent** page, so
+      its object handle and injected `lib/js` helpers stay in one JS world after
+      go's stale-node retry.
+    - `eaf4b82` returns the `ContainsElement` result from `interactable` again
+      instead of special-casing Chrome's "Argument should belong to the same
+      JavaScript world" message: the wrong-world bug behind that message is
+      gone, so a failed coverage check is raised as `CoveredError` (and retried
+      by `wait_interactable`) like go's `Interactable`.
+    - `fb1b165` evaluates go's shared JS helpers for `input_time`,
+      `input_color`, and `contains_element` (`element.go:303`, `325`, `475`);
+      `input_time` regains its user gesture, and all 33 helpers in
+      `src/rod/util/js.cr` are now wired, so a helper edit cannot leave a stale
+      inline copy behind.
+    - `3664c94` races `Element#wait_stable` between a ticker and the element
+      context (and traces `stable` only after `WaitVisible`), matching
+      `element.go:519-550`. webb only waits at the page level, so this is inert
+      here but keeps element timeouts honest.
+  - Wire payloads:
+    - `85aef71` always sends `quality` on `Element#screenshot` (go's
+      `gson.Int(0)`) and omits an empty `format`, which is what `screenshot-el`
+      puts on the wire.
+    - `66f072b` enables `DOMSnapshot` and sets go's four include flags
+      (`includePaintOrder`, `includeDOMRects`, `includeBlendedBackgroundColors`,
+      `includeTextColorOpacities`); rodney never calls it, so this is inert.
+    - `202b6c9` adds `Browser#page(opts : Cdp::Target::CreateTarget)` forwarding
+      go's creation options. webb still creates pages by URL (`start`, `open`),
+      which keeps its previous semantics.
+  - `ca27a6b` returns `StreamReader#close`'s CDP error and serves a buffered
+    chunk that arrives with `eof: true` — the `pdf` path. `must_pdf` still
+    ignores a close failure, like go's `MustPDF`.
+  - `d1be487` traces the six page waits at go's `tryTrace` sites
+    (`event`, `request-idle`, `dom-stable`, `stable`, `wait open`,
+    `navigation`) and drops `Element#wait`'s invented span. webb has no trace
+    flag, so nothing user-visible changes.
+  - Shard-only hygiene: `7111045`, `5358a19` (examples repaired, `make
+    check-examples`, docs), `8b8ee0f` (incremental `make examples`), `a1592e1`
+    (plain example output, `trace(true)` in `compare-chromedp/click`),
+    `3c8a821` and `04403b0` (parity hand-off docs).
+- Verification: `make format`, `make lint` (5 files, 0 failures), `make test`
+  (239 examples, 0 failures, 0 pending), `make build`, `make inventory`
+  (tree-sitter), `make parity-verify`, and `make docs-lint` all pass on the new
+  pin.
+
+## Previous pin adoption (`7063829`)
 
 - Moved from `1567742` to `7063829` with `shards update rod`. Nine upstream
   commits, no webb code change needed: the whole suite stayed green (239
@@ -117,7 +171,7 @@
   failures), `make build`, `make inventory` (tree-sitter), `make parity-verify`,
   and `make docs-lint` all pass on the new pin.
 
-## Previous pin adoption (`1567742`)
+## Earlier pin adoption (`1567742`)
 
 - Moved from `35d540d` to `1567742` with `shards update rod`. Nine upstream
   commits, no webb code change needed: every touched path was already exercised
