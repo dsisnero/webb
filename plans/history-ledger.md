@@ -9,8 +9,19 @@
       the `State` mapping, and declare the curated ledger's existing kind
       scope explicitly.
 - [x] **Discover Go named types** — Chiasmus `v0.3.4` adds exactly one
-      source row for this pin, `main.go::type::scopeMode`. The curated ledger
-      keeps type coverage out of scope pending review of `Webb::ScopeMode`.
+      source row for this pin, `main.go::type::scopeMode`. Type coverage stayed
+      out of the curated kind scope until the `Webb::ScopeMode` review closed,
+      below.
+- [x] **Close the `scopeMode` type row** — `type` is now in the curated
+      `# kinds=` scope and `main.go::type::scopeMode` maps to
+      `src/webb.cr::enum::ScopeMode` (`ported`), which is the last row the
+      source manifest demanded. Both sides now agree on all 83 IDs: `make
+      inventory` reports 83 curated items, and the gate fails with
+      `Source items missing from inventory: main.go::type::scopeMode` when the
+      row is absent (verified red before the row, green after). Go declares
+      `type scopeMode int` with an `iota` block; the Crystal enum keeps
+      `Auto`/`Local`/`Global` in that order, so the zero value still means
+      auto-detect.
 - [x] **Expand the ledger to Go function/method declarations** — declaring
       the wider scope first failed strict tree-sitter inventory with 78
       missing functions. Mapping all 78 to Crystal symbols made the same

@@ -76,8 +76,8 @@ PORT_PARSER=tree-sitter make inventory
 its `# kinds=` scope. The scope includes `function`, `method`, `interface`, and
 `type`. Chiasmus `v0.3.4` emits the `type` ID for `scopeMode`.
 The curated `go_port_inventory.tsv` declares
-`# kinds=class,const,function,method,test` and records Crystal port status for
-that scope. When signing off a function or method, update its status and
+`# kinds=class,const,function,method,test,type` and records Crystal port status
+for that scope. When signing off a function or method, update its status and
 `crystal_refs` with evidence from the implementation and specs. The generated
 source manifest records discovery separately.
 

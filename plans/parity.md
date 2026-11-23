@@ -17,15 +17,14 @@ described there.
   errors now match upstream. The rod pin advanced to `0b42a3a` (three additive
   upstream commits: the remaining `!` aliases, the shard's examples spelled with
   them, and tighter example rebuild triggers) with no webb code change needed.
-  The only unblocked work left is the curated `scopeMode` type mapping; the rest
+  The curated ledger now covers `type` too, so every discovered source
+  declaration has a row and there is no unblocked port work left: what remains
   waits on a rod tag or a rodney release.
 - **Next up (in order)** — details and commands in **Open work** below:
-  1. Close the last `missing` source row: the curated `scopeMode` type mapping
-     (docs/ledger only, ~1 file + row).
-  2. Return `rod` to tag tracking once a release tag covers our fixes (v0.8.0
+  1. Return `rod` to tag tracking once a release tag covers our fixes (v0.8.0
      is the newest tag and still predates all of them).
-  3. Ledger re-base when `vendor/rodney` moves off `v0.4.0` (blocked upstream).
-  4. Optional: a Chrome-through-the-proxy example against a real HTTPS origin
+  2. Ledger re-base when `vendor/rodney` moves off `v0.4.0` (blocked upstream).
+  3. Optional: a Chrome-through-the-proxy example against a real HTTPS origin
      (`_proxy` is proven at the socket level today); do it only if someone asks
      — it is not parity work.
 - **Status by area:**
@@ -35,14 +34,14 @@ described there.
   - `spec/webb_spec.cr`: 100 examples. `spec/cli_spec.cr`: 139 examples (22
     process-contract, 3 `_proxy`, 4 `start` session, 110 live-browser). Suite
     total: 239 examples, 0 pending, 0 failures.
-  - Curated ledger: 145 rows across 82 source declarations and 63 upstream
+  - Curated ledger: 146 rows across 83 source declarations and 63 upstream
     tests. All 78 function IDs have Crystal references: **76 `ported`, 0
     `partial`, 2 `intentional_divergence`**. The pin has no receiver method IDs.
-    All 63 upstream test rows are `ported`; no test row is `partial`.
+    All 63 upstream test rows are `ported`; no test row is `partial`. The single
+    `type` row (`scopeMode` → `src/webb.cr::enum::ScopeMode`) is `ported`.
   - Source manifest: 83 declarations at `v0.4.0` (1 class, 3 constants, 78
-    functions, 1 type). Implementation statuses live in the curated ledger;
-    `scopeMode` is the only remaining `missing` row (curated `type` mapping not
-    yet added — **Open work** item 1).
+    functions, 1 type). Implementation statuses live in the curated ledger, and
+    both sides now agree on all 83 IDs: no `missing` or stale row remains.
   - Docs: `README.md` and `docs/*.md` re-verified against the built CLI on
     2026-11-20 (every example captured from a live session; README borrows the
     upstream README's wording and adds the verified sample output). `rumdl
@@ -60,8 +59,9 @@ described there.
     Require `PARITY_DISCOVERY_BACKEND=chiasmus-tree-sitter` in each gate; treat
     a reported `regex` backend as a failed gate.
   - The source manifest and curated ledger declare their kind scopes with
-    `# kinds=`. The curated scope is `class,const,function,method,test`. The
-    source manifest includes `main.go::type::scopeMode` from Chiasmus `v0.3.4`.
+    `# kinds=`. The curated scope is `class,const,function,method,test,type`;
+    the source manifest includes `main.go::type::scopeMode` from Chiasmus
+    `v0.3.4`.
   - Curated `crystal_refs` use the skill's `path::kind::symbol` form (a Chiasmus
     Crystal declaration id, e.g. `src/webb.cr::method::Webb.fatal`), which the
     gate validates for syntax and checks that the file exists. Chiasmus
@@ -96,7 +96,7 @@ described there.
   (`1ad7a6e`).
 - **Gates (2026-11-23, rod `0b42a3a`):** `make format`, `make lint` (5
   files), `make test` (239 examples), `make build` (CLI), `make inventory`
-  (82 curated / 83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4),
+  (83 curated / 83 source / 63 tests on `chiasmus-tree-sitter` v0.3.4),
   `make parity-verify` (`PARITY_SKILL_VERIFIED=1`), and `make docs-lint` all
   passed on the latest shard pin.
 
@@ -116,11 +116,12 @@ Do not batch items: a commit that closes two checkboxes is two features.
 ## Queue
 
 No per-row porting work is queued: every curated row is `ported` or an
-intentional divergence. What remains is the **Open work** list below — one
-unblocked ledger item, one pin item gated on a rod release, and one item blocked
-on a rodney release (plus one optional, non-parity idea). New port work only
-appears when `vendor/rodney` moves off `v0.4.0`; `plans/history-cli.md` records
-how each closed block got there.
+intentional divergence, `type` included. What remains is the **Open work** list
+below — one pin item gated on a rod release, one item blocked on a rodney
+release (plus one optional, non-parity idea). Nothing there is actionable until
+the shard is tagged or upstream rodney moves. New port work only appears when
+`vendor/rodney` moves off `v0.4.0`; `plans/history-cli.md` records how each
+closed block got there.
 
 Gates first, always:
 
@@ -139,20 +140,10 @@ red.
 ## Open work
 
 Ordered; take the first unchecked item. Each is one commit with its gates.
+Nothing here is actionable today: item 1 waits on a rod tag that covers our
+fixes, item 2 on `vendor/rodney` moving off `v0.4.0`, and item 3 is optional,
+non-parity work.
 
-- [ ] **Curated `scopeMode` type mapping** — the source manifest's only
-      `missing` row (`main.go::type::scopeMode`) exists because the curated
-      ledger's `# kinds=` stops at `class,const,function,method,test`. Add
-      `type` to that header and the single row it then demands:
-      `main.go::type::scopeMode` → `type` → `ported` →
-      `src/webb.cr::Webb::ScopeMode`. `make inventory` enforces the row the
-      moment `type` is in scope (the check compares discovered IDs to ledger
-      IDs in both directions), so this is red-then-green without touching
-      `src/`. Record the close in `plans/history-ledger.md` (the entry that left
-      type coverage out of scope). Dry-run verified on 2026-11-20: with `type`
-      in `# kinds=` plus that row the gate reports 83 items tracked; without the
-      row it fails with `Source items missing from inventory:
-      main.go::type::scopeMode`.
 - [ ] **Return `rod` to tag tracking when a release covers our fixes** —
       `shard.yml` pins `branch: main` (locked `0b42a3a`) because no tag has the
       fixes this repo needs. `v0.8.0` is the newest tag and still lacks both

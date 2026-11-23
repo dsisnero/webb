@@ -1,11 +1,12 @@
 # baseline=simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f) parser=tree-sitter scope=declarations+tests
-# kinds=class,const,function,method,test
+# kinds=class,const,function,method,test,type
 # crystal_refs=path::kind::symbol (Chiasmus Crystal id; test rows name the spec file and keep the example in notes)
 # source_id	kind	status	crystal_refs	notes
 main.go::class::State	class	ported	src/webb.cr::class::State	Go struct; tree-sitter labels it class
 main.go::const::scopeAuto	const	ported	src/webb.cr::enum::ScopeMode	scope mode enum member (order matches Go iota)
 main.go::const::scopeGlobal	const	ported	src/webb.cr::enum::ScopeMode	scope mode enum member (order matches Go iota)
 main.go::const::scopeLocal	const	ported	src/webb.cr::enum::ScopeMode	scope mode enum member (order matches Go iota)
+main.go::type::scopeMode	type	ported	src/webb.cr::enum::ScopeMode	Go `type scopeMode int` with iota; Crystal `enum ScopeMode` keeps the same order (Auto=0, Local=1, Global=2) and the auto-detect default; discovery records the enum, not its members
 main.go::function::axValueStr	function	ported	src/webb.cr::method::Webb.ax_value_str	Matches Go: nil is empty, a JSON string is unquoted, and other JSON passes through as raw text. Covered by spec/webb_spec.cr (string, number, boolean, object, nil)
 main.go::function::cmdAXFind	function	ported	src/cli.cr::method::CLI.cmd_ax_find	Matches Go: `--name`/`--role`/`--json`, `unknown flag` usage as `webb ax-find ...`, `No matching nodes` on stderr with exit 1, and `query failed: <cause>` on lookup failure. Covered by spec/cli_spec.cr (name, role, JSON, no match, unknown flag)
 main.go::function::cmdAXNode	function	ported	src/cli.cr::method::CLI.cmd_ax_node	Matches Go: `--json` with any other argument positional, `usage: webb ax-node <selector> [--json]`, and `fatal(getAXNode error)` so a missing selector reports `element not found: <cause>` with exit 2. Covered by spec/cli_spec.cr (detail, JSON, usage, missing element)

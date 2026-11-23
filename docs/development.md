@@ -100,7 +100,9 @@ produce the same outputs for the same inputs. The only allowed differences are:
   - `--show` is accepted, `axtree`/`axfind`/`axnode` aliases exist
 
 The ledger currently records **76 `ported`, 0 `partial`, 2
-`intentional_divergence`** function rows; all 63 upstream tests are `ported`.
+`intentional_divergence`** function rows, the `scopeMode` type row as `ported`,
+and all 63 upstream tests as `ported`: 146 rows covering all 83 discovered
+declarations.
 
 ## Dir Layout
 

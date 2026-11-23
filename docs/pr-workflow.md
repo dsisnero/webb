@@ -88,7 +88,7 @@ port: <one-line feature name>
 - divergences: <any, linked to plans/parity.md>
 
 Gates: make format pass; make lint pass; make test N examples, 0 failures;
-make build; make inventory pass (82 curated / 83 source / 63 tests,
+make build; make inventory pass (83 curated / 83 source / 63 tests,
 chiasmus-tree-sitter).
 
 Upstream: simonw/rodney v0.4.0 (9e7ae93900bcb5316d02623706bc8861feec836f)
