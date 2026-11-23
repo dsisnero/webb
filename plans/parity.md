@@ -48,7 +48,9 @@ described there.
   - Docs: `README.md` and `docs/*.md` re-verified against the built CLI on
     2026-11-20 (every example captured from a live session; README borrows the
     upstream README's wording and adds the verified sample output). `rumdl
-    check README.md docs/` is clean.
+    check README.md docs/` is clean. `CHANGELOG.md` carries release notes for
+    user-visible changes and shard pin moves; per-symbol state stays in the
+    ledgers.
   - CLI harness: `spec/cli_spec.cr` builds `src/main.cr` into
     `temp/cli_spec/webb` once. `run_cli` uses an empty `RODNEY_HOME`;
     `run_cli_live` points at `browser_home/state.json`; `state_home`,

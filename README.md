@@ -66,6 +66,8 @@ Current: Webb Demo - http://127.0.0.1:8765/
   naming conventions, exit codes, Crystal patterns
 - **[PR Workflow](docs/pr-workflow.md)** — Quality gates, PR template, review
   checklist, CI pipeline
+- **[Changelog](CHANGELOG.md)** — Release notes: the initial port, then only
+  cross-cutting changes such as shard pin moves
 
 ## Installation
 

@@ -36,6 +36,8 @@ make clean          # remove temp/ contents and AppleDouble sidecars
 - [Coding Guidelines](docs/coding-guidelines.md)
 - [Testing](docs/testing.md)
 - [PR Workflow](docs/pr-workflow.md)
+- [Changelog](CHANGELOG.md) — release notes; add an entry for cross-cutting
+  changes (new commands or flags, shard pin moves, divergence changes)
 
 ## Principles
 
@@ -131,8 +133,9 @@ must be committed as **one** atomic commit before starting the next feature:
 6. any intentional divergence is documented (in `plans/parity.md` and/or the
    commit message);
 7. user-facing docs keep up: when output, flags, or behavior change, update the
-   examples in `README.md` and the affected `docs/*.md`, and keep them
-   verified against the built CLI (`rumdl check README.md docs/` is clean).
+   examples in `README.md` and the affected `docs/*.md`, add an entry to
+   `CHANGELOG.md`, and keep them verified against the built CLI
+   (`rumdl check README.md docs/` is clean).
 
 ### Commit message
 

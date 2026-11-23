@@ -56,6 +56,9 @@ pin.
 6. **Update the ledger**: mark items as `ported` in
    `plans/inventory/go_port_inventory.tsv`, refresh `plans/parity.md`'s
    **Where we are** block, and re-run `make inventory`
+7. **Update `CHANGELOG.md`** when the change is visible outside the port's own
+   bookkeeping (a new command or flag, a shard pin move, a divergence change);
+   per-symbol progress belongs in the plans, not the changelog
 
 ## Parity Tooling
 
@@ -114,6 +117,7 @@ The ledger currently records **76 `ported`, 0 `partial`, 2
 | `plans/parity.md` | Curated roadmap: **Where we are**, queue, divergences |
 | `plans/history-*.md` | Completed work by area (CLI, ledger, shard pin) |
 | `plans/inventory/` | Parity tracking TSV files |
+| `CHANGELOG.md` | Release notes for user-visible changes (excluded from rumdl) |
 | `scripts/` | Parity gate wrappers over the installed skill |
 | `lib/` | Installed shard dependencies (gitignored) |
 | `temp/` | Temporary files (gitignored) |
