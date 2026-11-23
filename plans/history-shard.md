@@ -1,7 +1,7 @@
 # History — `dsisnero/rod` pin and shard fixes
 
 > webb tracks rod `branch: main` and moves the pin when a fix it needs lands.
-> Current pin: `04403b0` (see `shard.lock`). This file records why each pin
+> Current pin: `0b42a3a` (see `shard.lock`). This file records why each pin
 > mattered; `plans/parity.md` has the current pin and gotchas.
 
 ## `waitstable` and `start` gaps (closed)
@@ -90,7 +90,29 @@
   old pin both fail (`hello therehi`, and the untouched `hi`).
 - Ledger: `cmdInput` and `cmdClear` → `ported`.
 
-## Latest pin adoption (`04403b0`)
+## Latest pin adoption (`0b42a3a`)
+
+- Moved from `04403b0` to `0b42a3a` with `shards update rod`. Three upstream
+  commits, no webb code change needed: the whole suite stayed green (239
+  examples).
+  - `0b42a3a` adds the remaining `!` aliases —
+    `Rod::Util::Launcher.resolve_url!` / `new_managed!` (module-level, because a
+    macro cannot have a receiver), `Launcher#client!`, and `Pool#get!`, which
+    forwards a creation block that `method_missing` cannot. Additive: every
+    alias routes to the same `must_*` helper, so error handling and
+    `trace(true)` output are unchanged. webb calls no `must_*` method at all (it
+    uses the non-bang methods and renders Go's messages from rescued errors), so
+    the aliases are simply unused here.
+  - `d19cb3b` rewrites the shard's 30 examples to the `!` spelling. Examples are
+    not on webb's path.
+  - `5b03818` narrows the shard's example rebuild triggers to each example's
+    own sources plus `src/**/*.cr`. Build tooling only.
+- Verification: `make format`, `make lint` (5 files, 0 failures), `make test`
+  (239 examples, 0 failures, 0 pending), `make build`, `make inventory`
+  (tree-sitter), `make parity-verify`, and `make docs-lint` all pass on the new
+  pin.
+
+## Previous pin adoption (`04403b0`)
 
 - Moved from `7063829` to `04403b0` with `shards update rod`. Sixteen upstream
   commits, no webb code change needed: the whole suite stayed green (239
@@ -144,7 +166,7 @@
   (tree-sitter), `make parity-verify`, and `make docs-lint` all pass on the new
   pin.
 
-## Previous pin adoption (`7063829`)
+## Earlier pin adoption (`7063829`)
 
 - Moved from `1567742` to `7063829` with `shards update rod`. Nine upstream
   commits, no webb code change needed: the whole suite stayed green (239
@@ -171,7 +193,7 @@
   failures), `make build`, `make inventory` (tree-sitter), `make parity-verify`,
   and `make docs-lint` all pass on the new pin.
 
-## Earlier pin adoption (`1567742`)
+## Oldest pin adoption (`1567742`)
 
 - Moved from `35d540d` to `1567742` with `shards update rod`. Nine upstream
   commits, no webb code change needed: every touched path was already exercised

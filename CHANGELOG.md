@@ -14,6 +14,15 @@ documented [differences](README.md#differences-from-rodney).
 
 ### Changed
 
+- Moved the `rod` pin from `04403b0` to `0b42a3a` (`shards update rod`). Three
+  additive upstream commits, no CLI change needed. The shard gains the last `!`
+  aliases (`Rod::Util::Launcher.resolve_url!` / `new_managed!`,
+  `Launcher#client!`, and `Pool#get!`), each routing to the same `must_*`
+  helper; `webb` calls no `must_*` method (it uses the non-bang methods and
+  renders Go's messages from rescued errors), so the aliases are unused here.
+  The other two commits rewrite the shard's own examples and narrow its example
+  rebuild triggers — build tooling only. Pin history:
+  [plans/history-shard.md](plans/history-shard.md).
 - Moved the `rod` pin from `7063829` to `04403b0` (`shards update rod`).
   Sixteen upstream commits, no CLI change needed; the suite stayed green.
   Element-level CDP requests (`describe`, `shape`, `scroll_into_view`,
